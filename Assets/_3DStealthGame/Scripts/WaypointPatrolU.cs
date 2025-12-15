@@ -4,8 +4,6 @@ using UnityEngine;
 using VRC.SDKBase;
 using VRC.Udon;
 
-// Automatically sync this objects position and rotation over network
-[UdonBehaviourSyncMode(BehaviourSyncMode.Continuous)]
 public class WaypointPatrolU : UdonSharpBehaviour
 {
     public float moveSpeed = 1.0f;
