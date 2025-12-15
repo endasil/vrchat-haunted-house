@@ -1,0 +1,71 @@
+###
+# Unity folders and files
+###
+[Aa]ssets/AssetStoreTools*
+[Bb]uild/
+[Ll]ibrary/
+[Ll]ocal[Cc]ache/
+[Oo]bj/
+[Tt]emp/
+[Uu]nityGenerated/
+# file on crash reports
+sysinfo.txt
+# Unity3D generated meta files
+*.pidb.meta
+
+###
+# VS/MD solution and project files
+###
+[Ee]xportedObj/
+*.booproj
+*.csproj
+*.sln
+*.suo
+*.svd
+*.unityproj
+*.user
+*.userprefs
+*.pidb
+.DS_Store
+
+###
+# OS generated
+###
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Icon?
+ehthumbs.db
+Thumbs.db
+
+
+toucan-icon
+にっぽんごで
+/Logs/*.log
+/*.apk
+Logs
+/Logs
+/.vs/Crystal Lands/v16/TestStore/0
+/build - Copy
+/.vs/crystal-lands/v16/*.db-wal
+/.vs/crystal-lands/v16/*.db-shm
+/.vs/crystal-lands/v16/*.opendb
+/.idea
+/Crystal Lands.exe
+/Crystal Lands_Data
+/MonoBleedingEdge
+/Assets/Scenes/debugging.unity
+/Assets/Scenes/debugging.unity.meta
+/Recordings
+/UnityCrashHandler64.exe
+/UnityPlayer.dll
+/UserSettings
+/.vs/Crystal-Lands-2021/v15
+.vs
+/WinPixEventRuntime.dll
+/Assets/Scripts/Debug
+/Packages/Newtonsoft.Json.13.0.1
+/BuildAPK
+/SerializedBuildInfo
