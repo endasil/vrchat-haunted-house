@@ -12,22 +12,29 @@ using VRC.Udon;
 public class UIDisplay : UdonSharpBehaviour
 {
     public PlayerMovementU keyManager;
+    public Snowball snowball;
+    public VRC_Pickup snowballPickup;
     public TMP_Text keyText;
     public Canvas canvas;
     private VRCPlayerApi localPlayer;
 
     void Start()
     {
+
         localPlayer = Networking.LocalPlayer;
+        
+        Debug.Log($"Snowball:  {snowball.name}");
         Debug.Log($"keyText: {keyText}");
         Debug.Log($"keyManager: {keyManager}");
         Debug.Log($"canvas: {canvas}");
+        snowballPickup = snowball.GetComponent<VRC_Pickup>();
     }
     private void LateUpdate()
     {
         if (keyText)
         {
-            keyText.text = $"Keys: {keyManager.keyCount}";
+            // keyText.text = $"Keys: {keyManager.keyCount}";
+            keyText.text = "Snowball held: "+ snowballPickup.IsHeld;
         }
         else
         {
@@ -42,7 +49,6 @@ public class UIDisplay : UdonSharpBehaviour
             var prevPo = canvas.transform.position;
             canvas.transform.position = headData.position + offset;
             canvas.transform.rotation = headData.rotation;
-            Debug.Log($"local player exist and is valid. prevPo: {prevPo} new: {canvas.transform.position}");
         }
     }
 }
