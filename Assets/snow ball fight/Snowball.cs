@@ -21,12 +21,13 @@ public class Snowball : UdonSharpBehaviour
 
     [Header("Network sync")]
     [UdonSynced] private Vector3 syncedImpactPosition;
-    [UdonSynced] private Vector3 syncedImpactNormal; 
-    [UdonSynced] private int syncedImpactCounter = 0;
-    private int lastSeenImpactCounter = 0;
+    [UdonSynced] private Vector3 syncedImpactNormal;
+    [UdonSynced] private int syncedImpactEventId = 0;
+    private int lastHandledImpactEventId = 0;
+    [UdonSynced] private int syncedRespawnEventId = 0;
+    private int lastHandledRespawnEventId = 0;
 
     private bool hasImpacted = false;
-    private bool isHeld = false;
     public VRCPickup pickup;
     private Rigidbody rb;
     private MeshRenderer meshRenderer;
@@ -34,8 +35,9 @@ public class Snowball : UdonSharpBehaviour
 
     private void Start()
     {
-        lastSeenImpactCounter = syncedImpactCounter;
-        Debug.Log($"Startup. LastSeenImpactCounter: {lastSeenImpactCounter}");
+        lastHandledImpactEventId = syncedImpactEventId;
+        lastHandledRespawnEventId = syncedRespawnEventId;
+        Debug.Log($"Startup. LastHandledImpactEventId: {lastHandledImpactEventId}");
 
 
         pickup = (VRCPickup)GetComponent(typeof(VRCPickup));
@@ -68,7 +70,6 @@ public class Snowball : UdonSharpBehaviour
         Debug.LogError("OnPicking");
 
         hasImpacted = false;
-        isHeld = true;
 
         if (rb != null)
         {
@@ -80,10 +81,33 @@ public class Snowball : UdonSharpBehaviour
             physicsCollider.enabled = true;
         }
     }
-
-    public override void OnDrop()
+    public override void OnDeserialization()
     {
-        isHeld = false;
+        Debug.Log("OnDeserialization");
+
+        // Since syncing variables across the network is slower
+        // than sending network events, we can't rely on network events
+        // to create the snowball particles because it is possible that the
+        // function would be called before we have new values for syncedImpactPosition
+        // and normal and it would spawn particles on a previous position. instead
+        // solve it incrementing a synced syncedImpactCounter variable every time we want
+        // to spawn particles and then when a client checks for latest messages on network
+        // it checks if the variable has been updated to a newer value. If it ha
+        // we know we have received a new impact position that particles has not yet been spawned
+        // at yet for this client, and can perform the spawning.
+        if (syncedImpactEventId != lastHandledImpactEventId)
+        {
+            Debug.Log($"syncedImpactEventId: {syncedImpactEventId} LastHandledImpactEventId: {lastHandledImpactEventId}");
+            DisableSnowball();
+            CreateSnowballParticles();
+            lastHandledImpactEventId = syncedImpactEventId;
+        }
+        if (syncedRespawnEventId != lastHandledRespawnEventId)
+        {
+            Debug.Log($"syncedRespawnEventId update: {syncedRespawnEventId} lasHandledRespawnEventId: {lastHandledRespawnEventId}");
+            EnableSnowball();
+            lastHandledRespawnEventId = syncedRespawnEventId;
+        }
     }
 
     private void OnCollisionEnter(Collision collision)
@@ -118,15 +142,15 @@ public class Snowball : UdonSharpBehaviour
             {
                 syncedImpactPosition = collision.contacts[0].point;
                 syncedImpactNormal = collision.contacts[0].normal;
-                syncedImpactCounter++;
+                syncedImpactEventId++;
+                lastHandledImpactEventId = syncedImpactEventId;
             }
         }
 
         DisableSnowball();
-        if (Networking.IsOwner(gameObject))
-        {
-            SendCustomEventDelayedSeconds(nameof(Respawn), respawnDelay);
-        }
+        CreateSnowballParticles();
+        SendCustomEventDelayedSeconds(nameof(Respawn), respawnDelay);
+
     }
 
     public void CreateSnowballParticles()
@@ -135,24 +159,13 @@ public class Snowball : UdonSharpBehaviour
         {
             GameObject particles = Instantiate(impactParticles);
             if (particles != null)
-            {
+            {  
                 particles.transform.position = syncedImpactPosition;
                 particles.transform.rotation = Quaternion.LookRotation(syncedImpactNormal);
             }
         }
     }
 
-    public override void OnDeserialization()
-    {
-        Debug.Log("OnDeserialization");
-        if (syncedImpactCounter != lastSeenImpactCounter)
-        {
-            Debug.Log($"syncedImpactCounter: {syncedImpactCounter} lastSeenImpactCounter: {lastSeenImpactCounter}");
-            DisableSnowball();
-            CreateSnowballParticles();
-            lastSeenImpactCounter = syncedImpactCounter;
-        }
-    }
     public void DisableSnowball()
     {
         if (meshRenderer != null)
@@ -195,20 +208,25 @@ public class Snowball : UdonSharpBehaviour
     }
     public void Respawn()
     {
-        if (Networking.IsOwner(gameObject))
+        if (!Networking.IsOwner(gameObject)) return;
+        
+        transform.position = respawnPosition;
+        transform.rotation = Quaternion.identity;
+
+        if (rb != null)
         {
-            transform.position = respawnPosition;
-            transform.rotation = Quaternion.identity;
-
-            if (rb != null)
-            {
-                rb.velocity = Vector3.zero;
-                rb.angularVelocity = Vector3.zero;
-                rb.isKinematic = true;
-            }
-                
-            SendCustomNetworkEvent(NetworkEventTarget.All, nameof(EnableSnowball));
-
+            rb.velocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
+            rb.isKinematic = true;
         }
+        syncedRespawnEventId++;
+        lastHandledRespawnEventId = syncedRespawnEventId;
+        RequestSerialization();
+        EnableSnowball();
+    }
+
+    public void NetworkEnableSnowball()
+    {
+        SendCustomNetworkEvent(NetworkEventTarget.All, nameof(EnableSnowball));
     }
 }
