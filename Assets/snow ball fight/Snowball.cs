@@ -1,4 +1,6 @@
 ﻿
+using System;
+using TMPro;
 using UdonSharp;
 using UnityEngine;
 using VRC.SDKBase;
@@ -7,6 +9,7 @@ using VRC.Udon.Common.Interfaces;
 
 public class Snowball : UdonSharpBehaviour
 {
+    
     [Header("Respawn Settings")]
     public Vector3 respawnPosition;
     public float respawnDelay = 2f;
@@ -23,27 +26,27 @@ public class Snowball : UdonSharpBehaviour
     [UdonSynced] private Vector3 syncedImpactPosition;
     [UdonSynced] private Vector3 syncedImpactNormal;
     [UdonSynced] private int syncedImpactEventId = 0;
+    // [UdonSynced] private int syncedRespawnEventId = 0;
     private int lastHandledImpactEventId = 0;
-    [UdonSynced] private int syncedRespawnEventId = 0;
-    private int lastHandledRespawnEventId = 0;
+//     private int lastHandledRespawnEventId = 0;
 
     private bool hasImpacted = false;
     public VRCPickup pickup;
     private Rigidbody rb;
     private MeshRenderer meshRenderer;
-
-
+    private bool hasInitialized = false;
+    private TextMeshPro textMeshPro;
     private void Start()
     {
+        textMeshPro = GetComponentInChildren<TextMeshPro>();
         lastHandledImpactEventId = syncedImpactEventId;
-        lastHandledRespawnEventId = syncedRespawnEventId;
-        Debug.Log($"Startup. LastHandledImpactEventId: {lastHandledImpactEventId}");
-
+        // lastHandledRespawnEventId = syncedRespawnEventId;
+        Log($"Startup. LastHandledImpactEventId: {lastHandledImpactEventId}");
 
         pickup = (VRCPickup)GetComponent(typeof(VRCPickup));
         rb = GetComponent<Rigidbody>();
         meshRenderer = GetComponent<MeshRenderer>();
-
+        
         respawnPosition = transform.position;
 
         if (rb != null)
@@ -57,17 +60,21 @@ public class Snowball : UdonSharpBehaviour
             pickupCollider.isTrigger = true;
         }
 
-        if (physicsCollider != null)
+        //if (physicsCollider != null)
+        //{
+        //    physicsCollider.enabled = false;
+        //}
+
+        if (textMeshPro)
         {
-            physicsCollider.enabled = false;
+            textMeshPro.text = $"{meshRenderer.enabled}";
         }
     }
 
     public override void OnPickup()
     {
-        Debug.Log("OnPicking");
-        Debug.LogWarning("OnPicking");
-        Debug.LogError("OnPicking");
+        Log($"OnPicking");
+        Log($"OnPicking");
 
         hasImpacted = false;
 
@@ -81,9 +88,17 @@ public class Snowball : UdonSharpBehaviour
             physicsCollider.enabled = true;
         }
     }
+
+    
     public override void OnDeserialization()
     {
-        Debug.Log("OnDeserialization");
+        if (!hasInitialized)
+        {
+            hasInitialized = true;
+            lastHandledImpactEventId = syncedImpactEventId;
+            Log($"Initialized lastHandledImpactEventId to {syncedImpactEventId}");
+        }
+        // Log($"OnDeserialization");
 
         // Since syncing variables across the network is slower
         // than sending network events, we can't rely on network events
@@ -97,17 +112,17 @@ public class Snowball : UdonSharpBehaviour
         // at yet for this client, and can perform the spawning.
         if (syncedImpactEventId != lastHandledImpactEventId)
         {
-            Debug.Log($"syncedImpactEventId: {syncedImpactEventId} LastHandledImpactEventId: {lastHandledImpactEventId}");
+            Log($"Got network request to disable snowball. syncedImpactEventId: {syncedImpactEventId} LastHandledImpactEventId: {lastHandledImpactEventId} {gameObject.name}");
             DisableSnowball();
             CreateSnowballParticles();
             lastHandledImpactEventId = syncedImpactEventId;
         }
-        if (syncedRespawnEventId != lastHandledRespawnEventId)
-        {
-            Debug.Log($"syncedRespawnEventId update: {syncedRespawnEventId} lasHandledRespawnEventId: {lastHandledRespawnEventId}");
-            EnableSnowball();
-            lastHandledRespawnEventId = syncedRespawnEventId;
-        }
+        //if (syncedRespawnEventId != lastHandledRespawnEventId)
+        //{
+        //    Debug.Log($"syncedRespawnEventId update: {syncedRespawnEventId} lasHandledRespawnEventId: {lastHandledRespawnEventId}");
+        //    EnableSnowball();
+        //    lastHandledRespawnEventId = syncedRespawnEventId;
+        //}
     }
 
     private void OnCollisionEnter(Collision collision)
@@ -115,7 +130,6 @@ public class Snowball : UdonSharpBehaviour
 
         if (!Networking.IsOwner(gameObject))
         {
-            Debug.Log("Not owner, returning");
             return;
         }
 
@@ -146,11 +160,11 @@ public class Snowball : UdonSharpBehaviour
                 lastHandledImpactEventId = syncedImpactEventId;
             }
         }
-
+        Log($"Disabling snowball {gameObject.name} for owner.");
         DisableSnowball();
         CreateSnowballParticles();
         SendCustomEventDelayedSeconds(nameof(Respawn), respawnDelay);
-
+        SendCustomEventDelayedSeconds(nameof(NetworkEnableSnowball), respawnDelay+1);
     }
 
     public void CreateSnowballParticles()
@@ -173,6 +187,11 @@ public class Snowball : UdonSharpBehaviour
             meshRenderer.enabled = false;
         }
 
+        if (textMeshPro)
+        {
+            textMeshPro.text = $"{meshRenderer.enabled}";
+        }
+
         if (physicsCollider != null)
         {
             physicsCollider.enabled = false;
@@ -186,9 +205,14 @@ public class Snowball : UdonSharpBehaviour
 
     public void EnableSnowball()
     {
+        Log("Got request to enable snowball.");
         if (meshRenderer != null)
         {
             meshRenderer.enabled = true;
+            if (textMeshPro)
+            {
+                textMeshPro.text = $"{meshRenderer.enabled}";
+            }
         }
 
         if (pickupCollider != null)
@@ -219,14 +243,35 @@ public class Snowball : UdonSharpBehaviour
             rb.angularVelocity = Vector3.zero;
             rb.isKinematic = true;
         }
-        syncedRespawnEventId++;
-        lastHandledRespawnEventId = syncedRespawnEventId;
+        // syncedRespawnEventId++;
+        // lastHandledRespawnEventId = syncedRespawnEventId;
+        
         RequestSerialization();
-        EnableSnowball();
+        Log("Owner requested serialization after setting snowball to kinematic and velocity to 0");
     }
 
     public void NetworkEnableSnowball()
     {
+        Log("Owner sending network event to enable snowball.");
         SendCustomNetworkEvent(NetworkEventTarget.All, nameof(EnableSnowball));
+    }
+
+    private void Log(string message, string level = "Log")
+    {
+        VRCPlayerApi owner = Networking.GetOwner(gameObject);
+        string ownerName = owner != null ? owner.displayName : "None";
+        string timestamp = DateTime.Now.ToString("HH:mm:ss.fff");
+        string formattedMessage = $"<color=cyan>[{timestamp}]</color>[{gameObject.name}][Owner: {ownerName}] {message}";
+
+        string levelLower = level.ToLower();
+
+        if (levelLower == "warning" || levelLower == "warn")
+            Debug.LogWarning(formattedMessage);
+        else if (levelLower == "error" || levelLower == "err")
+            Debug.LogError(formattedMessage);
+        else if (levelLower == "log")
+            Debug.Log(formattedMessage);
+        else
+            Debug.LogError($"{levelLower} is an unknown log level! " + formattedMessage);
     }
 }

@@ -17,13 +17,14 @@ public class UIDisplay : UdonSharpBehaviour
     public TMP_Text keyText;
     public Canvas canvas;
     private VRCPlayerApi localPlayer;
+    private Collider snowballCollider;
 
     void Start()
     {
-
         localPlayer = Networking.LocalPlayer;
-        
+        snowballCollider = snowball.GetComponent<Collider>();
         Debug.Log($"Snowball:  {snowball.name}");
+        Debug.Log($"Snowball collider enabled:  {snowballCollider.enabled}");
         Debug.Log($"keyText: {keyText}");
         Debug.Log($"keyManager: {keyManager}");
         Debug.Log($"canvas: {canvas}");
@@ -34,7 +35,10 @@ public class UIDisplay : UdonSharpBehaviour
         if (keyText)
         {
             // keyText.text = $"Keys: {keyManager.keyCount}";
-            keyText.text = "Snowball held: "+ snowballPickup.IsHeld;
+            keyText.text = "Snowball pos: "+ snowball.transform.position + "\n";
+            
+            keyText.text += "Snowball collider: " + snowballCollider.enabled;
+            
         }
         else
         {
