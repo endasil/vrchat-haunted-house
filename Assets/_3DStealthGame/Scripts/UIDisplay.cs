@@ -22,32 +22,36 @@ public class UIDisplay : UdonSharpBehaviour
     void Start()
     {
         localPlayer = Networking.LocalPlayer;
-        snowballCollider = snowball.GetComponent<Collider>();
-        Debug.Log($"Snowball:  {snowball.name}");
-        Debug.Log($"Snowball collider enabled:  {snowballCollider.enabled}");
-        Debug.Log($"keyText: {keyText}");
-        Debug.Log($"keyManager: {keyManager}");
-        Debug.Log($"canvas: {canvas}");
-        snowballPickup = snowball.GetComponent<VRC_Pickup>();
-    }
-    private void LateUpdate()
-    {
-        if (keyText)
+        if (!snowball)
         {
-            // keyText.text = $"Keys: {keyManager.keyCount}";
-            keyText.text = "Snowball pos: "+ snowball.transform.position + "\n";
-            
-            keyText.text += "Snowball collider: " + snowballCollider.enabled;
-            
+            // Debug.LogError("No snowball found in UIDisplay.");
         }
         else
         {
-            Debug.LogError("keyText is null!");
+            snowballCollider = snowball.GetComponent<Collider>();
+            snowballPickup = snowball.GetComponent<VRC_Pickup>();
+            Debug.Log($"Snowball:  {snowball.name}");
+            Debug.Log($"Snowball collider enabled:  {snowballCollider.enabled}");
         }
-
+        
+        
+        Debug.Log($"keyText: {keyText}");
+        Debug.Log($"keyManager: {keyManager}");
+        Debug.Log($"canvas: {canvas}");
+        
+        
+    }
+    private void LateUpdate()
+    {
+        if (keyText && snowball)
+        {
+            // keyText.text = $"Keys: {keyManager.keyCount}";
+            keyText.text = "Snowball pos: "+ snowball.transform.position + "\n";
+            keyText.text += "Snowball collider: " + snowballCollider.enabled;
+        }
+        
         if (localPlayer != null && localPlayer.IsValid())
         {
-
             VRCPlayerApi.TrackingData headData = localPlayer.GetTrackingData(VRCPlayerApi.TrackingDataType.Head);
             Vector3 offset = headData.rotation * new Vector3(0.3f, 0.2f, 0.5f);
             var prevPo = canvas.transform.position;

@@ -21,7 +21,6 @@ public class AIPatrolU : UdonSharpBehaviour
 
         // Only the master need to update the navmesh agent position
         agent.enabled = Networking.IsOwner(gameObject);
-        Debug.Log($"Owner of the ghost? {Networking.IsOwner(gameObject)}");
     }
 
     public override void OnOwnershipTransferred(VRCPlayerApi player)

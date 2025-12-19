@@ -9,7 +9,7 @@ using VRC.Udon.Common.Interfaces;
 
 public class Snowball : UdonSharpBehaviour
 {
-    
+
     [Header("Respawn Settings")]
     public Vector3 respawnPosition;
     public float respawnDelay = 2f;
@@ -28,7 +28,7 @@ public class Snowball : UdonSharpBehaviour
     [UdonSynced] private int syncedImpactEventId = 0;
     // [UdonSynced] private int syncedRespawnEventId = 0;
     private int lastHandledImpactEventId = 0;
-//     private int lastHandledRespawnEventId = 0;
+    //     private int lastHandledRespawnEventId = 0;
 
     private bool hasImpacted = false;
     public VRCPickup pickup;
@@ -36,6 +36,7 @@ public class Snowball : UdonSharpBehaviour
     private MeshRenderer meshRenderer;
     private bool hasInitialized = false;
     private TextMeshPro textMeshPro;
+    private Transform textMeshProTransform;
     private void Start()
     {
         textMeshPro = GetComponentInChildren<TextMeshPro>();
@@ -46,7 +47,7 @@ public class Snowball : UdonSharpBehaviour
         pickup = (VRCPickup)GetComponent(typeof(VRCPickup));
         rb = GetComponent<Rigidbody>();
         meshRenderer = GetComponent<MeshRenderer>();
-        
+
         respawnPosition = transform.position;
 
         if (rb != null)
@@ -68,6 +69,8 @@ public class Snowball : UdonSharpBehaviour
         if (textMeshPro)
         {
             textMeshPro.text = $"{meshRenderer.enabled}";
+            textMeshProTransform = textMeshPro.gameObject.transform; // Cache it
+
         }
     }
 
@@ -89,9 +92,10 @@ public class Snowball : UdonSharpBehaviour
         }
     }
 
-    
+
     public override void OnDeserialization()
     {
+        Log("OnDeserialization");
         if (!hasInitialized)
         {
             hasInitialized = true;
@@ -164,7 +168,7 @@ public class Snowball : UdonSharpBehaviour
         DisableSnowball();
         CreateSnowballParticles();
         SendCustomEventDelayedSeconds(nameof(Respawn), respawnDelay);
-        SendCustomEventDelayedSeconds(nameof(NetworkEnableSnowball), respawnDelay+1);
+        SendCustomEventDelayedSeconds(nameof(NetworkEnableSnowball), respawnDelay + 1);
     }
 
     public void CreateSnowballParticles()
@@ -173,7 +177,7 @@ public class Snowball : UdonSharpBehaviour
         {
             GameObject particles = Instantiate(impactParticles);
             if (particles != null)
-            {  
+            {
                 particles.transform.position = syncedImpactPosition;
                 particles.transform.rotation = Quaternion.LookRotation(syncedImpactNormal);
             }
@@ -233,7 +237,7 @@ public class Snowball : UdonSharpBehaviour
     public void Respawn()
     {
         if (!Networking.IsOwner(gameObject)) return;
-        
+
         transform.position = respawnPosition;
         transform.rotation = Quaternion.identity;
 
@@ -245,7 +249,7 @@ public class Snowball : UdonSharpBehaviour
         }
         // syncedRespawnEventId++;
         // lastHandledRespawnEventId = syncedRespawnEventId;
-        
+
         RequestSerialization();
         Log("Owner requested serialization after setting snowball to kinematic and velocity to 0");
     }
@@ -273,5 +277,22 @@ public class Snowball : UdonSharpBehaviour
             Debug.Log(formattedMessage);
         else
             Debug.LogError($"{levelLower} is an unknown log level! " + formattedMessage);
+    }
+
+    public void Update()
+    {
+        if (textMeshPro)
+       {
+           if (Networking.LocalPlayer != null)
+           {
+               Vector3 headPos = Networking.LocalPlayer.GetTrackingData(VRCPlayerApi.TrackingDataType.Head).position;
+               Vector3 direction = headPos - textMeshProTransform.position;
+               direction.y = 0;
+               textMeshProTransform.rotation = Quaternion.LookRotation(-direction);
+
+               // Move text forward (away from camera)
+               textMeshProTransform.position = transform.position - direction.normalized * 0.3f;
+           }
+}
     }
 }
