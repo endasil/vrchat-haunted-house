@@ -201,6 +201,11 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1562923590166768723}
     m_Modifications:
+    - target: {fileID: 1663616807535464192, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
+      propertyPath: _syncMethod
+      value: 3
+      objectReference: {fileID: 0}
     - target: {fileID: 2645299638927291325, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       propertyPath: m_Radius
@@ -254,7 +259,7 @@ PrefabInstance:
     - target: {fileID: 5274068113408490785, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       propertyPath: _syncMethod
-      value: 2
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
@@ -353,11 +358,23 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 7316145273188693712, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
+      propertyPath: serializationData.Prefab
+      value: 
+      objectReference: {fileID: 7316145273188693712, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
     - target: {fileID: 8230765115908009890, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       propertyPath: DisallowTheft
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 9141024273373230668, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
+      propertyPath: serializationData.Prefab
+      value: 
+      objectReference: {fileID: 9141024273373230668, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
     m_RemovedComponents:
     - {fileID: 3802525108482018035, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0, type: 3}
     m_RemovedGameObjects: []
@@ -367,10 +384,6 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 8794298652224187605}
-    - targetCorrespondingSourceObject: {fileID: 4536512299179196994, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
-        type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 9063029860276263453}
     - targetCorrespondingSourceObject: {fileID: 4536512299179196994, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       insertIndex: -1
@@ -400,20 +413,6 @@ MonoBehaviour:
   VolumetricRadius: 0
   EnableSpatialization: 0
   UseAudioSourceVolumeCurve: 0
---- !u!114 &9063029860276263453
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4334649019524466088}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: -1783056023, guid: 661092b4961be7145bfbe56e1e62337b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  AllowCollisionOwnershipTransfer: 0
-  ForceKinematicOnRemote: 0
 --- !u!135 &8478822149468023798
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -449,6 +448,11 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1562923590166768723}
     m_Modifications:
+    - target: {fileID: 1663616807535464192, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
+      propertyPath: _syncMethod
+      value: 3
+      objectReference: {fileID: 0}
     - target: {fileID: 2645299638927291325, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       propertyPath: m_Radius
@@ -502,7 +506,7 @@ PrefabInstance:
     - target: {fileID: 5274068113408490785, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       propertyPath: _syncMethod
-      value: 2
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
@@ -601,11 +605,23 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 7316145273188693712, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
+      propertyPath: serializationData.Prefab
+      value: 
+      objectReference: {fileID: 7316145273188693712, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
     - target: {fileID: 8230765115908009890, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       propertyPath: DisallowTheft
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 9141024273373230668, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
+      propertyPath: serializationData.Prefab
+      value: 
+      objectReference: {fileID: 9141024273373230668, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
     m_RemovedComponents:
     - {fileID: 3802525108482018035, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0, type: 3}
     m_RemovedGameObjects: []
@@ -615,10 +631,6 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 8045929886864083235}
-    - targetCorrespondingSourceObject: {fileID: 4536512299179196994, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
-        type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 9074904751166851184}
     - targetCorrespondingSourceObject: {fileID: 4536512299179196994, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       insertIndex: -1
@@ -648,20 +660,6 @@ MonoBehaviour:
   VolumetricRadius: 0
   EnableSpatialization: 0
   UseAudioSourceVolumeCurve: 0
---- !u!114 &9074904751166851184
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3665079396241530142}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: -1783056023, guid: 661092b4961be7145bfbe56e1e62337b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  AllowCollisionOwnershipTransfer: 0
-  ForceKinematicOnRemote: 0
 --- !u!135 &7447422309493530744
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -849,11 +847,23 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 7316145273188693712, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
+      propertyPath: serializationData.Prefab
+      value: 
+      objectReference: {fileID: 7316145273188693712, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
     - target: {fileID: 8230765115908009890, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       propertyPath: DisallowTheft
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 9141024273373230668, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
+      propertyPath: serializationData.Prefab
+      value: 
+      objectReference: {fileID: 9141024273373230668, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
     m_RemovedComponents:
     - {fileID: 3802525108482018035, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0, type: 3}
     m_RemovedGameObjects: []
@@ -863,10 +873,6 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 7112718882337918310}
-    - targetCorrespondingSourceObject: {fileID: 4536512299179196994, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
-        type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 9030978077073763044}
     - targetCorrespondingSourceObject: {fileID: 4536512299179196994, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       insertIndex: -1
@@ -896,20 +902,6 @@ MonoBehaviour:
   VolumetricRadius: 0
   EnableSpatialization: 0
   UseAudioSourceVolumeCurve: 0
---- !u!114 &9030978077073763044
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2444499809126922816}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: -1783056023, guid: 661092b4961be7145bfbe56e1e62337b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  AllowCollisionOwnershipTransfer: 0
-  ForceKinematicOnRemote: 0
 --- !u!135 &5408544846974270171
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -1103,11 +1095,23 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 7316145273188693712, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
+      propertyPath: serializationData.Prefab
+      value: 
+      objectReference: {fileID: 7316145273188693712, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
     - target: {fileID: 8230765115908009890, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       propertyPath: DisallowTheft
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 9141024273373230668, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
+      propertyPath: serializationData.Prefab
+      value: 
+      objectReference: {fileID: 9141024273373230668, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
     m_RemovedComponents:
     - {fileID: 3802525108482018035, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0, type: 3}
     m_RemovedGameObjects: []
@@ -1117,10 +1121,6 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 8645387196681901573}
-    - targetCorrespondingSourceObject: {fileID: 4536512299179196994, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
-        type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 4750168324192821485}
     - targetCorrespondingSourceObject: {fileID: 4536512299179196994, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       insertIndex: -1
@@ -1150,20 +1150,6 @@ MonoBehaviour:
   VolumetricRadius: 0
   EnableSpatialization: 0
   UseAudioSourceVolumeCurve: 0
---- !u!114 &4750168324192821485
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1243129191864407939}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: -1783056023, guid: 661092b4961be7145bfbe56e1e62337b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  AllowCollisionOwnershipTransfer: 0
-  ForceKinematicOnRemote: 0
 --- !u!135 &4730016780915985532
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -1351,11 +1337,23 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 7316145273188693712, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
+      propertyPath: serializationData.Prefab
+      value: 
+      objectReference: {fileID: 7316145273188693712, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
     - target: {fileID: 8230765115908009890, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       propertyPath: DisallowTheft
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 9141024273373230668, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
+      propertyPath: serializationData.Prefab
+      value: 
+      objectReference: {fileID: 9141024273373230668, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
     m_RemovedComponents:
     - {fileID: 3802525108482018035, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0, type: 3}
     m_RemovedGameObjects: []
@@ -1365,10 +1363,6 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 2693774996950734814}
-    - targetCorrespondingSourceObject: {fileID: 4536512299179196994, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
-        type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 731083633504607829}
     - targetCorrespondingSourceObject: {fileID: 4536512299179196994, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       insertIndex: -1
@@ -1398,20 +1392,6 @@ MonoBehaviour:
   VolumetricRadius: 0
   EnableSpatialization: 0
   UseAudioSourceVolumeCurve: 0
---- !u!114 &731083633504607829
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1132831534201827488}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: -1783056023, guid: 661092b4961be7145bfbe56e1e62337b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  AllowCollisionOwnershipTransfer: 0
-  ForceKinematicOnRemote: 0
 --- !u!135 &4666455171752461984
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -1573,6 +1553,11 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1562923590166768723}
     m_Modifications:
+    - target: {fileID: 1663616807535464192, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
+      propertyPath: _syncMethod
+      value: 3
+      objectReference: {fileID: 0}
     - target: {fileID: 2645299638927291325, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       propertyPath: m_Radius
@@ -1626,7 +1611,7 @@ PrefabInstance:
     - target: {fileID: 5274068113408490785, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       propertyPath: _syncMethod
-      value: 2
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
@@ -1725,11 +1710,23 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 7316145273188693712, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
+      propertyPath: serializationData.Prefab
+      value: 
+      objectReference: {fileID: 7316145273188693712, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
     - target: {fileID: 8230765115908009890, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       propertyPath: DisallowTheft
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 9141024273373230668, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
+      propertyPath: serializationData.Prefab
+      value: 
+      objectReference: {fileID: 9141024273373230668, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
     m_RemovedComponents:
     - {fileID: 3802525108482018035, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0, type: 3}
     m_RemovedGameObjects: []
@@ -1739,10 +1736,6 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 6824616745211424308}
-    - targetCorrespondingSourceObject: {fileID: 4536512299179196994, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
-        type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 948243080193125626}
     - targetCorrespondingSourceObject: {fileID: 4536512299179196994, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       insertIndex: -1
@@ -1772,20 +1765,6 @@ MonoBehaviour:
   VolumetricRadius: 0
   EnableSpatialization: 0
   UseAudioSourceVolumeCurve: 0
---- !u!114 &948243080193125626
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 535456745188867082}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: -1783056023, guid: 661092b4961be7145bfbe56e1e62337b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  AllowCollisionOwnershipTransfer: 0
-  ForceKinematicOnRemote: 0
 --- !u!135 &4764818901244193845
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -1821,6 +1800,11 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1562923590166768723}
     m_Modifications:
+    - target: {fileID: 1663616807535464192, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
+      propertyPath: _syncMethod
+      value: 3
+      objectReference: {fileID: 0}
     - target: {fileID: 2645299638927291325, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       propertyPath: m_Radius
@@ -1874,7 +1858,7 @@ PrefabInstance:
     - target: {fileID: 5274068113408490785, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       propertyPath: _syncMethod
-      value: 2
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
@@ -1973,11 +1957,23 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 7316145273188693712, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
+      propertyPath: serializationData.Prefab
+      value: 
+      objectReference: {fileID: 7316145273188693712, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
     - target: {fileID: 8230765115908009890, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       propertyPath: DisallowTheft
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 9141024273373230668, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
+      propertyPath: serializationData.Prefab
+      value: 
+      objectReference: {fileID: 9141024273373230668, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
     m_RemovedComponents:
     - {fileID: 3802525108482018035, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0, type: 3}
     m_RemovedGameObjects: []
@@ -1987,10 +1983,6 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 7482489645336817132}
-    - targetCorrespondingSourceObject: {fileID: 4536512299179196994, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
-        type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1159431089425482312}
     - targetCorrespondingSourceObject: {fileID: 4536512299179196994, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       insertIndex: -1
@@ -2020,20 +2012,6 @@ MonoBehaviour:
   VolumetricRadius: 0
   EnableSpatialization: 0
   UseAudioSourceVolumeCurve: 0
---- !u!114 &1159431089425482312
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 330370089854908794}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: -1783056023, guid: 661092b4961be7145bfbe56e1e62337b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  AllowCollisionOwnershipTransfer: 0
-  ForceKinematicOnRemote: 0
 --- !u!135 &931205006250703864
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -2069,6 +2047,11 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1562923590166768723}
     m_Modifications:
+    - target: {fileID: 1663616807535464192, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
+      propertyPath: _syncMethod
+      value: 3
+      objectReference: {fileID: 0}
     - target: {fileID: 2645299638927291325, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       propertyPath: m_Radius
@@ -2122,7 +2105,7 @@ PrefabInstance:
     - target: {fileID: 5274068113408490785, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       propertyPath: _syncMethod
-      value: 2
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
@@ -2221,11 +2204,23 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 7316145273188693712, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
+      propertyPath: serializationData.Prefab
+      value: 
+      objectReference: {fileID: 7316145273188693712, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
     - target: {fileID: 8230765115908009890, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       propertyPath: DisallowTheft
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 9141024273373230668, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
+      propertyPath: serializationData.Prefab
+      value: 
+      objectReference: {fileID: 9141024273373230668, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
     m_RemovedComponents:
     - {fileID: 3802525108482018035, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0, type: 3}
     m_RemovedGameObjects: []
@@ -2235,10 +2230,6 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 967217272841612858}
-    - targetCorrespondingSourceObject: {fileID: 4536512299179196994, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
-        type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 7764065779877208402}
     - targetCorrespondingSourceObject: {fileID: 4536512299179196994, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       insertIndex: -1
@@ -2268,20 +2259,6 @@ MonoBehaviour:
   VolumetricRadius: 0
   EnableSpatialization: 0
   UseAudioSourceVolumeCurve: 0
---- !u!114 &7764065779877208402
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 131018510894648770}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: -1783056023, guid: 661092b4961be7145bfbe56e1e62337b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  AllowCollisionOwnershipTransfer: 0
-  ForceKinematicOnRemote: 0
 --- !u!135 &770037176740347562
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -2317,6 +2294,11 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1562923590166768723}
     m_Modifications:
+    - target: {fileID: 1663616807535464192, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
+      propertyPath: _syncMethod
+      value: 3
+      objectReference: {fileID: 0}
     - target: {fileID: 2645299638927291325, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       propertyPath: m_Radius
@@ -2370,7 +2352,7 @@ PrefabInstance:
     - target: {fileID: 5274068113408490785, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       propertyPath: _syncMethod
-      value: 2
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
@@ -2469,6 +2451,12 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 7316145273188693712, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
+      propertyPath: serializationData.Prefab
+      value: 
+      objectReference: {fileID: 7316145273188693712, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
     - target: {fileID: 8230765115908009890, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       propertyPath: DisallowTheft
@@ -2479,6 +2467,12 @@ PrefabInstance:
       propertyPath: allowManipulationWhenEquipped
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 9141024273373230668, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
+      propertyPath: serializationData.Prefab
+      value: 
+      objectReference: {fileID: 9141024273373230668, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
     m_RemovedComponents:
     - {fileID: 3802525108482018035, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0, type: 3}
     m_RemovedGameObjects: []
@@ -2488,10 +2482,6 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 4910576465914537507}
-    - targetCorrespondingSourceObject: {fileID: 4536512299179196994, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
-        type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 6071050485767856450}
     - targetCorrespondingSourceObject: {fileID: 4536512299179196994, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       insertIndex: -1
@@ -2527,20 +2517,6 @@ MonoBehaviour:
   VolumetricRadius: 0
   EnableSpatialization: 0
   UseAudioSourceVolumeCurve: 0
---- !u!114 &6071050485767856450
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8962838464514376715}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: -1783056023, guid: 661092b4961be7145bfbe56e1e62337b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  AllowCollisionOwnershipTransfer: 0
-  ForceKinematicOnRemote: 0
 --- !u!135 &3103773813411242281
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -2570,6 +2546,11 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1562923590166768723}
     m_Modifications:
+    - target: {fileID: 1663616807535464192, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
+      propertyPath: _syncMethod
+      value: 3
+      objectReference: {fileID: 0}
     - target: {fileID: 2645299638927291325, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       propertyPath: m_Radius
@@ -2623,7 +2604,7 @@ PrefabInstance:
     - target: {fileID: 5274068113408490785, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       propertyPath: _syncMethod
-      value: 2
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
@@ -2722,11 +2703,23 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 7316145273188693712, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
+      propertyPath: serializationData.Prefab
+      value: 
+      objectReference: {fileID: 7316145273188693712, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
     - target: {fileID: 8230765115908009890, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       propertyPath: DisallowTheft
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 9141024273373230668, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
+      propertyPath: serializationData.Prefab
+      value: 
+      objectReference: {fileID: 9141024273373230668, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
     m_RemovedComponents:
     - {fileID: 3802525108482018035, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0, type: 3}
     m_RemovedGameObjects: []
@@ -2736,10 +2729,6 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 3440941348466332229}
-    - targetCorrespondingSourceObject: {fileID: 4536512299179196994, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
-        type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 355001399345020187}
     - targetCorrespondingSourceObject: {fileID: 4536512299179196994, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       insertIndex: -1
@@ -2775,20 +2764,6 @@ MonoBehaviour:
   VolumetricRadius: 0
   EnableSpatialization: 0
   UseAudioSourceVolumeCurve: 0
---- !u!114 &355001399345020187
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8576790524387679974}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: -1783056023, guid: 661092b4961be7145bfbe56e1e62337b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  AllowCollisionOwnershipTransfer: 0
-  ForceKinematicOnRemote: 0
 --- !u!135 &7258842645219534853
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -2818,6 +2793,11 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1562923590166768723}
     m_Modifications:
+    - target: {fileID: 1663616807535464192, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
+      propertyPath: _syncMethod
+      value: 3
+      objectReference: {fileID: 0}
     - target: {fileID: 2645299638927291325, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       propertyPath: m_Radius
@@ -2871,7 +2851,7 @@ PrefabInstance:
     - target: {fileID: 5274068113408490785, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       propertyPath: _syncMethod
-      value: 2
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
@@ -2970,11 +2950,23 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 7316145273188693712, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
+      propertyPath: serializationData.Prefab
+      value: 
+      objectReference: {fileID: 7316145273188693712, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
     - target: {fileID: 8230765115908009890, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       propertyPath: DisallowTheft
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 9141024273373230668, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
+      propertyPath: serializationData.Prefab
+      value: 
+      objectReference: {fileID: 9141024273373230668, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
     m_RemovedComponents:
     - {fileID: 3802525108482018035, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0, type: 3}
     m_RemovedGameObjects: []
@@ -2984,10 +2976,6 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 4754502051375271000}
-    - targetCorrespondingSourceObject: {fileID: 4536512299179196994, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
-        type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 6628286821692836536}
     - targetCorrespondingSourceObject: {fileID: 4536512299179196994, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       insertIndex: -1
@@ -3023,20 +3011,6 @@ MonoBehaviour:
   VolumetricRadius: 0
   EnableSpatialization: 0
   UseAudioSourceVolumeCurve: 0
---- !u!114 &6628286821692836536
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7793109338310555275}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: -1783056023, guid: 661092b4961be7145bfbe56e1e62337b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  AllowCollisionOwnershipTransfer: 0
-  ForceKinematicOnRemote: 0
 --- !u!135 &2167744738671135692
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -3066,6 +3040,11 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1562923590166768723}
     m_Modifications:
+    - target: {fileID: 1663616807535464192, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
+      propertyPath: _syncMethod
+      value: 3
+      objectReference: {fileID: 0}
     - target: {fileID: 2645299638927291325, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       propertyPath: m_Radius
@@ -3119,7 +3098,7 @@ PrefabInstance:
     - target: {fileID: 5274068113408490785, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       propertyPath: _syncMethod
-      value: 2
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
@@ -3218,11 +3197,23 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 7316145273188693712, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
+      propertyPath: serializationData.Prefab
+      value: 
+      objectReference: {fileID: 7316145273188693712, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
     - target: {fileID: 8230765115908009890, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       propertyPath: DisallowTheft
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 9141024273373230668, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
+      propertyPath: serializationData.Prefab
+      value: 
+      objectReference: {fileID: 9141024273373230668, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
     m_RemovedComponents:
     - {fileID: 3802525108482018035, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0, type: 3}
     m_RemovedGameObjects: []
@@ -3232,10 +3223,6 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 358627313895587438}
-    - targetCorrespondingSourceObject: {fileID: 4536512299179196994, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
-        type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 7072873897560761469}
     - targetCorrespondingSourceObject: {fileID: 4536512299179196994, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       insertIndex: -1
@@ -3271,20 +3258,6 @@ MonoBehaviour:
   VolumetricRadius: 0
   EnableSpatialization: 0
   UseAudioSourceVolumeCurve: 0
---- !u!114 &7072873897560761469
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7787364839649236989}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: -1783056023, guid: 661092b4961be7145bfbe56e1e62337b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  AllowCollisionOwnershipTransfer: 0
-  ForceKinematicOnRemote: 0
 --- !u!135 &6439843211513733836
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -3314,6 +3287,11 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1562923590166768723}
     m_Modifications:
+    - target: {fileID: 1663616807535464192, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
+      propertyPath: _syncMethod
+      value: 3
+      objectReference: {fileID: 0}
     - target: {fileID: 2645299638927291325, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       propertyPath: m_Radius
@@ -3367,7 +3345,7 @@ PrefabInstance:
     - target: {fileID: 5274068113408490785, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       propertyPath: _syncMethod
-      value: 2
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
@@ -3466,11 +3444,23 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 7316145273188693712, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
+      propertyPath: serializationData.Prefab
+      value: 
+      objectReference: {fileID: 7316145273188693712, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
     - target: {fileID: 8230765115908009890, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       propertyPath: DisallowTheft
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 9141024273373230668, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
+      propertyPath: serializationData.Prefab
+      value: 
+      objectReference: {fileID: 9141024273373230668, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
     m_RemovedComponents:
     - {fileID: 3802525108482018035, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0, type: 3}
     m_RemovedGameObjects: []
@@ -3480,10 +3470,6 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 3827347169150140316}
-    - targetCorrespondingSourceObject: {fileID: 4536512299179196994, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
-        type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 2710737014283140661}
     - targetCorrespondingSourceObject: {fileID: 4536512299179196994, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       insertIndex: -1
@@ -3519,20 +3505,6 @@ MonoBehaviour:
   VolumetricRadius: 0
   EnableSpatialization: 0
   UseAudioSourceVolumeCurve: 0
---- !u!114 &2710737014283140661
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7490064838097159792}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: -1783056023, guid: 661092b4961be7145bfbe56e1e62337b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  AllowCollisionOwnershipTransfer: 0
-  ForceKinematicOnRemote: 0
 --- !u!135 &1271548370923641270
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -3562,6 +3534,11 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1562923590166768723}
     m_Modifications:
+    - target: {fileID: 1663616807535464192, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
+      propertyPath: _syncMethod
+      value: 3
+      objectReference: {fileID: 0}
     - target: {fileID: 2645299638927291325, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       propertyPath: m_Radius
@@ -3615,7 +3592,7 @@ PrefabInstance:
     - target: {fileID: 5274068113408490785, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       propertyPath: _syncMethod
-      value: 2
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
@@ -3714,11 +3691,23 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 7316145273188693712, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
+      propertyPath: serializationData.Prefab
+      value: 
+      objectReference: {fileID: 7316145273188693712, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
     - target: {fileID: 8230765115908009890, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       propertyPath: DisallowTheft
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 9141024273373230668, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
+      propertyPath: serializationData.Prefab
+      value: 
+      objectReference: {fileID: 9141024273373230668, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
     m_RemovedComponents:
     - {fileID: 3802525108482018035, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0, type: 3}
     m_RemovedGameObjects: []
@@ -3728,10 +3717,6 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 373861630423344976}
-    - targetCorrespondingSourceObject: {fileID: 4536512299179196994, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
-        type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 6428023185928962634}
     - targetCorrespondingSourceObject: {fileID: 4536512299179196994, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       insertIndex: -1
@@ -3767,20 +3752,6 @@ MonoBehaviour:
   VolumetricRadius: 0
   EnableSpatialization: 0
   UseAudioSourceVolumeCurve: 0
---- !u!114 &6428023185928962634
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5057789558139441649}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: -1783056023, guid: 661092b4961be7145bfbe56e1e62337b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  AllowCollisionOwnershipTransfer: 0
-  ForceKinematicOnRemote: 0
 --- !u!135 &5312272388661442391
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -3810,6 +3781,11 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1562923590166768723}
     m_Modifications:
+    - target: {fileID: 1663616807535464192, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
+      propertyPath: _syncMethod
+      value: 3
+      objectReference: {fileID: 0}
     - target: {fileID: 2645299638927291325, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       propertyPath: m_Radius
@@ -3863,7 +3839,7 @@ PrefabInstance:
     - target: {fileID: 5274068113408490785, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       propertyPath: _syncMethod
-      value: 2
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
@@ -3962,11 +3938,23 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 7316145273188693712, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
+      propertyPath: serializationData.Prefab
+      value: 
+      objectReference: {fileID: 7316145273188693712, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
     - target: {fileID: 8230765115908009890, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       propertyPath: DisallowTheft
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 9141024273373230668, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
+      propertyPath: serializationData.Prefab
+      value: 
+      objectReference: {fileID: 9141024273373230668, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
+        type: 3}
     m_RemovedComponents:
     - {fileID: 3802525108482018035, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0, type: 3}
     m_RemovedGameObjects: []
@@ -3976,10 +3964,6 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 7053957737321017218}
-    - targetCorrespondingSourceObject: {fileID: 4536512299179196994, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
-        type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 4307495491712287015}
     - targetCorrespondingSourceObject: {fileID: 4536512299179196994, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       insertIndex: -1
@@ -4015,20 +3999,6 @@ MonoBehaviour:
   VolumetricRadius: 0
   EnableSpatialization: 0
   UseAudioSourceVolumeCurve: 0
---- !u!114 &4307495491712287015
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5010560632567817009}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: -1783056023, guid: 661092b4961be7145bfbe56e1e62337b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  AllowCollisionOwnershipTransfer: 0
-  ForceKinematicOnRemote: 0
 --- !u!135 &1959847340688618782
 SphereCollider:
   m_ObjectHideFlags: 0

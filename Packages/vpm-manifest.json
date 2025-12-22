@@ -5,6 +5,12 @@
     },
     "com.vrchat.worlds": {
       "version": "3.10.1"
+    },
+    "com.mmmaellon.smartobjectsync": {
+      "version": "3.10.16"
+    },
+    "bobystarvrc.opennid": {
+      "version": "1.0.0"
     }
   },
   "locked": {
@@ -21,6 +27,18 @@
     "com.vrchat.base": {
       "version": "3.10.1",
       "dependencies": {}
+    },
+    "com.mmmaellon.smartobjectsync": {
+      "version": "3.10.16",
+      "dependencies": {
+        "com.vrchat.worlds": "^3.4.0"
+      }
+    },
+    "bobystarvrc.opennid": {
+      "version": "1.0.0",
+      "dependencies": {
+        "com.vrchat.worlds": ">=3.7.4"
+      }
     }
   }
 }

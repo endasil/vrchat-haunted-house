@@ -1,5 +1,6 @@
 ﻿
 using System;
+using MMMaellon;
 using TMPro;
 using UdonSharp;
 using UnityEngine;
@@ -7,6 +8,8 @@ using VRC.SDKBase;
 using VRC.SDK3.Components;
 using VRC.Udon.Common.Interfaces;
 
+
+[UdonBehaviourSyncMode(BehaviourSyncMode.Manual)]
 public class Snowball : UdonSharpBehaviour
 {
 
@@ -25,7 +28,7 @@ public class Snowball : UdonSharpBehaviour
     [Header("Network sync")]
     [UdonSynced] private Vector3 syncedImpactPosition;
     [UdonSynced] private Vector3 syncedImpactNormal;
-    [UdonSynced] private int syncedImpactEventId = 0;
+    [UdonSynced] private int syncedImpactEventId;
     // [UdonSynced] private int syncedRespawnEventId = 0;
     private int lastHandledImpactEventId = 0;
     //     private int lastHandledRespawnEventId = 0;
@@ -37,6 +40,8 @@ public class Snowball : UdonSharpBehaviour
     private bool hasInitialized = false;
     private TextMeshPro textMeshPro;
     private Transform textMeshProTransform;
+    private SmartObjectSync smartObjectSync;
+
     private void Start()
     {
         textMeshPro = GetComponentInChildren<TextMeshPro>();
@@ -44,18 +49,18 @@ public class Snowball : UdonSharpBehaviour
         // lastHandledRespawnEventId = syncedRespawnEventId;
         Log($"Startup. LastHandledImpactEventId: {lastHandledImpactEventId}");
 
-        pickup = (VRCPickup)GetComponent(typeof(VRCPickup));
+        pickup = GetComponent<VRCPickup>();
         rb = GetComponent<Rigidbody>();
         meshRenderer = GetComponent<MeshRenderer>();
 
         respawnPosition = transform.position;
 
-        if (rb != null)
+        if (rb)
         {
             rb.isKinematic = true;
         }
 
-        if (pickupCollider != null)
+        if (pickupCollider)
         {
             pickupCollider.enabled = true;
             pickupCollider.isTrigger = true;
@@ -66,9 +71,9 @@ public class Snowball : UdonSharpBehaviour
         //    physicsCollider.enabled = false;
         //}
 
+        smartObjectSync = GetComponent<SmartObjectSync>();
         if (textMeshPro)
         {
-            textMeshPro.text = $"{meshRenderer.enabled}";
             textMeshProTransform = textMeshPro.gameObject.transform; // Cache it
 
         }
@@ -92,10 +97,57 @@ public class Snowball : UdonSharpBehaviour
         }
     }
 
+    public override void OnPlayerCollisionEnter(VRCPlayerApi vrcPlayer)
+    {
+        Log($"OnPlayerCollisionEnter: {vrcPlayer.displayName}");
 
+        if (!Networking.IsOwner(gameObject))
+        {
+            return;
+        }
+
+        if (pickup.IsHeld)
+        {
+            return;
+        }
+
+        if (hasImpacted)
+        {
+            return;
+        }
+
+        if (rb.velocity.magnitude < minImpactVelocity)
+        {
+            return;
+        }
+
+        hasImpacted = true;
+
+        if (impactParticles != null)
+        {
+            // No impact point info available here, so just use current position and make the particles fly opposite to velocity
+            syncedImpactPosition = transform.position;
+            syncedImpactNormal = -rb.velocity.normalized;
+            syncedImpactEventId++;
+            lastHandledImpactEventId = syncedImpactEventId;
+            RequestSerialization();
+            Debug.Log($"OnPlayerCollision: Request serialization syncedImpactEventId: {lastHandledImpactEventId} ");
+        }
+        Log($"Disabling snowball {gameObject.name} for owner.");
+        DisableSnowball();
+        CreateSnowballParticles();
+        SendCustomEventDelayedSeconds(nameof(Respawn), respawnDelay);
+        SendCustomEventDelayedSeconds(nameof(NetworkEnableSnowball), respawnDelay + 1);
+
+    }
+
+    public override void OnDrop()
+    {
+        Log($"OnDrop - Owner: {Networking.IsOwner(gameObject)}, IsKinematic: {rb.isKinematic}");
+    }
     public override void OnDeserialization()
     {
-        Log("OnDeserialization");
+        //  Log("OnDeserialization");
         if (!hasInitialized)
         {
             hasInitialized = true;
@@ -114,9 +166,9 @@ public class Snowball : UdonSharpBehaviour
         // it checks if the variable has been updated to a newer value. If it ha
         // we know we have received a new impact position that particles has not yet been spawned
         // at yet for this client, and can perform the spawning.
-        if (syncedImpactEventId != lastHandledImpactEventId)
+        if (syncedImpactEventId > lastHandledImpactEventId)
         {
-            Log($"Got network request to disable snowball. syncedImpactEventId: {syncedImpactEventId} LastHandledImpactEventId: {lastHandledImpactEventId} {gameObject.name}");
+            Log($"OnDeserialization: Got network request to disable snowball. syncedImpactEventId: {syncedImpactEventId} LastHandledImpactEventId: {lastHandledImpactEventId} {gameObject.name}");
             DisableSnowball();
             CreateSnowballParticles();
             lastHandledImpactEventId = syncedImpactEventId;
@@ -147,10 +199,10 @@ public class Snowball : UdonSharpBehaviour
             return;
         }
 
-        if (collision.relativeVelocity.magnitude < minImpactVelocity)
-        {
-            return;
-        }
+        //if (collision.relativeVelocity.magnitude < minImpactVelocity)
+        //{
+        //    return;
+        //}
 
         hasImpacted = true;
 
@@ -162,6 +214,8 @@ public class Snowball : UdonSharpBehaviour
                 syncedImpactNormal = collision.contacts[0].normal;
                 syncedImpactEventId++;
                 lastHandledImpactEventId = syncedImpactEventId;
+                RequestSerialization();
+                Debug.Log($"Request serialization syncedImpactEventId: {lastHandledImpactEventId} ");
             }
         }
         Log($"Disabling snowball {gameObject.name} for owner.");
@@ -171,6 +225,10 @@ public class Snowball : UdonSharpBehaviour
         SendCustomEventDelayedSeconds(nameof(NetworkEnableSnowball), respawnDelay + 1);
     }
 
+    public override void OnOwnershipTransferred(VRCPlayerApi player)
+    {
+        Log($"Ownership transferred to: {player.displayName}");
+    }
     public void CreateSnowballParticles()
     {
         if (impactParticles != null)
@@ -209,7 +267,7 @@ public class Snowball : UdonSharpBehaviour
 
     public void EnableSnowball()
     {
-        Log("Got request to enable snowball.");
+        Log("Got call to to enable snowball.");
         if (meshRenderer != null)
         {
             meshRenderer.enabled = true;
@@ -238,25 +296,34 @@ public class Snowball : UdonSharpBehaviour
     {
         if (!Networking.IsOwner(gameObject)) return;
 
-        transform.position = respawnPosition;
-        transform.rotation = Quaternion.identity;
+        //transform.position = respawnPosition;
+        //transform.rotation = Quaternion.identity;
 
-        if (rb != null)
+        //if (rb != null)
+        //{
+        //    rb.velocity = Vector3.zero;
+        //    rb.angularVelocity = Vector3.zero;
+        //}
+
+        if (smartObjectSync)
         {
-            rb.velocity = Vector3.zero;
-            rb.angularVelocity = Vector3.zero;
+            smartObjectSync.Respawn();
             rb.isKinematic = true;
+
         }
+        else
+        {
+            Log("No SmartObjectSync on snowball.", "Err");
+        }
+                
         // syncedRespawnEventId++;
         // lastHandledRespawnEventId = syncedRespawnEventId;
-
-        RequestSerialization();
-        Log("Owner requested serialization after setting snowball to kinematic and velocity to 0");
+        Log("Respawn");
     }
 
     public void NetworkEnableSnowball()
     {
-        Log("Owner sending network event to enable snowball.");
+        Log("NetworkEnableSnowball: Owner sending network event to enable snowball.");
         SendCustomNetworkEvent(NetworkEventTarget.All, nameof(EnableSnowball));
     }
 
@@ -281,18 +348,29 @@ public class Snowball : UdonSharpBehaviour
 
     public void Update()
     {
-        if (textMeshPro)
-       {
-           if (Networking.LocalPlayer != null)
-           {
-               Vector3 headPos = Networking.LocalPlayer.GetTrackingData(VRCPlayerApi.TrackingDataType.Head).position;
-               Vector3 direction = headPos - textMeshProTransform.position;
-               direction.y = 0;
-               textMeshProTransform.rotation = Quaternion.LookRotation(-direction);
+        if (textMeshPro && textMeshProTransform)
+        {
+            string displayText = "";
 
-               // Move text forward (away from camera)
-               textMeshProTransform.position = transform.position - direction.normalized * 0.3f;
-           }
-}
+            if (rb.velocity.magnitude > 0)
+            {
+                displayText += $"velocity: {rb.velocity}\n";
+            }
+
+            displayText += $"kinematic: {rb.isKinematic}";
+            textMeshPro.text = displayText;
+
+            if (Networking.LocalPlayer != null)
+            {
+                Vector3 headPos = Networking.LocalPlayer.GetTrackingData(VRCPlayerApi.TrackingDataType.Head).position;
+                Vector3 direction = headPos - textMeshProTransform.position;
+                direction.y = 0;
+                textMeshProTransform.rotation = Quaternion.LookRotation(-direction);
+                // Position text offset from camera, with minimum height
+                Vector3 targetPos = transform.position - direction.normalized * 0.8f;
+                targetPos.y = Mathf.Max(targetPos.y, transform.position.y + 0.4f);
+                textMeshProTransform.position = targetPos;
+            }
+        }
     }
 }
