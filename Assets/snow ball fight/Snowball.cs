@@ -1,15 +1,18 @@
 ﻿
-using System;
 using MMMaellon;
+
+using System;
 using TMPro;
+
 using UdonSharp;
+
 using UnityEngine;
-using VRC.SDKBase;
+
 using VRC.SDK3.Components;
+using VRC.SDKBase;
+using VRC.Udon.Common;
 using VRC.Udon.Common.Interfaces;
 
-
-[UdonBehaviourSyncMode(BehaviourSyncMode.Manual)]
 public class Snowball : UdonSharpBehaviour
 {
 
@@ -29,9 +32,7 @@ public class Snowball : UdonSharpBehaviour
     [UdonSynced] private Vector3 syncedImpactPosition;
     [UdonSynced] private Vector3 syncedImpactNormal;
     [UdonSynced] private int syncedImpactEventId;
-    // [UdonSynced] private int syncedRespawnEventId = 0;
     private int lastHandledImpactEventId = 0;
-    //     private int lastHandledRespawnEventId = 0;
 
     private bool hasImpacted = false;
     public VRCPickup pickup;
@@ -41,12 +42,12 @@ public class Snowball : UdonSharpBehaviour
     private TextMeshPro textMeshPro;
     private Transform textMeshProTransform;
     private SmartObjectSync smartObjectSync;
-
+    private float last_send_time = -1001;
     private void Start()
     {
+
         textMeshPro = GetComponentInChildren<TextMeshPro>();
         lastHandledImpactEventId = syncedImpactEventId;
-        // lastHandledRespawnEventId = syncedRespawnEventId;
         Log($"Startup. LastHandledImpactEventId: {lastHandledImpactEventId}");
 
         pickup = GetComponent<VRCPickup>();
@@ -54,7 +55,7 @@ public class Snowball : UdonSharpBehaviour
         meshRenderer = GetComponent<MeshRenderer>();
 
         respawnPosition = transform.position;
-
+        
         if (rb)
         {
             rb.isKinematic = true;
@@ -72,6 +73,7 @@ public class Snowball : UdonSharpBehaviour
         //}
 
         smartObjectSync = GetComponent<SmartObjectSync>();
+       
         if (textMeshPro)
         {
             textMeshProTransform = textMeshPro.gameObject.transform; // Cache it
@@ -81,7 +83,6 @@ public class Snowball : UdonSharpBehaviour
 
     public override void OnPickup()
     {
-        Log($"OnPicking");
         Log($"OnPicking");
 
         hasImpacted = false;
@@ -143,42 +144,59 @@ public class Snowball : UdonSharpBehaviour
 
     public override void OnDrop()
     {
-        Log($"OnDrop - Owner: {Networking.IsOwner(gameObject)}, IsKinematic: {rb.isKinematic}");
+        SendCustomNetworkEvent(NetworkEventTarget.All, nameof(SetNonKinematic));
+
+
+        if (!Networking.IsOwner(gameObject))
+            Networking.SetOwner(Networking.LocalPlayer, gameObject);
+
+        rb.isKinematic = false;
+
+        // FORCE SmartObjectSync into a physics state
+        smartObjectSync.state = MMMaellon.SmartObjectSync.STATE_INTERPOLATING;
+
+        // make it actually send a snapshot
+        smartObjectSync.Serialize();
     }
-    public override void OnDeserialization()
+    public void SetNonKinematic()
     {
-        //  Log("OnDeserialization");
+        rb.isKinematic = false;
+    }
+    public override void OnDeserialization(DeserializationResult result)
+    {
+        Log("OnDeserialization");
         if (!hasInitialized)
         {
             hasInitialized = true;
             lastHandledImpactEventId = syncedImpactEventId;
             Log($"Initialized lastHandledImpactEventId to {syncedImpactEventId}");
         }
-        // Log($"OnDeserialization");
 
-        // Since syncing variables across the network is slower
-        // than sending network events, we can't rely on network events
-        // to create the snowball particles because it is possible that the
-        // function would be called before we have new values for syncedImpactPosition
-        // and normal and it would spawn particles on a previous position. instead
-        // solve it incrementing a synced syncedImpactCounter variable every time we want
-        // to spawn particles and then when a client checks for latest messages on network
-        // it checks if the variable has been updated to a newer value. If it ha
-        // we know we have received a new impact position that particles has not yet been spawned
-        // at yet for this client, and can perform the spawning.
-        if (syncedImpactEventId > lastHandledImpactEventId)
+        if (result.sendTime < last_send_time)
+        {
+
+        }     
+            
+            // Log($"OnDeserialization");
+
+            // Since syncing variables across the network is slower
+            // than sending network events, we can't rely on network events
+            // to create the snowball particles because it is possible that the
+            // function would be called before we have new values for syncedImpactPosition
+            // and normal and it would spawn particles on a previous position. instead
+            // solve it incrementing a synced syncedImpactCounter variable every time we want
+            // to spawn particles and then when a client checks for latest messages on network
+            // it checks if the variable has been updated to a newer value. If it ha
+            // we know we have received a new impact position that particles has not yet been spawned
+            // at yet for this client, and can perform the spawning.
+            if (syncedImpactEventId > lastHandledImpactEventId)
         {
             Log($"OnDeserialization: Got network request to disable snowball. syncedImpactEventId: {syncedImpactEventId} LastHandledImpactEventId: {lastHandledImpactEventId} {gameObject.name}");
             DisableSnowball();
             CreateSnowballParticles();
             lastHandledImpactEventId = syncedImpactEventId;
         }
-        //if (syncedRespawnEventId != lastHandledRespawnEventId)
-        //{
-        //    Debug.Log($"syncedRespawnEventId update: {syncedRespawnEventId} lasHandledRespawnEventId: {lastHandledRespawnEventId}");
-        //    EnableSnowball();
-        //    lastHandledRespawnEventId = syncedRespawnEventId;
-        //}
+       
     }
 
     private void OnCollisionEnter(Collision collision)
@@ -215,20 +233,24 @@ public class Snowball : UdonSharpBehaviour
                 syncedImpactEventId++;
                 lastHandledImpactEventId = syncedImpactEventId;
                 RequestSerialization();
-                Debug.Log($"Request serialization syncedImpactEventId: {lastHandledImpactEventId} ");
+                Log($"Request serialization syncedImpactEventId: {lastHandledImpactEventId} ");
             }
+        }
+        else
+        {
+            Log("No impact particles assigned!", "error");
         }
         Log($"Disabling snowball {gameObject.name} for owner.");
         DisableSnowball();
         CreateSnowballParticles();
+        Log($"Sending network event to enable snowball in {respawnDelay} seconds.");
         SendCustomEventDelayedSeconds(nameof(Respawn), respawnDelay);
-        SendCustomEventDelayedSeconds(nameof(NetworkEnableSnowball), respawnDelay + 1);
+        float enableDelay = respawnDelay + 1;
+        
+        Log($"Sending network event to enable snowball in {respawnDelay} seconds.");
+        SendCustomEventDelayedSeconds(nameof(NetworkEnableSnowball), enableDelay);
     }
 
-    public override void OnOwnershipTransferred(VRCPlayerApi player)
-    {
-        Log($"Ownership transferred to: {player.displayName}");
-    }
     public void CreateSnowballParticles()
     {
         if (impactParticles != null)
@@ -296,19 +318,17 @@ public class Snowball : UdonSharpBehaviour
     {
         if (!Networking.IsOwner(gameObject)) return;
 
-        //transform.position = respawnPosition;
-        //transform.rotation = Quaternion.identity;
-
-        //if (rb != null)
-        //{
-        //    rb.velocity = Vector3.zero;
-        //    rb.angularVelocity = Vector3.zero;
-        //}
-
+      
         if (smartObjectSync)
         {
-            smartObjectSync.Respawn();
-            rb.isKinematic = true;
+            Log("Teleportwith transform.position");
+            transform.transform.position = respawnPosition;
+            smartObjectSync.TeleportToWorldSpace(respawnPosition, Quaternion.identity, Vector3.zero, Vector3.zero);
+            //Log($"smartObjectSync.Respawn: {smartObjectSync.spawnPos}\n" +
+            //    $"from start {respawnPosition}");
+
+            //smartObjectSync.Respawn();
+            //   rb.isKinematic = true;
 
         }
         else
@@ -316,8 +336,6 @@ public class Snowball : UdonSharpBehaviour
             Log("No SmartObjectSync on snowball.", "Err");
         }
                 
-        // syncedRespawnEventId++;
-        // lastHandledRespawnEventId = syncedRespawnEventId;
         Log("Respawn");
     }
 
@@ -354,10 +372,11 @@ public class Snowball : UdonSharpBehaviour
 
             if (rb.velocity.magnitude > 0)
             {
-                displayText += $"velocity: {rb.velocity}\n";
+                // displayText += $"velocity: {rb.velocity}\n";
             }
 
-            displayText += $"kinematic: {rb.isKinematic}";
+            //displayText += $"kinematic: {rb.isKinematic}";
+            displayText += gameObject.name;
             textMeshPro.text = displayText;
 
             if (Networking.LocalPlayer != null)
