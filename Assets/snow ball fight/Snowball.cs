@@ -14,7 +14,8 @@ using VRC.Udon.Common;
 using VRC.Udon.Common.Interfaces;
 
 // Inherit from SmartObjectSyncListener so we can subscribe to OnChangeState
-// events from SmartObjectSync.
+// events from SmartObjectSync. This way we can switch to non kinematic state
+// when the snowball is thrown so smart
 public class Snowball : SmartObjectSyncListener
 {
 
