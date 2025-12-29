@@ -13,6 +13,8 @@ using VRC.SDKBase;
 using VRC.Udon.Common;
 using VRC.Udon.Common.Interfaces;
 
+// Inherit from SmartObjectSyncListener so we can subscribe to OnChangeState
+// events from SmartObjectSync.
 public class Snowball : SmartObjectSyncListener
 {
 
@@ -32,24 +34,23 @@ public class Snowball : SmartObjectSyncListener
     [UdonSynced] private Vector3 _syncedImpactPosition;
     [UdonSynced] private Vector3 _syncedImpactNormal;
     [UdonSynced] private int _syncedImpactEventId;
+    private SmartObjectSync _smartObjectSync;
     private int _lastHandledImpactEventId = 0;
 
     private bool _hasImpacted = false;
-    public VRCPickup pickup;
+    private VRCPickup _vrcPickup;
     private Rigidbody _rb;
     private MeshRenderer _meshRenderer;
     private bool _hasInitialized = false;
     private TextMeshPro _textMeshPro;
-    private Transform textMeshProTransform;
-    private SmartObjectSync smartObjectSync;
+    private Transform _textMeshProTransform;
     private void Start()
     {
-
         _textMeshPro = GetComponentInChildren<TextMeshPro>();
         _lastHandledImpactEventId = _syncedImpactEventId;
         Log($"Startup. LastHandledImpactEventId: {_lastHandledImpactEventId}");
 
-        pickup = GetComponent<VRCPickup>();
+        _vrcPickup = GetComponent<VRCPickup>();
         _rb = GetComponent<Rigidbody>();
         _meshRenderer = GetComponent<MeshRenderer>();
 
@@ -66,13 +67,13 @@ public class Snowball : SmartObjectSyncListener
         // While the snowball is in idle state, we do not want other snowballs to collide with it.
         if (physicsCollider) physicsCollider.enabled = false;
 
-        smartObjectSync = GetComponent<SmartObjectSync>();
-        if (smartObjectSync)
+        _smartObjectSync = GetComponent<SmartObjectSync>();
+        if (_smartObjectSync)
         {
             // We need to listen to state change events from SmartObjectSync and switch kinematic mode
             // there to have position syncing working correctly for other clients that does not own
             // the object.
-            smartObjectSync.AddListener(this);
+            _smartObjectSync.AddListener(this);
             Log("Registered listener with SmartObjectSync");
         }
         else
@@ -83,7 +84,7 @@ public class Snowball : SmartObjectSyncListener
 
         if (_textMeshPro)
         {
-            textMeshProTransform = _textMeshPro.gameObject.transform; // Cache it
+            _textMeshProTransform = _textMeshPro.gameObject.transform; // Cache it
 
         }
     }
@@ -142,7 +143,7 @@ public class Snowball : SmartObjectSyncListener
     private bool TryRegisterImpact(Vector3 pos, Vector3 normal)
     {
         if (!Networking.IsOwner(gameObject)) return false;
-        if (pickup && pickup.IsHeld) return false;
+        if (_vrcPickup && _vrcPickup.IsHeld) return false;
         if (_hasImpacted) return false;
         if (_rb && _rb.velocity.magnitude < minImpactVelocity) return false;
 
@@ -200,7 +201,7 @@ public class Snowball : SmartObjectSyncListener
 
         if (physicsCollider) physicsCollider.enabled = false;
 
-        if (pickup) pickup.pickupable = false;
+        if (_vrcPickup) _vrcPickup.pickupable = false;
     }
 
     public void EnableSnowball()
@@ -209,16 +210,16 @@ public class Snowball : SmartObjectSyncListener
         if (_meshRenderer) _meshRenderer.enabled = true;
         if (_textMeshPro) _textMeshPro.text = $"{_meshRenderer.enabled}";
         if (pickupCollider) pickupCollider.enabled = true;
-        if (pickup) pickup.pickupable = true;
+        if (_vrcPickup) _vrcPickup.pickupable = true;
     }
     public void RespawnAndEnable()
     {
         if (!Networking.IsOwner(gameObject)) return;
 
-        if (smartObjectSync)
+        if (_smartObjectSync)
         {
             Log("TeleportToWorldSpace");
-            smartObjectSync.TeleportToWorldSpace(respawnPosition, Quaternion.identity, Vector3.zero, Vector3.zero);
+            _smartObjectSync.TeleportToWorldSpace(respawnPosition, Quaternion.identity, Vector3.zero, Vector3.zero);
         }
         else
         {
@@ -278,7 +279,7 @@ public class Snowball : SmartObjectSyncListener
     // Update is currently only used to display debug info.
     public void Update()
     {
-        if (_textMeshPro && textMeshProTransform)
+        if (_textMeshPro && _textMeshProTransform)
         {
             string displayText = "";
 
@@ -294,13 +295,13 @@ public class Snowball : SmartObjectSyncListener
             if (Networking.LocalPlayer != null)
             {
                 Vector3 headPos = Networking.LocalPlayer.GetTrackingData(VRCPlayerApi.TrackingDataType.Head).position;
-                Vector3 direction = headPos - textMeshProTransform.position;
+                Vector3 direction = headPos - _textMeshProTransform.position;
                 direction.y = 0;
-                textMeshProTransform.rotation = Quaternion.LookRotation(-direction);
+                _textMeshProTransform.rotation = Quaternion.LookRotation(-direction);
                 // Position text offset from camera, with minimum height
                 Vector3 targetPos = transform.position - direction.normalized * 0.8f;
                 targetPos.y = Mathf.Max(targetPos.y, transform.position.y + 0.4f);
-                textMeshProTransform.position = targetPos;
+                _textMeshProTransform.position = targetPos;
             }
         }
     }
