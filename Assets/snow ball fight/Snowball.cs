@@ -14,7 +14,7 @@ using VRC.Udon.Common;
 using VRC.Udon.Common.Interfaces;
 
 // Inherit from SmartObjectSyncListener so we can subscribe to OnChangeState
-// events from SmartObjectSync. This way we can switch to non kinematic state
+// events from SmartObjectSync. This way we can switch to non-kinematic state
 // when the snowball is thrown so smart
 public class Snowball : SmartObjectSyncListener
 {
@@ -25,7 +25,7 @@ public class Snowball : SmartObjectSyncListener
 
     [Header("Impact Effects")]
     public GameObject impactParticles;
-    public float minImpactVelocity = 2f;
+    public float minImpactVelocity = 1.4f;
 
     [Header("Collider Setup")]
     public SphereCollider pickupCollider;
@@ -73,7 +73,7 @@ public class Snowball : SmartObjectSyncListener
         {
             // We need to listen to state change events from SmartObjectSync and switch kinematic mode
             // there to have position syncing working correctly for other clients that does not own
-            // the object.
+            // the object. 
             _smartObjectSync.AddListener(this);
             Log("Registered listener with SmartObjectSync");
         }
@@ -96,12 +96,18 @@ public class Snowball : SmartObjectSyncListener
 
         _hasImpacted = false;
 
+        // Need to turn off kinematic when picked up so that throwing works correctly.
+        if (_rb) _rb.isKinematic = false;
+
         // Once a snowball is picked up, we want it to be able to collide with stuff again.
         if (physicsCollider != null) physicsCollider.enabled = true;
     }
 
     public override void OnPlayerCollisionEnter(VRCPlayerApi player)
     {
+        // We don't have a collision point or normal when colliding with a player so
+        // just use the center of the snowball and make the particles fly in the opposite
+        // direction the snowball is traveling.
         if (!TryRegisterImpact(transform.position, -_rb.velocity.normalized))
             return;
 
@@ -146,7 +152,12 @@ public class Snowball : SmartObjectSyncListener
         if (!Networking.IsOwner(gameObject)) return false;
         if (_vrcPickup && _vrcPickup.IsHeld) return false;
         if (_hasImpacted) return false;
-        if (_rb && _rb.velocity.magnitude < minImpactVelocity) return false;
+        if (_rb && _rb.velocity.magnitude < minImpactVelocity)
+        {
+            Log($"Impact velocity too low for collision {_rb.velocity.magnitude} < {minImpactVelocity} ");
+            return false;
+        }
+        Log($"Impact velocity {_rb.velocity.magnitude} > {minImpactVelocity} ");
 
         _hasImpacted = true;
 

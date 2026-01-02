@@ -44,25 +44,26 @@ namespace StealthGame
             m_EmissionColor = m_FlickeringMaterial.GetColor(k_EmissionColorID);
         }
 
-        void Update()
-        {
-            m_Timer += Time.deltaTime;
+        // Disabled because flickering lights are annoying.
+        //void Update()
+        //{
+        //    m_Timer += Time.deltaTime;
 
-            if (flickerMode == FlickerMode.Random)
-            {
-                if (m_Timer >= flickerDuration)
-                {
-                    ChangeRandomFlickerLightIntensity();
-                }
-            }
-            else if (flickerMode == FlickerMode.AnimationCurve)
-            {
-                ChangeAnimatedFlickerLightIntensity();
-            }
+        //    if (flickerMode == FlickerMode.Random)
+        //    {
+        //        if (m_Timer >= flickerDuration)
+        //        {
+        //            ChangeRandomFlickerLightIntensity();
+        //        }
+        //    }
+        //    else if (flickerMode == FlickerMode.AnimationCurve)
+        //    {
+        //        ChangeAnimatedFlickerLightIntensity();
+        //    }
 
-            flickeringLight.intensity = m_FlickerLightIntensity;
-            m_FlickeringMaterial.SetColor(k_EmissionColorID, m_EmissionColor * m_FlickerLightIntensity * k_LightIntensityToEmission);
-        }
+        //    flickeringLight.intensity = m_FlickerLightIntensity;
+        //    m_FlickeringMaterial.SetColor(k_EmissionColorID, m_EmissionColor * m_FlickerLightIntensity * k_LightIntensityToEmission);
+        //}
 
         void ChangeRandomFlickerLightIntensity()
         {
