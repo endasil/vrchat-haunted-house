@@ -117,6 +117,7 @@ public class Snowball : SmartObjectSyncListener
         SendCustomEventDelayedSeconds(nameof(RespawnAndEnable), respawnDelay);
     }
 
+    // Called whenever there are network updates for this class.
     public override void OnDeserialization(DeserializationResult result)
     {
         Log("OnDeserialization");
