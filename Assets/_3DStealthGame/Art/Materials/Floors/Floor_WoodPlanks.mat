@@ -155,7 +155,7 @@ Material:
     - _EnvironmentReflections: 1
     - _Float: 0
     - _GlossMapScale: 0
-    - _Glossiness: 0
+    - _Glossiness: 0.894
     - _GlossyReflections: 0
     - _Matallic: 0
     - _Metallic: 0
