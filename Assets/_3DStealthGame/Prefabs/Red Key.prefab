@@ -15,7 +15,7 @@ GameObject:
   - component: {fileID: 8884569591097682135}
   - component: {fileID: 4089730422295431848}
   m_Layer: 0
-  m_Name: Black Key
+  m_Name: Red Key
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -64,7 +64,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: b0066520ad094044193c1257a5b04685, type: 2}
+  - {fileID: 2100000, guid: e68b75fe23bc05b4992b2f34856c8a0a, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -132,7 +132,7 @@ MonoBehaviour:
     SerializationNodes: []
   _udonSharpBackingUdonBehaviour: {fileID: 4089730422295431848}
   manager: {fileID: 0}
-  keyType: 3
+  keyType: 1
   resetManager: {fileID: 0}
 --- !u!114 &4089730422295431848
 MonoBehaviour:

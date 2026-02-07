@@ -49,7 +49,7 @@ public class Snowball : SmartObjectSyncListener
     {
         _textMeshPro = GetComponentInChildren<TextMeshPro>();
         _lastHandledImpactEventId = _syncedImpactEventId;
-        Log($"Startup. LastHandledImpactEventId: {_lastHandledImpactEventId}");
+        //Log($"Startup. LastHandledImpactEventId: {_lastHandledImpactEventId}");
 
         _vrcPickup = GetComponent<VRCPickup>();
         _rb = GetComponent<Rigidbody>();
@@ -75,11 +75,11 @@ public class Snowball : SmartObjectSyncListener
             // there to have position syncing working correctly for other clients that does not own
             // the object. 
             _smartObjectSync.AddListener(this);
-            Log("Registered listener with SmartObjectSync");
+            //Log("Registered listener with SmartObjectSync");
         }
         else
         {
-            Log($"No SmartObjectSync found on {gameObject.name}!", "err");
+            //Log($"No SmartObjectSync found on {gameObject.name}!", "err");
         }
 
 
@@ -120,12 +120,12 @@ public class Snowball : SmartObjectSyncListener
     // Called whenever there are network updates for this class.
     public override void OnDeserialization(DeserializationResult result)
     {
-        Log("OnDeserialization");
+        //Log("OnDeserialization");
         if (!_hasInitialized)
         {
             _hasInitialized = true;
             _lastHandledImpactEventId = _syncedImpactEventId;
-            Log($"Initialized lastHandledImpactEventId to {_syncedImpactEventId}");
+            //Log($"Initialized lastHandledImpactEventId to {_syncedImpactEventId}");
         }
 
         // Since syncing variables across the network is slower
@@ -140,7 +140,7 @@ public class Snowball : SmartObjectSyncListener
         // at yet for this client, and can perform the spawning.
         if (_syncedImpactEventId > _lastHandledImpactEventId)
         {
-            Log($"OnDeserialization: Got network request to disable snowball. syncedImpactEventId: {_syncedImpactEventId} LastHandledImpactEventId: {_lastHandledImpactEventId} {gameObject.name}");
+            //Log($"OnDeserialization: Got network request to disable snowball. syncedImpactEventId: {_syncedImpactEventId} LastHandledImpactEventId: {_lastHandledImpactEventId} {gameObject.name}");
             DisableSnowball();
             CreateSnowballParticles();
             _lastHandledImpactEventId = _syncedImpactEventId;

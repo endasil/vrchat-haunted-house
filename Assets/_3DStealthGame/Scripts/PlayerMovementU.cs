@@ -1,67 +1,39 @@
-﻿using UdonSharp;
+﻿using Assets._3DStealthGame.Scripts;
 
-using UnityEngine;
+using UdonSharp;
 
-using VRC.SDKBase;
-
-public class PlayerMovementU : UdonSharpBehaviour
+public class PlayerMovementU : Resettable
 {
-    // Track key counts by type
-    private string[] keyTypes = new string[10];
-    private int[] keyTypeCounts = new int[10];
-    private int uniqueTypeCount = 0;
+    private int[] keyCounts = new int[(int)KeyType.LastEnum];
 
-    public void AddKey(string keyType)
+    public override void Start()
     {
-        // Find if this type already exists
-        int typeIndex = -1;
-        for (int i = 0; i < uniqueTypeCount; i++)
-        {
-            if (keyTypes[i] == keyType)
-            {
-                typeIndex = i;
-                break;
-            }
-        }
-
-        // If type doesn't exist, add it
-        if (typeIndex == -1)
-        {
-            if (uniqueTypeCount < keyTypes.Length)
-            {
-                keyTypes[uniqueTypeCount] = keyType;
-                keyTypeCounts[uniqueTypeCount] = 1;
-                uniqueTypeCount++;
-            }
-        }
-        else
-        {
-            // Increment existing type count
-            keyTypeCounts[typeIndex]++;
-        }
+        base.Start();
     }
 
-    public int GetKeyCount(string keyType)
+    public void AddKey(KeyType keyType)
     {
-        for (int i = 0; i < uniqueTypeCount; i++)
-        {
-            if (keyTypes[i] == keyType)
-            {
-                return keyTypeCounts[i];
-            }
-        }
-        return 0;
+        keyCounts[(int)keyType]++;
     }
 
-    public void RemoveKey(string keyType)
+    public int GetKeyCount(KeyType keyType)
     {
-        for (int i = 0; i < uniqueTypeCount; i++)
+        return keyCounts[(int)keyType];
+    }
+
+    public void RemoveKey(KeyType keyType)
+    {
+        int i = (int)keyType;
+        if (keyCounts[i] > 0)
+            keyCounts[i]--;
+    }
+
+    public void ResetState()
+    {
+        for (int i = 0; i < keyCounts.Length; i++)
         {
-            if (keyTypes[i] == keyType && keyTypeCounts[i] > 0)
-            {
-                keyTypeCounts[i]--;
-                return;
-            }
+            keyCounts[i] = 0;
         }
     }
 }
+
