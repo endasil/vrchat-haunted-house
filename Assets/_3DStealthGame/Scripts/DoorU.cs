@@ -1,4 +1,6 @@
-﻿using UdonSharp;
+﻿using Assets._3DStealthGame.Scripts;
+
+using UdonSharp;
 
 using UnityEngine;
 
@@ -14,6 +16,7 @@ public class DoorU : Resettable
     private Quaternion startRot;
     private Quaternion targetRot;
     public ResetManager resetManager;
+    public KeyType keyType;
 
     public override void Start()
     {
@@ -25,9 +28,29 @@ public class DoorU : Resettable
     public override void OnPlayerTriggerEnter(VRCPlayerApi player)
     {
         if (!player.isLocal || opened) return;
-        
-        timer = 0f;
-        opening = true;
+
+        GameObject[] playerObjects = player.GetPlayerObjects();
+
+        PlayerMovementU playerInventory = playerObjects[0].GetComponent<PlayerMovementU>();
+
+        if (playerInventory != null)
+        {
+            if (playerInventory.UseKey(keyType))
+            {
+                Debug.Log($"Key {keyType} used");
+                timer = 0f;
+                opening = true;
+            }
+            else
+            {
+                Debug.Log($"No {keyType} key in player inventory. ");
+                return;
+            }
+        }
+        else
+        {
+            Debug.LogError("Unable to find PlayerMovementU script on player object");
+        }
     }
 
     void Update()

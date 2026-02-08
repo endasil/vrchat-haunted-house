@@ -21,11 +21,26 @@ public class PlayerMovementU : Resettable
         return keyCounts[(int)keyType];
     }
 
-    public void RemoveKey(KeyType keyType)
+    public bool UseKey(KeyType keyType)
     {
         int i = (int)keyType;
         if (keyCounts[i] > 0)
+        {
             keyCounts[i]--;
+            return true;
+        }
+        return false;
+    }
+
+    public string GetKeyCountsString()
+    {
+        string result = "";
+        for (int i = 0; i < keyCounts.Length; i++)
+        {
+            if (i > 0) result += " ";
+            result += KeyTypeHelper.GetName((KeyType)i) + ": " + keyCounts[i];
+        }
+        return result;
     }
 
     public void ResetState()

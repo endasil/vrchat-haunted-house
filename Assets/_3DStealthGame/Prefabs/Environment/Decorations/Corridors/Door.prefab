@@ -130,7 +130,10 @@ MonoBehaviour:
     PrefabModifications: []
     SerializationNodes: []
   _udonSharpBackingUdonBehaviour: {fileID: 2187724620729167571}
+  manager: {fileID: 0}
   openDuration: 1
+  resetManager: {fileID: 0}
+  keyType: 0
 --- !u!114 &2187724620729167571
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -173,7 +176,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &6874096194626942582
 Transform:
   m_ObjectHideFlags: 0
