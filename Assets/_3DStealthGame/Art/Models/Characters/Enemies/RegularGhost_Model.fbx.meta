@@ -163,8 +163,7 @@ ModelImporter:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
       name: lambert2
-    second: {fileID: -876546973899608171, guid: b530046beb8b0c8468ae2b68c00f0b13,
-      type: 3}
+    second: {fileID: 2100000, guid: 403788b1aa03458489b6806b864e26e3, type: 2}
   materials:
     materialImportMode: 1
     materialName: 0
@@ -177,6 +176,8 @@ ModelImporter:
     optimizeGameObjects: 0
     removeConstantScaleCurves: 0
     motionNodeName: 
+    rigImportErrors: 
+    rigImportWarnings: 
     animationImportErrors: 
     animationImportWarnings: 
     animationRetargetingWarnings: 
@@ -266,10 +267,3 @@ ModelImporter:
   userData: 
   assetBundleName: 
   assetBundleVariant: 
-AssetOrigin:
-  serializedVersion: 1
-  productId: 143848
-  packageName: '3D Stealth Game: Haunted House'
-  packageVersion: 3.1
-  assetPath: Assets/_3DStealthGame/Art/Models/Characters/Enemies/RegularGhost_Model.fbx
-  uploadId: 770342
