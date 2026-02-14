@@ -1,7 +1,9 @@
 ﻿using Assets._3DStealthGame.Scripts;
+
 using TMPro;
 
 using UdonSharp;
+using UdonSharp.Localization;
 
 using UnityEngine;
 using UnityEngine.AI;
@@ -39,8 +41,8 @@ public class GhostAISearching : UdonSharpBehaviour
     // Idle look-around system
     public bool isWaiting = false;
     private Vector3 bestIdleDirection = Vector3.forward;
-    private float waitEndTime;
-    private float holdEndTime;
+    private float secondPhaseEndWaitTime;
+    private float initialHoldEndTime;
 
     // Targeting (multi-player safe)
     private VRCPlayerApi currentTargetPlayer;
@@ -51,7 +53,9 @@ public class GhostAISearching : UdonSharpBehaviour
 
     // Player cache (Udon requires preallocated arrays)
     private VRCPlayerApi[] playerCache;
-    
+
+    private Vector3 pendingDestination;
+
     private void Start()
     {
         animator = GetComponentInChildren<Animator>();
@@ -192,6 +196,8 @@ public class GhostAISearching : UdonSharpBehaviour
         );
     }
 
+    private bool _isFirstPhase = false;
+
     private void RandomWalk()
     {
         if (!isWaiting && !navMeshAgent.pathPending)
@@ -211,37 +217,57 @@ public class GhostAISearching : UdonSharpBehaviour
 
         if (navMeshAgent.remainingDistance <= navMeshAgent.stoppingDistance && !navMeshAgent.pathPending)
         {
-            navMeshAgent.autoBraking = true;
-            navMeshAgent.stoppingDistance = 0.4f;
-            navMeshAgent.speed = defaultSpeed;
-            navMeshAgent.SetDestination(GetRandomNavMeshPosition());
             StartIdleLookAround();
         }
     }
 
     private void StartIdleLookAround()
     {
-        bestIdleDirection = transform.forward;
+        navMeshAgent.autoBraking = true;
+        navMeshAgent.stoppingDistance = 0.4f;
+        navMeshAgent.speed = defaultSpeed;
+        navMeshAgent.SetDestination(GetRandomNavMeshPosition());
+
+
         isWaiting = true;
         navMeshAgent.isStopped = true;
         navMeshAgent.updateRotation = false;
+            
+        if (Physics.Raycast(transform.position + Vector3.up * 0.5f, transform.forward, out RaycastHit hit, 1f))
+        {
+            Debug.LogError($"Object ahead: {hit.collider.gameObject.name}, changing idle direction.");
+            bestIdleDirection = GetFacingDirectionToNextCorner();
+            // initialHoldEndTime = Time.time;
+        }
+        else
+        {
+            bestIdleDirection = transform.forward;
 
-        waitEndTime = Time.time + Random.Range(2f, 4f);
-        holdEndTime = Time.time + Random.Range(1f, 3f);
-
+        }
+        var initialWaitTime = Random.Range(0.5f, 3f);
+        initialHoldEndTime = Time.time + initialWaitTime;
         if (indicator != null) indicator.text = "?";
         navMeshAgent.speed = defaultSpeed;
+        _isFirstPhase = true;
+
     }
+
 
     private bool UpdateIdleLookAround()
     {
+        // The npc is moving, nothing to do here. 
         if (!isWaiting) return false;
 
-        if (Time.time < holdEndTime)
+        // During the initial hold time, this will be straight forward. 
+        //TODO: Fix so that the npc does not have "forward" as default dir when there is a wall nearby
+        if (Time.time < initialHoldEndTime)
         {
+            // Keep facing the best idle direction during the hold time. This will be forward until    
             Quaternion holdRotation = Quaternion.LookRotation(bestIdleDirection, Vector3.up);
             transform.rotation = Quaternion.RotateTowards(transform.rotation, holdRotation, 240f * Time.deltaTime);
+            Debug.Log($"Initial wait Remaining: {initialHoldEndTime - Time.time}  Rotating towards idle dir: Angle: {Quaternion.Angle(transform.rotation, holdRotation)}°.IsFirstPhase: {_isFirstPhase} ");
 
+            // Reconfirm stopped state if changed externally, like ai mode in inspector
             if (!navMeshAgent.isStopped)
             {
                 navMeshAgent.isStopped = true;
@@ -250,22 +276,33 @@ public class GhostAISearching : UdonSharpBehaviour
 
             return true;
         }
+        if(_isFirstPhase)
+        {
+            Debug.Log("Switched phase");
+            _isFirstPhase = false;
+            secondPhaseEndWaitTime = Time.time + Random.Range(1f, 3f);
 
-        Vector3 directionToNextCorner = GetFacingDirectionToNextCorner();
-        if (directionToNextCorner.sqrMagnitude > 0.0001f)
-            bestIdleDirection = directionToNextCorner.normalized;
+            bestIdleDirection = GetFacingDirectionToNextCorner();
+
+        }
 
         Quaternion lookRotation = Quaternion.LookRotation(bestIdleDirection, Vector3.up);
-        transform.rotation = Quaternion.RotateTowards(transform.rotation, lookRotation, 240f * Time.deltaTime);
+        transform.rotation = Quaternion.RotateTowards(transform.rotation, lookRotation, 140f * Time.deltaTime);
 
-        if (Time.time >= waitEndTime)
+
+        if (Time.time >= secondPhaseEndWaitTime && Quaternion.Angle(transform.rotation, lookRotation) < 5)
         {
+            Debug.Log($"Time.time >= secondPhasewaitTime returning {secondPhaseEndWaitTime - Time.time}");
             isWaiting = false;
             navMeshAgent.isStopped = false;
             navMeshAgent.updateRotation = true;
-            return false;
+            return true;
         }
+        else
+        {
+            Debug.Log($"SecondPhase: Time.time < waitEndTime. Remaining: {secondPhaseEndWaitTime - Time.time} left. Rotating. ");
 
+        }
         return true;
     }
 
@@ -273,11 +310,20 @@ public class GhostAISearching : UdonSharpBehaviour
     {
         Vector3 directionToSteeringTarget = navMeshAgent.steeringTarget - transform.position;
         if (directionToSteeringTarget.sqrMagnitude > 0.0001f)
-            return directionToSteeringTarget;
+        {
+            Debug.Log("returning directionToSteeringTarget");
+            return directionToSteeringTarget.normalized;
+        }
 
         Vector3 desiredVelocityDirection = navMeshAgent.desiredVelocity;
         if (desiredVelocityDirection.sqrMagnitude > 0.0001f)
-            return desiredVelocityDirection;
+        {
+            Debug.LogError("returning desiredVelocityDirection");
+
+            return desiredVelocityDirection.normalized;
+        }
+
+        Debug.LogError("transform.forward");
 
         return transform.forward;
     }
@@ -445,20 +491,57 @@ public class GhostAISearching : UdonSharpBehaviour
         return hitIsAtOrBeyondTarget;
     }
 
+    private bool IsFacingWallOnArrival(Vector3 destination)
+    {
+        NavMeshPath path = new NavMeshPath();
+        if (!NavMesh.CalculatePath(transform.position, destination, NavMesh.AllAreas, path))
+            return false;
+
+        if (path.corners.Length < 2)
+            return false;
+
+        Vector3 lastCorner = path.corners[path.corners.Length - 1];
+        Vector3 secondToLastCorner = path.corners[path.corners.Length - 2];
+
+        Vector3 arrivalDirection = (lastCorner - secondToLastCorner).normalized;
+        Vector3 raycastOrigin = lastCorner + Vector3.up * 0.5f;
+
+        return Physics.Raycast(raycastOrigin, arrivalDirection, 1f);
+    }
+
     private Vector3 GetRandomNavMeshPosition()
     {
-        float randomOffsetX = Random.Range(-maxWalkDistance, maxWalkDistance);
-        float randomOffsetZ = Random.Range(-maxWalkDistance, maxWalkDistance);
+        for (int attempt = 0; attempt < 10; attempt++)
+        {
+            float randomOffsetX = Random.Range(-maxWalkDistance, maxWalkDistance);
+            float randomOffsetZ = Random.Range(-maxWalkDistance, maxWalkDistance);
 
-        randomOffsetX = Mathf.Sign(randomOffsetX) * Mathf.Clamp(Mathf.Abs(randomOffsetX), minWalkDistance, maxWalkDistance);
-        randomOffsetZ = Mathf.Sign(randomOffsetZ) * Mathf.Clamp(Mathf.Abs(randomOffsetZ), minWalkDistance, maxWalkDistance);
+            randomOffsetX = Mathf.Sign(randomOffsetX) *
+                            Mathf.Clamp(Mathf.Abs(randomOffsetX), minWalkDistance, maxWalkDistance);
+            randomOffsetZ = Mathf.Sign(randomOffsetZ) *
+                            Mathf.Clamp(Mathf.Abs(randomOffsetZ), minWalkDistance, maxWalkDistance);
 
-        Vector3 desiredWorldPosition = transform.position + new Vector3(randomOffsetX, 0, randomOffsetZ);
+            Vector3 desiredWorldPosition = transform.position + new Vector3(randomOffsetX, 0, randomOffsetZ);
 
-        NavMeshHit navMeshHit;
-        if (NavMesh.SamplePosition(desiredWorldPosition, out navMeshHit, 6f, NavMesh.AllAreas))
-            return navMeshHit.position;
+            NavMeshHit navMeshHit;
+            if (NavMesh.SamplePosition(desiredWorldPosition, out navMeshHit, 6f, NavMesh.AllAreas))
+            {
+                if (IsFacingWallOnArrival(navMeshHit.position))
+                {
+                    Debug.Log($"Rejected position {attempt} — wall ahead on arrival");
+                    continue;
+                }
+                return navMeshHit.position;
+            }
 
+
+            Debug.Log($"Failed to get random position {attempt}");
+
+        }
+
+        Debug.LogError("Failed to get random position");
+        
         return transform.position;
+
     }
 }
