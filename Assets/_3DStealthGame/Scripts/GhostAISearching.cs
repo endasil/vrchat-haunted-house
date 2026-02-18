@@ -12,31 +12,53 @@ using VRC.SDKBase;
 
 public class GhostAISearching : UdonSharpBehaviour
 {
-    // Navigation
+    // ==============================
+    // Navigation & Movement Settings
+    // ==============================
+
+    // NavMesh agent used for pathfinding and movement
     public NavMeshAgent navMeshAgent;
 
-    // Speeds
+    // Base movement speed when patrolling
     public float defaultSpeed = 1f;
+
+    // Movement speed when chasing a detected player
     public float playerFoundSpeed = 2f;
+
+    // Multiplier applied to animation "velocity" parameter to scale animation with movement speed.
     public float animationSpeed = 0.5f;
 
-    // References
-    private Animator animator;
-    private TextMeshPro indicator;
+    //==============================
+    // Component References
+    //==============================
+    
+    private Animator animator;      // Controls movement animation
+    private TextMeshPro indicator;  // Displays AI state symbol (! ? ~ .)
 
-    // Patrol behavior
-    public float maxWalkDistance = 20f;
+
+    // ==============================
+    // Patrol Settings
+    // ==============================
+
+    public float maxWalkDistance = 20f; // Maximum random patrol distance
     public float minWalkDistance = 5f;
 
-    public AIBehavior aiBehavior;
+    public AIBehavior aiBehavior;       // Current AI behavior mode enum
 
-    // Vision parameters
-    public float sideVisionAngle = 45f; // half-angle cone
-    public float visionLength = 10f;
+    // ==============================
+    // Vision Settings
+    // ==============================
+    
+    public float sideVisionAngle = 45f; // half-angle vision cone
+    public float visionLength = 10f;    // Maximum sight distance
 
-    // Hearing parameters
-    public float hearingRange = 3f;
-    private bool isInvestigating;
+    
+    // ==============================
+    // Hearing Settings
+    // ==============================
+    
+    public float hearingRange = 3f;      // Radius for hearing-based detection
+    private bool isInvestigating;        // True while chasing last known location
 
     // Idle look-around system
     public bool isWaiting = false;
@@ -54,7 +76,8 @@ public class GhostAISearching : UdonSharpBehaviour
     // Player cache (Udon requires preallocated arrays)
     private VRCPlayerApi[] playerCache;
 
-    private Vector3 pendingDestination;
+    private float lookAroundPhaseStartTime;
+    private bool lookAroundSweepStarted;
 
     private void Start()
     {
@@ -244,7 +267,7 @@ public class GhostAISearching : UdonSharpBehaviour
             bestIdleDirection = transform.forward;
 
         }
-        var initialWaitTime = Random.Range(0.5f, 3f);
+        var initialWaitTime = Random.Range(3.5f, 4f);
         initialHoldEndTime = Time.time + initialWaitTime;
         if (indicator != null) indicator.text = "?";
         navMeshAgent.speed = defaultSpeed;
@@ -258,14 +281,31 @@ public class GhostAISearching : UdonSharpBehaviour
         // The npc is moving, nothing to do here. 
         if (!isWaiting) return false;
 
-        // During the initial hold time, this will be straight forward. 
-        //TODO: Fix so that the npc does not have "forward" as default dir when there is a wall nearby
+        // During the initial hold time, rotate to best idle direction first, then sweep
         if (Time.time < initialHoldEndTime)
         {
-            // Keep facing the best idle direction during the hold time. This will be forward until    
             Quaternion holdRotation = Quaternion.LookRotation(bestIdleDirection, Vector3.up);
-            transform.rotation = Quaternion.RotateTowards(transform.rotation, holdRotation, 240f * Time.deltaTime);
-            Debug.Log($"Initial wait Remaining: {initialHoldEndTime - Time.time}  Rotating towards idle dir: Angle: {Quaternion.Angle(transform.rotation, holdRotation)}°.IsFirstPhase: {_isFirstPhase} ");
+            float angleToTarget = Quaternion.Angle(transform.rotation, holdRotation);
+
+            if (angleToTarget > 5f && lookAroundSweepStarted== false)
+            {
+                // Not facing base direction yet, rotate towards it first
+                transform.rotation = Quaternion.RotateTowards(transform.rotation, holdRotation, 240f * Time.deltaTime);
+                lookAroundSweepStarted = false;
+            }
+            else
+            {
+                // Facing base direction, now sweep
+                if (!lookAroundSweepStarted)
+                {
+                    Debug.Log("Facing base direction, now sweep");
+                    lookAroundSweepStarted = true;
+                    lookAroundPhaseStartTime = Time.time;
+                }
+                ApplyLookAroundSweep(bestIdleDirection, 240f);
+            }
+
+            Debug.Log($"Initial wait Remaining: {initialHoldEndTime - Time.time} IsFirstPhase: {_isFirstPhase}");
 
             // Reconfirm stopped state if changed externally, like ai mode in inspector
             if (!navMeshAgent.isStopped)
@@ -276,36 +316,51 @@ public class GhostAISearching : UdonSharpBehaviour
 
             return true;
         }
-        if(_isFirstPhase)
+
+        if (_isFirstPhase)
         {
             Debug.Log("Switched phase");
             _isFirstPhase = false;
             secondPhaseEndWaitTime = Time.time + Random.Range(1f, 3f);
-
             bestIdleDirection = GetFacingDirectionToNextCorner();
-
+            lookAroundSweepStarted = false;
         }
 
         Quaternion lookRotation = Quaternion.LookRotation(bestIdleDirection, Vector3.up);
-        transform.rotation = Quaternion.RotateTowards(transform.rotation, lookRotation, 140f * Time.deltaTime);
+        float angleToBase = Quaternion.Angle(transform.rotation, lookRotation);
 
-
-        if (Time.time >= secondPhaseEndWaitTime && Quaternion.Angle(transform.rotation, lookRotation) < 5)
+        if (angleToBase > 5f)
         {
-            Debug.Log($"Time.time >= secondPhasewaitTime returning {secondPhaseEndWaitTime - Time.time}");
-            isWaiting = false;
-            navMeshAgent.isStopped = false;
-            navMeshAgent.updateRotation = true;
-            return true;
+            // Not facing base direction yet, rotate towards it first
+            transform.rotation = Quaternion.RotateTowards(transform.rotation, lookRotation, 140f * Time.deltaTime);
+            lookAroundSweepStarted = false;
         }
         else
         {
-            Debug.Log($"SecondPhase: Time.time < waitEndTime. Remaining: {secondPhaseEndWaitTime - Time.time} left. Rotating. ");
+            // Facing base direction, now sweep
+            if (!lookAroundSweepStarted)
+            {
+                lookAroundSweepStarted = true;
+                lookAroundPhaseStartTime = Time.time;
+            }
+            // ApplyLookAroundSweep(bestIdleDirection, 140f);
 
+            if (Time.time >= secondPhaseEndWaitTime && Quaternion.Angle(transform.rotation, lookRotation) < 5f)
+            {
+                Debug.Log($"Time.time >= secondPhasewaitTime returning {secondPhaseEndWaitTime - Time.time}");
+                isWaiting = false;
+                navMeshAgent.isStopped = false;
+                navMeshAgent.updateRotation = true;
+                return true;
+            }
+            else
+            {
+                Debug.Log($"SecondPhase: Time.time < waitEndTime. Remaining: {secondPhaseEndWaitTime - Time.time} left. Rotating. ");
+            }
         }
+
         return true;
     }
-
     private Vector3 GetFacingDirectionToNextCorner()
     {
         Vector3 directionToSteeringTarget = navMeshAgent.steeringTarget - transform.position;
@@ -543,5 +598,26 @@ public class GhostAISearching : UdonSharpBehaviour
         
         return transform.position;
 
+    }
+
+    private void ApplyLookAroundSweep(Vector3 baseDirection, float rotateSpeed)
+    {
+        // Sweep left for first half of period, right for second half
+        float sweepPeriod = 1.8f;
+        float elapsed = Time.time - lookAroundPhaseStartTime;
+        float t = Mathf.PingPong(elapsed, sweepPeriod) / sweepPeriod; // 0→1→0 loop
+
+        // -30 to +30 degrees, starts center, goes left first
+        float sweepAngle = Mathf.Lerp(-60f, 60f, t);
+
+        Quaternion sweepRotation = Quaternion.AngleAxis(sweepAngle, Vector3.up);
+        Vector3 sweptDirection = sweepRotation * baseDirection;
+
+        Quaternion sweepTargetRotation = Quaternion.LookRotation(sweptDirection, Vector3.up);
+        Debug.Log($"{transform.rotation} Pre rotation");
+
+        transform.rotation = Quaternion.RotateTowards(transform.rotation, sweepTargetRotation, rotateSpeed * Time.deltaTime);
+        Quaternion.Angle(transform.rotation, sweepTargetRotation);
+        Debug.Log($"{transform.rotation} Post rotation");
     }
 }
