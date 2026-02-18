@@ -5,6 +5,8 @@ using TMPro;
 using UdonSharp;
 using UdonSharp.Localization;
 
+using UnityEditor;
+
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -60,45 +62,76 @@ public class GhostAISearching : UdonSharpBehaviour
     public float hearingRange = 3f;      // Radius for hearing-based detection
     private bool isInvestigating;        // True while chasing last known location
 
-    // Idle look-around system
+    // ==============================
+    // Idle Look-Around State
+    // ==============================
+
+    // True when NPC is paused and scanning surroundings
     public bool isWaiting = false;
+
+    // Direction NPC tries to face while idling
     private Vector3 bestIdleDirection = Vector3.forward;
-    private float secondPhaseEndWaitTime;
+
+    // End time for initial idle hold phase
     private float initialHoldEndTime;
 
-    // Targeting (multi-player safe)
-    private VRCPlayerApi currentTargetPlayer;
-    private bool currentTargetDetectedByVision;
-    private float lastRetargetTime;
+    // End time for second idle phase
+    private float secondPhaseEndWaitTime;
 
-    public float retargetInterval = 0.2f;
+    // ==============================
+    // Targeting
+    // ==============================
+    private VRCPlayerApi currentTargetPlayer;       // Currently targeted player
+    private bool currentTargetDetectedByVision;     // True if vision-based detection
+    private float lastRetargetTime;                 // Time of last retarget check
 
-    // Player cache (Udon requires preallocated arrays)
+    public float retargetInterval = 0.2f;            // How often to re-evaluate target
+
+    // ==============================
+    // Player cache 
+    // ==============================
     private VRCPlayerApi[] playerCache;
+
+    // ==============================
+    // Idle Look-Around Internal State
+    // ==============================
 
     private float lookAroundPhaseStartTime;
     private bool lookAroundSweepStarted;
+    private bool _isFirstPhase = false;
+
 
     private void Start()
     {
+        // Cache references to not have to look them up at runtime
         animator = GetComponentInChildren<Animator>();
         indicator = GetComponentInChildren<TextMeshPro>();
 
+        // If navMeshAgent reference not set in inspector, try to find one on the same GameObject
         if (!navMeshAgent)
             navMeshAgent = (NavMeshAgent)GetComponent(typeof(NavMeshAgent));
 
+        // Preallocate player cache, can't use lists in U# :(
         playerCache = new VRCPlayerApi[80];
+        
+        // Make sure we can find a target right away.
         lastRetargetTime = -999f;
+
     }
 
     private void Update()
     {
+        // Only run AI logic on one client to make sure the ai behavior is the same for all players.
+        if (!Networking.IsOwner(gameObject)) return;
+
+
+        // Update animation speed based on current velocity
         if (animator != null && navMeshAgent != null)
             animator.SetFloat("Velocity", navMeshAgent.velocity.magnitude * animationSpeed);
 
         if (navMeshAgent == null) return;
 
-        // Periodic retarget (handles join/leave without hard references)
+        // Periodic retarget (handles join/leave)
         if (Time.time - lastRetargetTime >= retargetInterval)
         {
             lastRetargetTime = Time.time;
@@ -110,8 +143,14 @@ public class GhostAISearching : UdonSharpBehaviour
             }
         }
 
+        // ==============================
+        // Perform current AI behavior
+        // ==============================
+
         if (aiBehavior == AIBehavior.FollowPlayer)
         {
+            
+            // Make sure the navmesh-agent can control the npc when it is not standing still.
             if (navMeshAgent.isStopped && !isWaiting)
             {
                 navMeshAgent.isStopped = false;
@@ -120,6 +159,7 @@ public class GhostAISearching : UdonSharpBehaviour
 
             if (IsValidTargetPlayer(currentTargetPlayer))
             {
+                // Actively chasing player
                 TurnTowardsSteeringTarget();
                 navMeshAgent.speed = playerFoundSpeed;
                 navMeshAgent.SetDestination(GetPlayerHeadPosition(currentTargetPlayer));
@@ -127,6 +167,7 @@ public class GhostAISearching : UdonSharpBehaviour
             }
             else
             {
+                // No target → patrol
                 if (indicator != null) indicator.text = "?";
                 navMeshAgent.speed = defaultSpeed;
                 RandomWalk();
@@ -135,6 +176,7 @@ public class GhostAISearching : UdonSharpBehaviour
             return;
         }
 
+        
         if (aiBehavior == AIBehavior.RandomWalk)
         {
             RandomWalk();
@@ -148,28 +190,21 @@ public class GhostAISearching : UdonSharpBehaviour
                 navMeshAgent.isStopped = false;
                 navMeshAgent.updateRotation = true;
             }
-
             WalkNChase();
         }
     }
 
-    public override void OnPlayerLeft(VRCPlayerApi playerThatLeft)
-    {
-        if (currentTargetPlayer != null &&
-            playerThatLeft != null &&
-            currentTargetPlayer.playerId == playerThatLeft.playerId)
-        {
-            currentTargetPlayer = null;
-            isInvestigating = false;
-        }
-    }
+    // ==============================
+    // Player Validation & Targeting
+    // ==============================
 
+    //  
     private bool IsValidTargetPlayer(VRCPlayerApi playerCandidate)
     {
-        // If you want the AI to also target the local player, remove "!playerCandidate.isLocal"
-        return playerCandidate != null && playerCandidate.IsValid() && !playerCandidate.isLocal;
+        return playerCandidate != null && playerCandidate.IsValid();
     }
 
+    // Finds the player closest to this npc in world
     private VRCPlayerApi FindNearestValidPlayer()
     {
         int totalPlayerCount = VRCPlayerApi.GetPlayerCount();
@@ -198,12 +233,18 @@ public class GhostAISearching : UdonSharpBehaviour
         return closestPlayer;
     }
 
+    // Better to focus on the head than the root of the body since this is where the player experience that they are at.
     private Vector3 GetPlayerHeadPosition(VRCPlayerApi player)
     {
         VRCPlayerApi.TrackingData headTrackingData = player.GetTrackingData(VRCPlayerApi.TrackingDataType.Head);
         return headTrackingData.position;
     }
 
+    // ==============================
+    // Movement Helpers
+    // ==============================
+
+    // Smoothly rotates toward next steering target
     private void TurnTowardsSteeringTarget()
     {
         Vector3 directionToSteeringTarget = navMeshAgent.steeringTarget - transform.position;
@@ -219,30 +260,116 @@ public class GhostAISearching : UdonSharpBehaviour
         );
     }
 
-    private bool _isFirstPhase = false;
 
-    private void RandomWalk()
+    // ==============================
+    // Detection Logic
+    // ==============================
+    
+    // Attempts to detect best player via vision first, then hearing
+    private bool TryDetectBestPlayer(out VRCPlayerApi bestDetectedPlayer, out bool bestDetectedByVision)
     {
-        if (!isWaiting && !navMeshAgent.pathPending)
+        bestDetectedPlayer = null;
+        bestDetectedByVision = false;
+
+        int totalPlayerCount = VRCPlayerApi.GetPlayerCount();
+        VRCPlayerApi.GetPlayers(playerCache);
+
+        Vector3 agentPosition = transform.position;
+
+        float closestVisionDistanceSquared = float.MaxValue;
+        float closestHearingDistanceSquared = float.MaxValue;
+
+        VRCPlayerApi closestVisionPlayer = null;
+        VRCPlayerApi closestHearingPlayer = null;
+
+        for (int playerIndex = 0; playerIndex < totalPlayerCount && playerIndex < playerCache.Length; playerIndex++)
         {
-            if (navMeshAgent.remainingDistance < navMeshAgent.stoppingDistance + 1f)
+            VRCPlayerApi playerCandidate = playerCache[playerIndex];
+            if (playerCandidate == null || !playerCandidate.IsValid()) continue;
+
+            Vector3 playerHeadPosition = GetPlayerHeadPosition(playerCandidate);
+            Vector3 offsetToPlayer = playerHeadPosition - agentPosition;
+
+            float squaredDistanceToPlayer = offsetToPlayer.sqrMagnitude;
+            float distanceToPlayer = Mathf.Sqrt(squaredDistanceToPlayer);
+
+            bool isInVisionRange = distanceToPlayer <= visionLength;
+            bool isInHearingRange = distanceToPlayer <= hearingRange;
+
+            if (isInVisionRange && IsWithinViewCone(playerHeadPosition))
             {
-                Vector3 directionToSteeringTarget = navMeshAgent.steeringTarget - transform.position;
-                if (directionToSteeringTarget.sqrMagnitude > 0.0001f)
+                if (squaredDistanceToPlayer < closestVisionDistanceSquared)
                 {
-                    Quaternion facingRotation = Quaternion.LookRotation(directionToSteeringTarget, Vector3.up);
-                    transform.rotation = Quaternion.RotateTowards(transform.rotation, facingRotation, 240f * Time.deltaTime);
+                    closestVisionDistanceSquared = squaredDistanceToPlayer;
+                    closestVisionPlayer = playerCandidate;
+                }
+                continue;
+            }
+
+            if (isInHearingRange)
+            {
+                if (squaredDistanceToPlayer < closestHearingDistanceSquared)
+                {
+                    closestHearingDistanceSquared = squaredDistanceToPlayer;
+                    closestHearingPlayer = playerCandidate;
                 }
             }
         }
 
-        if (UpdateIdleLookAround()) return;
-
-        if (navMeshAgent.remainingDistance <= navMeshAgent.stoppingDistance && !navMeshAgent.pathPending)
+        if (closestVisionPlayer != null)
         {
-            StartIdleLookAround();
+            bestDetectedPlayer = closestVisionPlayer;
+            bestDetectedByVision = true;
+            return true;
         }
+
+        if (closestHearingPlayer != null)
+        {
+            bestDetectedPlayer = closestHearingPlayer;
+            bestDetectedByVision = false;
+            return true;
+        }
+
+        return false;
     }
+    // Checks if target is inside view cone and nothing is in the way
+    private bool IsWithinViewCone(Vector3 targetWorldPosition)
+    {
+        Vector3 raycastOrigin = transform.position + new Vector3(0f, 0.5f, 0f);
+        Vector3 offsetToTarget = targetWorldPosition - raycastOrigin;
+
+        float distanceToTarget = offsetToTarget.magnitude;
+        if (distanceToTarget <= 0.0001f) return true;
+
+        Vector3 directionToTarget = offsetToTarget / distanceToTarget;
+
+        float cosineAngleToTarget = Vector3.Dot(directionToTarget, transform.forward);
+        float angleToTargetDegrees = Mathf.Acos(Mathf.Clamp(cosineAngleToTarget, -1f, 1f)) * Mathf.Rad2Deg;
+
+        if (angleToTargetDegrees > sideVisionAngle) return false;
+
+        RaycastHit raycastHit;
+        bool hitSomething = Physics.Raycast(
+            raycastOrigin,
+            directionToTarget,
+            out raycastHit,
+            visionLength,
+            ~0,
+            QueryTriggerInteraction.Ignore
+        );
+
+        if (!hitSomething)
+        {
+            // No obstruction detected within vision length
+            return true;
+        }
+
+        // If the first hit is basically at the target distance, treat as visible.
+        bool hitIsAtOrBeyondTarget = raycastHit.distance >= distanceToTarget - 0.2f;
+        return hitIsAtOrBeyondTarget;
+    }
+
+
 
     private void StartIdleLookAround()
     {
@@ -443,109 +570,7 @@ public class GhostAISearching : UdonSharpBehaviour
         }
     }
 
-    private bool TryDetectBestPlayer(out VRCPlayerApi bestDetectedPlayer, out bool bestDetectedByVision)
-    {
-        bestDetectedPlayer = null;
-        bestDetectedByVision = false;
-
-        int totalPlayerCount = VRCPlayerApi.GetPlayerCount();
-        VRCPlayerApi.GetPlayers(playerCache);
-
-        Vector3 agentPosition = transform.position;
-
-        float closestVisionDistanceSquared = float.MaxValue;
-        float closestHearingDistanceSquared = float.MaxValue;
-
-        VRCPlayerApi closestVisionPlayer = null;
-        VRCPlayerApi closestHearingPlayer = null;
-
-        for (int playerIndex = 0; playerIndex < totalPlayerCount && playerIndex < playerCache.Length; playerIndex++)
-        {
-            VRCPlayerApi playerCandidate = playerCache[playerIndex];
-            if (playerCandidate == null || !playerCandidate.IsValid()) continue;
-
-            Vector3 playerHeadPosition = GetPlayerHeadPosition(playerCandidate);
-            Vector3 offsetToPlayer = playerHeadPosition - agentPosition;
-
-            float squaredDistanceToPlayer = offsetToPlayer.sqrMagnitude;
-            float distanceToPlayer = Mathf.Sqrt(squaredDistanceToPlayer);
-
-            bool isInVisionRange = distanceToPlayer <= visionLength;
-            bool isInHearingRange = distanceToPlayer <= hearingRange;
-
-            if (isInVisionRange && IsWithinViewCone(playerHeadPosition))
-            {
-                if (squaredDistanceToPlayer < closestVisionDistanceSquared)
-                {
-                    closestVisionDistanceSquared = squaredDistanceToPlayer;
-                    closestVisionPlayer = playerCandidate;
-                }
-                continue;
-            }
-
-            if (isInHearingRange)
-            {
-                if (squaredDistanceToPlayer < closestHearingDistanceSquared)
-                {
-                    closestHearingDistanceSquared = squaredDistanceToPlayer;
-                    closestHearingPlayer = playerCandidate;
-                }
-            }
-        }
-
-        if (closestVisionPlayer != null)
-        {
-            bestDetectedPlayer = closestVisionPlayer;
-            bestDetectedByVision = true;
-            return true;
-        }
-
-        if (closestHearingPlayer != null)
-        {
-            bestDetectedPlayer = closestHearingPlayer;
-            bestDetectedByVision = false;
-            return true;
-        }
-
-        return false;
-    }
-
-    private bool IsWithinViewCone(Vector3 targetWorldPosition)
-    {
-        Vector3 raycastOrigin = transform.position + new Vector3(0f, 0.5f, 0f);
-        Vector3 offsetToTarget = targetWorldPosition - raycastOrigin;
-
-        float distanceToTarget = offsetToTarget.magnitude;
-        if (distanceToTarget <= 0.0001f) return true;
-
-        Vector3 directionToTarget = offsetToTarget / distanceToTarget;
-
-        float cosineAngleToTarget = Vector3.Dot(directionToTarget, transform.forward);
-        float angleToTargetDegrees = Mathf.Acos(Mathf.Clamp(cosineAngleToTarget, -1f, 1f)) * Mathf.Rad2Deg;
-
-        if (angleToTargetDegrees > sideVisionAngle) return false;
-
-        RaycastHit raycastHit;
-        bool hitSomething = Physics.Raycast(
-            raycastOrigin,
-            directionToTarget,
-            out raycastHit,
-            visionLength,
-            ~0,
-            QueryTriggerInteraction.Ignore
-        );
-
-        if (!hitSomething)
-        {
-            // No obstruction detected within vision length
-            return true;
-        }
-
-        // If the first hit is basically at the target distance, treat as visible.
-        bool hitIsAtOrBeyondTarget = raycastHit.distance >= distanceToTarget - 0.2f;
-        return hitIsAtOrBeyondTarget;
-    }
-
+ 
     private bool IsFacingWallOnArrival(Vector3 destination)
     {
         NavMeshPath path = new NavMeshPath();
@@ -620,4 +645,39 @@ public class GhostAISearching : UdonSharpBehaviour
         Quaternion.Angle(transform.rotation, sweepTargetRotation);
         Debug.Log($"{transform.rotation} Post rotation");
     }
+
+    private void RandomWalk()
+    {
+        if (!isWaiting && !navMeshAgent.pathPending)
+        {
+            if (navMeshAgent.remainingDistance < navMeshAgent.stoppingDistance + 1f)
+            {
+                Vector3 directionToSteeringTarget = navMeshAgent.steeringTarget - transform.position;
+                if (directionToSteeringTarget.sqrMagnitude > 0.0001f)
+                {
+                    Quaternion facingRotation = Quaternion.LookRotation(directionToSteeringTarget, Vector3.up);
+                    transform.rotation = Quaternion.RotateTowards(transform.rotation, facingRotation, 240f * Time.deltaTime);
+                }
+            }
+        }
+
+        if (UpdateIdleLookAround()) return;
+
+        if (navMeshAgent.remainingDistance <= navMeshAgent.stoppingDistance && !navMeshAgent.pathPending)
+        {
+            StartIdleLookAround();
+        }
+    }
+
+    public override void OnPlayerLeft(VRCPlayerApi playerThatLeft)
+    {
+        if (currentTargetPlayer != null &&
+            playerThatLeft != null &&
+            currentTargetPlayer.playerId == playerThatLeft.playerId)
+        {
+            currentTargetPlayer = null;
+            isInvestigating = false;
+        }
+    }
+
 }
