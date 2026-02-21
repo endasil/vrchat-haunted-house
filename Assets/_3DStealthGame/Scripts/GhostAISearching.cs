@@ -544,26 +544,18 @@ public class GhostAISearching : UdonSharpBehaviour
         if (_idleLookAroundState == IdleLookAroundState.NotIdle)
             return false;
 
-        // If someone changed NavMeshAgent externally
-        // (inspector/mode swap), reset idle settings to
-        // correct state
         EnsureAgentIsIdle();
-
 
         if (_idleLookAroundState == IdleLookAroundState.InitialHoldAndSweep)
         {
             UpdateIdleHoldAndSweep(sweepDuration: 3f);
 
-            // When the first phase ends, we switch base on direction and stand
-            // still in the new direction for a short while before moving forward.
             if (Time.time >= _idleStateEndTime)
             {
-                Debug.Log("Switching to second phase");
                 _idleLookAroundState = IdleLookAroundState.SecondHold;
-                _idleStateEndTime = Time.time + Random.Range(1f, 3f);
-
                 _idleBaseDirection = GetFacingDirectionToNextCorner();
                 _idleSweepStarted = false;
+                _idleSweepCompleted = false;
             }
 
             return true;
@@ -571,10 +563,9 @@ public class GhostAISearching : UdonSharpBehaviour
 
         if (_idleLookAroundState == IdleLookAroundState.SecondHold)
         {
-            bool isFacingBaseDirection = RotateToIdleBaseDirection(rotateSpeed: 140f);
+            UpdateIdleHoldAndSweep(sweepDuration: 3f);
 
-            // When the second phase timer expires, and we're facing the base direction, resume movement'
-            if (isFacingBaseDirection && Time.time >= _idleStateEndTime)
+            if (_idleSweepCompleted && Time.time >= _idleStateEndTime)
             {
                 CancelIdleLookAround();
                 EnsureAgentIsMoving();
@@ -585,7 +576,6 @@ public class GhostAISearching : UdonSharpBehaviour
 
         return false;
     }
-
     private void CancelIdleLookAround()
     {
         _idleLookAroundState = IdleLookAroundState.NotIdle;
@@ -609,7 +599,7 @@ public class GhostAISearching : UdonSharpBehaviour
             }
             _idleSweepStarted = true;
             _idleSweepStartTime = Time.time;
-            _idleStateEndTime = Time.time + sweepDuration + Random.Range(1f, 3f); 
+            _idleStateEndTime = Time.time + sweepDuration + Random.Range(0.1f, 0.1f); 
         }
 
         // Step 2: Hold base direction after sweep completes.
@@ -697,8 +687,8 @@ public class GhostAISearching : UdonSharpBehaviour
 
         Vector3 arrivalDirection = (lastCorner - secondToLastCorner).normalized;
         Vector3 raycastOrigin = lastCorner + Vector3.up * 0.5f;
-
-        return Physics.Raycast(raycastOrigin, arrivalDirection, 1f);
+        Debug.DrawRay(raycastOrigin, arrivalDirection * 1.5f, Color.red, 999f);
+        return Physics.Raycast(raycastOrigin, arrivalDirection, 1.5f);
     }
 
     // Returns a random reachable NavMesh position around the NPC,
@@ -722,6 +712,8 @@ public class GhostAISearching : UdonSharpBehaviour
             {
                 if (IsFacingWallOnArrival(navMeshHit.position))
                 {
+                    Debug.Log($"Rejected position {attempt} — wall ahead on arrival");
+                    Debug.Log($"Rejected position {attempt} — wall ahead on arrival");
                     Debug.Log($"Rejected position {attempt} — wall ahead on arrival");
                     continue;
                 }
