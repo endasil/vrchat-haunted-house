@@ -26,7 +26,7 @@ public class PlayerUI : UdonSharpBehaviour
        
         if (!snowball)
         {
-            Debug.LogWarning("No snowball found in UIDisplay.");
+           // Debug.LogWarning("No snowball found in UIDisplay.");
         }
         else
         {

@@ -170,8 +170,8 @@
         private void UpdateAnimation()
         {
             // Update animation speed based on current velocity
-            if (_animator != null && navMeshAgent != null)
-                _animator.SetFloat("Velocity", navMeshAgent.velocity.magnitude * animationSpeed);
+            //if (_animator != null && navMeshAgent != null)
+            //    _animator.SetFloat("Velocity", navMeshAgent.velocity.magnitude * animationSpeed);
         }
 
         private void UpdateRetargetingIfNeeded()
@@ -520,6 +520,7 @@
         // Begins idle behavior: choose next destination, stop movement, face a sensible base direction.
         private void StartIdleLookAround()
         {
+            Debug.Log("Start idle lookaround.");
             // Immediately pick the next destination so the ai can be turned towards it later.
             navMeshAgent.autoBraking = true;
             navMeshAgent.stoppingDistance = 0.4f;
@@ -552,7 +553,17 @@
 
             if (_idleLookAroundState == IdleLookAroundState.InitialHoldAndSweep)
             {
-                UpdateIdleHoldAndSweep(sweepDuration: lookAroundSweepDuration);
+                var doInitialSweep = false;
+                if (!doInitialSweep)
+                {
+                    _idleLookAroundState = IdleLookAroundState.SecondHold;
+                    _idleBaseDirection = GetFacingDirectionToNextCorner();
+                    _idleSweepStarted = false;
+                    _idleSweepCompleted = false;
+                    return true;
+                }
+
+            UpdateIdleHoldAndSweep(sweepDuration: lookAroundSweepDuration);
 
                 if (Time.time >= _idleStateEndTime)
                 {

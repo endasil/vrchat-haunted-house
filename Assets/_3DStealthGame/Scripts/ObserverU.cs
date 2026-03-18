@@ -28,6 +28,8 @@ public class ObserverU : UdonSharpBehaviour
 
     public override void OnPlayerTriggerEnter(VRCPlayerApi player)
     {
+        Debug.Log("Player caught");
+        return;
         if (player == localPlayer)
         {
             m_IsPlayerInRange = true;
