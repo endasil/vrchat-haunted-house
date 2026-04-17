@@ -1,7 +1,5 @@
 ﻿using Assets._3DStealthGame.Scripts;
 
-using UdonSharp;
-
 public class PlayerMovementU : Resettable
 {
     private int[] keyCounts = new int[(int)KeyType.LastEnum];

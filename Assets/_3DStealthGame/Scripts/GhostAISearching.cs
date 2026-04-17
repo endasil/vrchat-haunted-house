@@ -18,8 +18,10 @@
         // NavMesh agent used for pathfinding and movement
         public NavMeshAgent navMeshAgent;
 
-        // Base movement speed when patrolling
-        public float defaultSpeed = 1f;
+        public Vector3 LastCorner;
+        public Vector3 SecondToLastCorner;
+// Base movement speed when patrolling
+    public float defaultSpeed = 1f;
 
         // Movement speed when chasing a detected player
         public float playerFoundSpeed = 2f;
@@ -242,7 +244,9 @@
                 return;
             }
 
-            bool didDetectPlayer = TryDetectBestPlayer(out var detectedPlayer, out var detectedByVision);
+            VRCPlayerApi detectedPlayer;
+            bool detectedByVision;
+            bool didDetectPlayer = TryDetectBestPlayer(out detectedPlayer, out detectedByVision);
 
             if (didDetectPlayer)
             {
@@ -697,11 +701,11 @@
             if (path.corners.Length < 2)
                 return false;
 
-            Vector3 lastCorner = path.corners[path.corners.Length - 1];
-            Vector3 secondToLastCorner = path.corners[path.corners.Length - 2];
+            LastCorner = path.corners[path.corners.Length - 1];
+            SecondToLastCorner = path.corners[path.corners.Length - 2];
 
-            Vector3 arrivalDirection = (lastCorner - secondToLastCorner).normalized;
-            Vector3 raycastOrigin = lastCorner + Vector3.up * 0.5f;
+            Vector3 arrivalDirection = (LastCorner - SecondToLastCorner).normalized;
+            Vector3 raycastOrigin = LastCorner + Vector3.up * 0.5f;
             Debug.DrawRay(raycastOrigin, arrivalDirection * 1.5f, Color.red, 999f);
             return Physics.Raycast(raycastOrigin, arrivalDirection, 1.5f);
         }

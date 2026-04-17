@@ -3,14 +3,11 @@
     "com.vrchat.core.vpm-resolver": {
       "version": "0.1.29"
     },
-    "com.mmmaellon.smartobjectsync": {
-      "version": "3.10.16"
-    },
-    "com.vrchat.worlds": {
-      "version": "3.10.1"
-    },
     "bobystarvrc.opennid": {
       "version": "1.0.0"
+    },
+    "com.mmmaellon.smartobjectsync": {
+      "version": "3.10.16"
     }
   },
   "locked": {
@@ -18,9 +15,11 @@
       "version": "0.1.29",
       "dependencies": {}
     },
-    "com.vrchat.base": {
-      "version": "3.10.1",
-      "dependencies": {}
+    "bobystarvrc.opennid": {
+      "version": "1.0.0",
+      "dependencies": {
+        "com.vrchat.worlds": ">=3.7.4"
+      }
     },
     "com.mmmaellon.smartobjectsync": {
       "version": "3.10.16",
@@ -34,11 +33,9 @@
         "com.vrchat.base": "3.10.1"
       }
     },
-    "bobystarvrc.opennid": {
-      "version": "1.0.0",
-      "dependencies": {
-        "com.vrchat.worlds": ">=3.7.4"
-      }
+    "com.vrchat.base": {
+      "version": "3.10.1",
+      "dependencies": {}
     }
   }
 }

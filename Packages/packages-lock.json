@@ -1,11 +1,5 @@
 {
   "dependencies": {
-    "bobystarvrc.opennid": {
-      "version": "file:bobystarvrc.opennid",
-      "depth": 0,
-      "source": "embedded",
-      "dependencies": {}
-    },
     "com.mmmaellon.smartobjectsync": {
       "version": "file:com.mmmaellon.smartobjectsync",
       "depth": 0,
