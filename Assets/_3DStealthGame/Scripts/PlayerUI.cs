@@ -78,7 +78,6 @@ public class PlayerUI : UdonSharpBehaviour
         }
 
         // Success - playerInventory is found
-        Debug.Log("PlayerMovementU found!");
         // Continue with your initialization here
     }
     private void LateUpdate()

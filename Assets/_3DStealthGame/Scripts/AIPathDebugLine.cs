@@ -3,21 +3,17 @@
 using UnityEngine;
 using UnityEngine.AI;
 
-using VRC.SDKBase;
-using VRC.Udon;
-
 [UdonBehaviourSyncMode(BehaviourSyncMode.None)]
 public class AIPathDebugLine : UdonSharpBehaviour
 {
     public NavMeshAgent navAi;
     public GhostAISearching ghostAI;
-    public Material lineRendererMaterial;
-    public LineRenderer arrivalLineRenderer;
+    
+    public LineRenderer ArrivalLineRenderer;
     public GameObject markerPrefab;
     public int maxMarkers = 20;
 
-    public Color arrivalRayColor = Color.red;
-    public Color arrivalMarkerColor = Color.red;
+    public Color ArrivalMarkerColor = Color.red;
 
     private LineRenderer _lineRenderer;
     private GameObject[] _markers = new GameObject[0];
@@ -32,9 +28,6 @@ public class AIPathDebugLine : UdonSharpBehaviour
         _lineRenderer = GetComponent<LineRenderer>();
         _lineRenderer.startWidth = 0.05f;
         _lineRenderer.endWidth = 0.05f;
-
-        if (lineRendererMaterial != null)
-            _lineRenderer.material = lineRendererMaterial;
 
         _initialStartColor = _lineRenderer.startColor;
         _initialEndColor = _lineRenderer.endColor;
@@ -67,7 +60,7 @@ public class AIPathDebugLine : UdonSharpBehaviour
         if (!navAi || !navAi.hasPath || navAi.pathPending || navAi.pathStatus == NavMeshPathStatus.PathInvalid)
         {
             _lineRenderer.positionCount = 0;
-            if (arrivalLineRenderer != null) arrivalLineRenderer.positionCount = 0;
+            if (ArrivalLineRenderer != null) ArrivalLineRenderer.positionCount = 0;
             ClearMarkers();
             _lastCorners = new Vector3[0];
             return;
@@ -104,21 +97,21 @@ public class AIPathDebugLine : UdonSharpBehaviour
             Debug.DrawLine(corners[corners.Length - 1], navAi.destination, Color.yellow);
         }
 
-        if (arrivalLineRenderer != null)
+        if (ArrivalLineRenderer != null)
         {
             if (corners.Length >= 2)
             {
                 Vector3 lastCorner = corners[corners.Length - 1];
                 Vector3 secondToLast = corners[corners.Length - 2];
                 Vector3 arrivalDir = (lastCorner - secondToLast).normalized;
-                Vector3 rayOrigin = lastCorner + Vector3.up * 0.5f;
-                arrivalLineRenderer.positionCount = 2;
-                arrivalLineRenderer.SetPosition(0, rayOrigin);
-                arrivalLineRenderer.SetPosition(1, rayOrigin + arrivalDir * 1.5f);
+                Vector3 rayOrigin = lastCorner;
+                ArrivalLineRenderer.positionCount = 2;
+                ArrivalLineRenderer.SetPosition(0, rayOrigin);
+                ArrivalLineRenderer.SetPosition(1, rayOrigin + arrivalDir * 1.5f);
             }
             else
             {
-                arrivalLineRenderer.positionCount = 0;
+                ArrivalLineRenderer.positionCount = 0;
             }
         }
     }
@@ -134,7 +127,7 @@ public class AIPathDebugLine : UdonSharpBehaviour
             if (_markerRenderers[i] != null)
             {
                 bool isLastCorner = i == corners.Length - 1;
-                _markerRenderers[i].material.color = isLastCorner ? arrivalMarkerColor : _defaultMarkerColor;
+                _markerRenderers[i].material.color = isLastCorner ? ArrivalMarkerColor : _defaultMarkerColor;
             }
         }
     }
