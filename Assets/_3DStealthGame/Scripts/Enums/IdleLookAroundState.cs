@@ -9,8 +9,7 @@ namespace Assets._3DStealthGame.Scripts.Enums
     public enum IdleLookAroundState
     {
         NotIdle,
-        InitialHoldAndSweep,
-        SecondHold
+        LookAround
     }
 
 }
