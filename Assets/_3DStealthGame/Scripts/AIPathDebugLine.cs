@@ -2,6 +2,7 @@
 
 using UnityEngine;
 using UnityEngine.AI;
+#pragma warning disable IDE0056
 
 [UdonBehaviourSyncMode(BehaviourSyncMode.None)]
 public class AIPathDebugLine : UdonSharpBehaviour
@@ -122,6 +123,7 @@ public class AIPathDebugLine : UdonSharpBehaviour
         for (int i = 0; i < corners.Length && i < _markers.Length; i++)
         {
             _markers[i].transform.position = corners[i];
+            _markers[i].name = $"corner {i} ";
             _markers[i].SetActive(true);
 
             if (_markerRenderers[i] != null)
