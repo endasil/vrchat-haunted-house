@@ -32,14 +32,14 @@ public class PlayerUI : UdonSharpBehaviour
         {
             snowballCollider = snowball.GetComponent<Collider>();
             snowballPickup = snowball.GetComponent<VRC_Pickup>();
-            Debug.Log($"Snowball:  {snowball.name}");
-            Debug.Log($"Snowball collider enabled:  {snowballCollider.enabled}");
+            // Debug.Log($"Snowball:  {snowball.name}");
+            // Debug.Log($"Snowball collider enabled:  {snowballCollider.enabled}");
         }
 
 
-        Debug.Log($"keyText: {keyText}");
-        Debug.Log($"keyManager: {playerInventory}");
-        Debug.Log($"canvas: {canvas}");
+        // Debug.Log($"keyText: {keyText}");
+        // Debug.Log($"keyManager: {playerInventory}");
+        // Debug.Log($"canvas: {canvas}");
         _FindPlayerInventory();
     }
 

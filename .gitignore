@@ -70,3 +70,4 @@ Logs
 /BuildAPK
 /SerializedBuildInfo
 /Assets/SerializedUdonPrograms
+/Assets/UdonSharp

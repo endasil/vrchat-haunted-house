@@ -534,7 +534,7 @@ public class GhostAISearching : UdonSharpBehaviour
         _navMeshAgent.autoBraking = true;
         _navMeshAgent.stoppingDistance = 0.4f;
         _navMeshAgent.speed = defaultSpeed;
-        if (!TryGetRandomNavMeshPosition(out Vector3 nextDestination))
+        if (!TryGetRandomNavMeshPosition(out Vector3 nextDestination, out bool wallAhead))
         {
             Debug.Log("StartIdleLookAround: no valid NavMesh position found, skipping sweep — will retry next frame.");
             return;
@@ -694,39 +694,49 @@ public class GhostAISearching : UdonSharpBehaviour
 
     // Returns a random reachable NavMesh position around the NPC,
     // with basic rejection to avoid wall-facing arrivals.
-    private bool TryGetRandomNavMeshPosition(out Vector3 position)
+    private bool TryGetRandomNavMeshPosition(out Vector3 position, out bool wallAhead)
     {
+        wallAhead = false;
+        Vector3 fallbackPosition = transform.position;
+        bool hasFallback = false;
+        position = transform.position; // Default to current position if no valid position is found
         for (int attempt = 0; attempt < 10; attempt++)
         {
             float randomOffsetX = Random.Range(-maxWalkDistance, maxWalkDistance);
             float randomOffsetZ = Random.Range(-maxWalkDistance, maxWalkDistance);
 
-            randomOffsetX = Mathf.Sign(randomOffsetX) *
-                            Mathf.Clamp(Mathf.Abs(randomOffsetX), minWalkDistance, maxWalkDistance);
-            randomOffsetZ = Mathf.Sign(randomOffsetZ) *
-                            Mathf.Clamp(Mathf.Abs(randomOffsetZ), minWalkDistance, maxWalkDistance);
+            randomOffsetX = Mathf.Sign(randomOffsetX) * Mathf.Clamp(Mathf.Abs(randomOffsetX), minWalkDistance, maxWalkDistance);
+            randomOffsetZ = Mathf.Sign(randomOffsetZ) * Mathf.Clamp(Mathf.Abs(randomOffsetZ), minWalkDistance, maxWalkDistance);
 
             Vector3 desiredWorldPosition = transform.position + new Vector3(randomOffsetX, 0, randomOffsetZ);
 
-            NavMeshHit navMeshHit;
             float maxDistance = 2f;
-            if (NavMesh.SamplePosition(desiredWorldPosition, out navMeshHit, maxDistance, NavMesh.AllAreas))
+            wallAhead = false;
+            if (NavMesh.SamplePosition(desiredWorldPosition, out var navMeshHit, maxDistance, NavMesh.AllAreas))
             {
-                //if (IsFacingWallOnArrival(navMeshHit.position))
-                //{
-                //    Debug.Log($"Rejected position {navMeshHit.position} attempt {attempt} — wall ahead on arrival");
-                //    continue;
-                //}
-                position = navMeshHit.position;
-                Debug.Log("Found acceptable position " + position + " distance " + Vector3.Distance(transform.position, position));
-                return true;
+                if (!IsFacingWallOnArrival(navMeshHit.position))
+                {
+                    position = navMeshHit.position;
+                    wallAhead = false;
+                    Debug.Log("Found acceptable position " + position + " distance " + Vector3.Distance(transform.position, position));
+                    return true; // No wall ahead, return this position
+                }
+                fallbackPosition = navMeshHit.position;
+                hasFallback = true;
             }
+
 
             Debug.Log($"Sample position failed to get random position within {maxDistance} of {desiredWorldPosition} attempt:  {attempt}");
         }
 
-        Debug.Log("Failed to get random position");
-        position = transform.position; 
+
+        if (hasFallback)
+        {
+            position = fallbackPosition;
+            wallAhead = true;
+            return true;
+        }
+
         return false;
     }
 
