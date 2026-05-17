@@ -1,4 +1,4 @@
-﻿using UdonSharp;
+using UdonSharp;
 
 using UnityEngine;
 using UnityEngine.UI;
@@ -8,25 +8,25 @@ using Assets._3DStealthGame.Scripts;
 
 public class PlayerUI : Resettable
 {
-    public PlayerMovementU playerInventory;
+    public PlayerInvenory playerInventory;
     public Snowball snowball;
     public VRC_Pickup snowballPickup;
     public Canvas canvas;
 
-    public Image[] pillIcons;       // length 4: Green=0, Red=1, Blue=2, Black=3
+    public Image greenPillIcon;
+    public Image redPillIcon;
+    public Image bluePillIcon;
+    public Image brownPillIcon;
+
     private VRCPlayerApi localPlayer;
     private Collider snowballCollider;
 
-    public override void  Start()
+    public override void Start()
     {
         base.Start();
         localPlayer = Networking.LocalPlayer;
-       
-        if (!snowball)
-        {
-           // Debug.LogWarning("No snowball found in UIDisplay.");
-        }
-        else
+
+        if (snowball)
         {
             snowballCollider = snowball.GetComponent<Collider>();
             snowballPickup = snowball.GetComponent<VRC_Pickup>();
@@ -35,6 +35,19 @@ public class PlayerUI : Resettable
         _FindPlayerInventory();
     }
 
+    private Image _GetIcon(KeyType keyType)
+    {
+        switch (keyType)
+        {
+            case KeyType.Green: return greenPillIcon;
+            case KeyType.Red:   return redPillIcon;
+            case KeyType.Blue:  return bluePillIcon;
+            case KeyType.Brown: return brownPillIcon;
+            default:
+                Debug.LogError($"Unknown KeyType: {keyType}");
+                return null;
+        }
+    }
 
     private void _FindPlayerInventory()
     {
@@ -49,47 +62,48 @@ public class PlayerUI : Resettable
         if (playerObjects == null || playerObjects.Length == 0)
         {
             Debug.Log("No playerobject found");
-
             SendCustomEventDelayedFrames(nameof(_FindPlayerInventory), 1);
             return;
         }
 
         if (!Utilities.IsValid(playerObjects[0]))
         {
-            Debug.Log("No playerObjects[0] not valid");
-
+            Debug.Log("playerObjects[0] not valid");
             SendCustomEventDelayedFrames(nameof(_FindPlayerInventory), 1);
             return;
         }
 
-        playerInventory = playerObjects[0].GetComponent<PlayerMovementU>();
+        playerInventory = playerObjects[0].GetComponent<PlayerInvenory>();
         if (playerInventory == null)
         {
-            Debug.LogError("Could not find any PlayerMovementU script on local player!");
+            Debug.LogError("Could not find any PlayerInventory script on local player!");
             SendCustomEventDelayedFrames(nameof(_FindPlayerInventory), 1);
             return;
         }
-
-        // Success - playerInventory is found
-        // Continue with your initialization here
     }
+
     private void LateUpdate()
     {
         if (playerInventory)
         {
-            string keyCount = playerInventory.GetKeyCountsString();
             int typeCount = (int)KeyType.LastEnum;
-
             for (int i = 0; i < typeCount; i++)
             {
-                if (i < pillIcons.Length && pillIcons[i] != null)
-                    pillIcons[i].enabled = playerInventory.GetKeyCount((KeyType)i) > 0;
+                KeyType kt = (KeyType)i;
+                Image icon = _GetIcon(kt);
+                if (icon == null)
+                {
+                    Debug.LogError($"Pill icon for {kt} is not assigned in the inspector.");
+                    continue;
+                }
+                icon.gameObject.SetActive(playerInventory.HasPill(kt));
             }
         }
         else
         {
-            Debug.Log("No playerInventory.");
+            Debug.LogError("No playerInventory.");
         }
+
         if (localPlayer != null && localPlayer.IsValid())
         {
             VRCPlayerApi.TrackingData headData = localPlayer.GetTrackingData(VRCPlayerApi.TrackingDataType.Head);
@@ -101,12 +115,12 @@ public class PlayerUI : Resettable
 
     public void ResetState()
     {
-        for (int i = 0; i < pillIcons.Length; i++)
+        int typeCount = (int)KeyType.LastEnum;
+        for (int i = 0; i < typeCount; i++)
         {
-            if (pillIcons[i] != null)
-                pillIcons[i].enabled = false;
+            Image icon = _GetIcon((KeyType)i);
+            if (icon != null)
+                icon.gameObject.SetActive(false);
         }
     }
-
-
 }

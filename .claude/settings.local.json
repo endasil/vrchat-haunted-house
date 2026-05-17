@@ -10,7 +10,19 @@
       "Bash(grep -E \"\\\\.\\(txt|md|cz\\)$|notes|todo|ideas|thoughts|design|plan\")",
       "PowerShell(ls *)",
       "PowerShell(Get-ChildItem \"C:\\\\dev\\\\unity\\\\vrchat\\\\vrchat-haunted-house\" | Where-Object { $_.PSIsContainer -eq $false } | Select-Object Name, LastWriteTime)",
-      "Bash(grep -E \"\\\\.\\(cs|prefab\\)$\")"
+      "Bash(grep -E \"\\\\.\\(cs|prefab\\)$\")",
+      "Bash(Test-Path *)",
+      "Bash(Get-Content \"C:\\\\dev\\\\unity\\\\vrchat\\\\vrchat-haunted-house\\\\Assets\\\\Scenes\\\\haunted.unity\")",
+      "Bash(Select-String -Pattern \"^--- !u!1 &\" -Context 0,100)",
+      "Bash(Select-Object -First 120)",
+      "Bash(Out-String)",
+      "PowerShell($content = Get-Content \"C:\\\\dev\\\\unity\\\\vrchat\\\\vrchat-haunted-house\\\\Assets\\\\Scenes\\\\haunted.unity\"; $lines = @\\(\\); $inGameObject = $false; for \\($i = 0; $i -lt $content.Count; $i++\\) { if \\($content[$i] -match \"^--- !u!1 &\" -and -not $inGameObject\\) { $lines = @\\($content[$i]\\); $inGameObject = $true; $count = 0; } elseif \\($inGameObject\\) { $lines += $content[$i]; $count++; if \\($count -ge 80 -or \\($content[$i] -match \"^---\" -and $count -gt 5\\)\\) { break } } } ; $lines -join \"`n\" | Select-Object -First 120)",
+      "Bash(Select-Object -Last 60)",
+      "Bash(Find-Item -Path \"C:\\\\dev\\\\unity\\\\vrchat\\\\vrchat-haunted-house\\\\Assets\\\\Scenes\" -Filter \"*.unity\")",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "WebSearch",
+      "WebFetch(domain:creators.vrchat.com)",
+      "WebFetch(domain:feedback.vrchat.com)"
     ]
   }
 }

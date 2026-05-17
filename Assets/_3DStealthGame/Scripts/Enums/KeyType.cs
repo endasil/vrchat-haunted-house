@@ -5,7 +5,7 @@ namespace Assets._3DStealthGame.Scripts
         Green,
         Red,
         Blue,
-        Black,
+        Brown,
         LastEnum
     }
 }

@@ -9,7 +9,7 @@
                 case KeyType.Green: return "Green";
                 case KeyType.Red: return "Red";
                 case KeyType.Blue: return "Blue";
-                case KeyType.Black: return "Black";
+                case KeyType.Brown: return "Brown";
                 default: return "Unknown";
             }
         }

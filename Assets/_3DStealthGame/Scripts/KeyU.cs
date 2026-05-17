@@ -6,29 +6,29 @@ using VRC.SDKBase;
 
 public class KeyU : Resettable
 {
-    public KeyType keyType;
-    public ResetManager resetManager;
-    private VRCPlayerApi localPlayer;
+    public KeyType pillColor;
+    private ResetManager _resetManager;
+    private VRCPlayerApi _localPlayer;
 
     public override void Start()
     {
-        localPlayer = Networking.LocalPlayer;
+        _localPlayer = Networking.LocalPlayer;
         base.Start();
     }
 
     public override void OnPlayerTriggerEnter(VRCPlayerApi player)
     {
-        if (player != localPlayer)
+        if (player != _localPlayer)
             return;
 
         Debug.Log("Key trigger");
         GameObject[] playerObjects = player.GetPlayerObjects();
 
-        PlayerMovementU playerInfoScript = playerObjects[0].GetComponent<PlayerMovementU>();
+        PlayerInvenory playerInfoScript = playerObjects[0].GetComponent<PlayerInvenory>();
 
         if (playerInfoScript != null)
         {
-            playerInfoScript.AddKey(keyType);
+            playerInfoScript.AddKey(pillColor);
             Debug.Log("Adding key");
             gameObject.SetActive(false);
         }

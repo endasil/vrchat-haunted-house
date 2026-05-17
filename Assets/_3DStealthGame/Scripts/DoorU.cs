@@ -17,11 +17,11 @@ public class DoorU : Resettable
     private Quaternion targetRot;
     private ResetManager resetManager;
     public KeyType keyType;
-
+    public float FloorAngle = -90;
     public override void Start()
     {
         startRot = transform.localRotation;
-        targetRot = Quaternion.Euler(-90f, startRot.eulerAngles.y, startRot.eulerAngles.z);
+        targetRot = Quaternion.Euler(FloorAngle, startRot.eulerAngles.y, startRot.eulerAngles.z);
         base.Start();
     }
 
@@ -31,7 +31,7 @@ public class DoorU : Resettable
 
         GameObject[] playerObjects = player.GetPlayerObjects();
 
-        PlayerMovementU playerInventory = playerObjects[0].GetComponent<PlayerMovementU>();
+        PlayerInvenory playerInventory = playerObjects[0].GetComponent<PlayerInvenory>();
 
         if (playerInventory != null)
         {
@@ -49,7 +49,7 @@ public class DoorU : Resettable
         }
         else
         {
-            Debug.LogError("Unable to find PlayerMovementU script on player object");
+            Debug.LogError("Unable to find PlayerInventory script on player object");
         }
     }
 

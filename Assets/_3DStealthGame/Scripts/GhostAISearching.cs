@@ -18,6 +18,7 @@ public class GhostAISearching : UdonSharpBehaviour
 
     // NavMesh agent used for pathfinding and movement
     private NavMeshAgent _navMeshAgent;
+    
 
     // Base movement speed when patrolling
     public float defaultSpeed = 1f;
