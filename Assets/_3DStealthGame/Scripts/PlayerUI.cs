@@ -1,27 +1,25 @@
-﻿
-using System;
-
-using TMPro;
-
-using UdonSharp;
+﻿using UdonSharp;
 
 using UnityEngine;
+using UnityEngine.UI;
 
 using VRC.SDKBase;
-using VRC.Udon;
+using Assets._3DStealthGame.Scripts;
 
-public class PlayerUI : UdonSharpBehaviour
+public class PlayerUI : Resettable
 {
     public PlayerMovementU playerInventory;
     public Snowball snowball;
     public VRC_Pickup snowballPickup;
-    public TMP_Text keyText;
     public Canvas canvas;
+
+    public Image[] pillIcons;       // length 4: Green=0, Red=1, Blue=2, Black=3
     private VRCPlayerApi localPlayer;
     private Collider snowballCollider;
 
-    void Start()
+    public override void  Start()
     {
+        base.Start();
         localPlayer = Networking.LocalPlayer;
        
         if (!snowball)
@@ -32,18 +30,13 @@ public class PlayerUI : UdonSharpBehaviour
         {
             snowballCollider = snowball.GetComponent<Collider>();
             snowballPickup = snowball.GetComponent<VRC_Pickup>();
-            // Debug.Log($"Snowball:  {snowball.name}");
-            // Debug.Log($"Snowball collider enabled:  {snowballCollider.enabled}");
         }
 
-
-        // Debug.Log($"keyText: {keyText}");
-        // Debug.Log($"keyManager: {playerInventory}");
-        // Debug.Log($"canvas: {canvas}");
         _FindPlayerInventory();
     }
 
-    public void _FindPlayerInventory()
+
+    private void _FindPlayerInventory()
     {
         if (!Utilities.IsValid(localPlayer))
         {
@@ -82,10 +75,16 @@ public class PlayerUI : UdonSharpBehaviour
     }
     private void LateUpdate()
     {
-
         if (playerInventory)
         {
-            keyText.text = playerInventory.GetKeyCountsString();
+            string keyCount = playerInventory.GetKeyCountsString();
+            int typeCount = (int)KeyType.LastEnum;
+
+            for (int i = 0; i < typeCount; i++)
+            {
+                if (i < pillIcons.Length && pillIcons[i] != null)
+                    pillIcons[i].enabled = playerInventory.GetKeyCount((KeyType)i) > 0;
+            }
         }
         else
         {
@@ -95,9 +94,19 @@ public class PlayerUI : UdonSharpBehaviour
         {
             VRCPlayerApi.TrackingData headData = localPlayer.GetTrackingData(VRCPlayerApi.TrackingDataType.Head);
             Vector3 offset = headData.rotation * new Vector3(0.3f, 0.2f, 0.5f);
-            var prevPo = canvas.transform.position;
             canvas.transform.position = headData.position + offset;
             canvas.transform.rotation = headData.rotation;
         }
     }
+
+    public void ResetState()
+    {
+        for (int i = 0; i < pillIcons.Length; i++)
+        {
+            if (pillIcons[i] != null)
+                pillIcons[i].enabled = false;
+        }
+    }
+
+
 }

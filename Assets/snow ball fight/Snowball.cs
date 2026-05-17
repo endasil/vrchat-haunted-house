@@ -38,6 +38,11 @@ public class Snowball : SmartObjectSyncListener
     private SmartObjectSync _smartObjectSync;
     private int _lastHandledImpactEventId = 0;
 
+    [Header("Ghost Interaction")]
+    public GhostAISearching ghostAI;
+    [UdonSynced] public Vector3 syncedThrowerPosition;
+    [UdonSynced] public int syncedGhostHitEventId;
+
     private bool _hasImpacted = false;
     private VRCPickup _vrcPickup;
     private Rigidbody _rb;
@@ -177,13 +182,26 @@ public class Snowball : SmartObjectSyncListener
 
         var contact = collision.contacts[0];
 
+        bool isGhostHit = ghostAI != null && collision.gameObject == ghostAI.gameObject;
+
         if (!TryRegisterImpact(contact.point, contact.normal))
             return;
 
         DisableSnowball();
         CreateSnowballParticles();
-
         SendCustomEventDelayedSeconds(nameof(RespawnAndEnable), respawnDelay);
+
+        if (isGhostHit)
+            NotifyGhostHit();
+    }
+
+    private void NotifyGhostHit()
+    {
+        VRCPlayerApi thrower = Networking.GetOwner(gameObject);
+        if (thrower == null || !thrower.IsValid()) return;
+        syncedThrowerPosition = thrower.GetPosition();
+        syncedGhostHitEventId++;
+        RequestSerialization();
     }
 
     public void CreateSnowballParticles()

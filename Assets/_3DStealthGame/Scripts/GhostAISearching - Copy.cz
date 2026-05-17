@@ -26,7 +26,7 @@ public class GhostAISearching : UdonSharpBehaviour
     public float playerFoundSpeed = 2f;
 
     // Ignore positions where the agent would end up x meter from facing a wall.
-    private readonly float _wallNearDistance = 1f;
+    private float _wallNearDistance = 1f;
 
     // ==============================
     // Patrol Settings
@@ -38,7 +38,7 @@ public class GhostAISearching : UdonSharpBehaviour
 
     // Current AI behavior mode enum Walk / Chase etc
     public AIBehavior aiBehavior;
-    
+
     // ==============================
     // Vision Settings
     // ==============================
@@ -51,10 +51,9 @@ public class GhostAISearching : UdonSharpBehaviour
     // ==============================
 
     public float hearingRange = 3f;      // Radius for hearing-based detection
-
-    // ==============================
-    // Targeting
-    // ==============================
+                                         // ==============================
+                                         // Targeting
+                                         // ==============================
 
     public float retargetInterval = 0.2f;            // How often to re-evaluate target
 
@@ -64,13 +63,6 @@ public class GhostAISearching : UdonSharpBehaviour
 
     public TextMeshPro Indicator;  // Displays AI state symbol (! ? ~ .)
 
-
-    // ==============================
-    // Snowball Interaction
-    // ==============================
-
-    public Snowball[] snowballs;
-    private int[] _lastSnowballHitEventIds;
 
     // ==============================
     // Runtime State: Players & Target
@@ -94,27 +86,34 @@ public class GhostAISearching : UdonSharpBehaviour
     // End time of the current idle state.
     private float _idleStateEndTime;
 
+    // Start time of the sweep so PingPong has a stable origin.
+    private float _idleSweepStartTime;
+
     // Tracks which step of the look-around sequence we are in.
     private int _idleLookStep;
+
+    // Target rotation used by the current look step.
+    private Quaternion _idleLookTargetRotation;
 
     private bool _idleSweepCompleted;
 
 
     // One-time look-around tuning.
-    public float minLookAroundSweepAngle = 20f;        // minimum sweep half-angle
-    public float lookAroundSweepAngle = 60f;          // maximum sweep half-angle
+    public float lookAroundSweepAngle = 60f;          // degrees left/right from base direction
+    public float lookAroundSweepDuration = 8f;      // seconds for one full cycle: center->right->center->left->center
     public float idleTurnSpeed = 120f;
     public float lookAroundEndpointPauseTime = 1.5f;  // seconds to hold at each sweep endpoint before continuing
     public float postSweepPauseDuration = 0.3f;       // seconds to hold at center after sweep completes, before walking
 
     private bool _idlePausingAtEndpoint;
     private float _idleEndpointPauseUntil;
-    private bool _targetPathIsPending;
-    private float _currentSweepAngle;
-    private float _idleLookTargetAngle;
-    // +1 = sweep right first, -1 = sweep left first. Set when _idleBaseDirection is resolved
-    // so the sweep continues in the same direction the ghost was already rotating.
-    private float _firstSweepSign = 1f;
+    private float _idleSweepAccumulatedPauseTime;
+    private float _idleFirstEndpointNormalizedTime;   // normalizedTime at which to pause (first side)
+    private float _idleSecondEndpointNormalizedTime;  // normalizedTime at which to pause (second side)
+    private float _idleSweepEndNormalizedTime;        // normalizedTime at which the sweep ends (back at center)
+    private bool _idlePausedAtFirstEndpoint;
+    private bool _idlePausedAtSecondEndpoint;
+    private float _idleEndpointHeldAngle;
 
     private void Start()
     {
@@ -131,15 +130,6 @@ public class GhostAISearching : UdonSharpBehaviour
         // Make sure we can find a target right away.
         _lastRetargetTime = -999f;
 
-        // Snapshot current snowball hit counters so we don't react to hits that happened before we joined.
-        if (snowballs != null)
-        {
-            _lastSnowballHitEventIds = new int[snowballs.Length];
-            for (int i = 0; i < snowballs.Length; i++)
-                if (snowballs[i] != null)
-                    _lastSnowballHitEventIds[i] = snowballs[i].syncedGhostHitEventId;
-        }
-
     }
 
     private void Update()
@@ -151,23 +141,28 @@ public class GhostAISearching : UdonSharpBehaviour
         if (_navMeshAgent == null) return;
 
         UpdateRetargetingIfNeeded();
-        CheckSnowballHits();
 
         // ==============================
         // Perform current AI behavior
         // ==============================
 
-        switch (aiBehavior)
+        if (aiBehavior == AIBehavior.FollowPlayer)
         {
-            case AIBehavior.FollowPlayer:
-                FollowPlayerBehavior();
-                return;
-            case AIBehavior.RandomWalk:
-                RandomWalkBehavior();
-                return;
-            case AIBehavior.WalkNChase:
-                WalkAndChaseBehavior();
-                return;
+            FollowPlayerBehavior();
+            return;
+        }
+
+
+        if (aiBehavior == AIBehavior.RandomWalk)
+        {
+            RandomWalkBehavior();
+            return;
+        }
+
+        if (aiBehavior == AIBehavior.WalkNChase)
+        {
+            WalkAndChaseBehavior();
+            return;
         }
     }
 
@@ -193,7 +188,7 @@ public class GhostAISearching : UdonSharpBehaviour
 
     private void FollowPlayerBehavior()
     {
-        EnsureAgentCanMove();
+        EnsureAgentIsMoving();
 
         if (IsValidTargetPlayer(_currentTargetPlayer))
         {
@@ -227,26 +222,28 @@ public class GhostAISearching : UdonSharpBehaviour
 
         // Only begin idle look-around if we have arrived AND finished turning to face the arrival direction.
         if (isAtDestination && isFacingArrivalDirection)
-            PickDestinationAndStartLookAround();
+            StartIdleLookAround();
     }
 
 
     // Patrol, but interrupt patrol if vision/hearing detects a player.
     private void WalkAndChaseBehavior()
     {
+        EnsureAgentIsMoving();
+        RotateTowardsSteeringTargetWhenCloseToArrival();
+
         // Detection runs before idle look-around so the ghost can spot players during its sweep.
+        VRCPlayerApi detectedPlayer;
         bool detectedByVision;
-        bool didDetectPlayer = TryDetectBestPlayer(out var detectedPlayer, out detectedByVision);
+        bool didDetectPlayer = TryDetectBestPlayer(out detectedPlayer, out detectedByVision);
 
         if (didDetectPlayer)
         {
             // Debug.Log("Detected player: " + detectedPlayer.displayName + " by " + (detectedByVision ? "vision" : "hearing"));
-            // Only pick a new target if we don't already have one — stick to current target until patrol resumes.
-            if (!IsValidTargetPlayer(_currentTargetPlayer))
-                _currentTargetPlayer = detectedPlayer;
+            // When we detect a player, cancel idle and begin chase
+            _currentTargetPlayer = detectedPlayer;
 
             CancelIdleLookAround();
-            EnsureAgentCanMove();
 
             _navMeshAgent.speed = playerFoundSpeed;
             _navMeshAgent.SetDestination(GetPlayerHeadPosition(_currentTargetPlayer));
@@ -256,29 +253,21 @@ public class GhostAISearching : UdonSharpBehaviour
             return;
         }
 
-        // Only rotate toward arrival direction during patrol, not while chasing.
-        if (!_isInvestigating)
-            RotateTowardsSteeringTargetWhenCloseToArrival();
-
         // if idle look around is active, it will handle this frame
         if (UpdateIdleLookAroundIfActive())
         {
             return;
         }
 
-        EnsureAgentCanMove();
-
         // If we already started investigating, keep moving until we reach the destination.
         if (_isInvestigating && _navMeshAgent.hasPath && _navMeshAgent.remainingDistance > _navMeshAgent.stoppingDistance)
         {
-            Debug.Log("Is investigating");
             _navMeshAgent.speed = playerFoundSpeed;
             SetIndicatorText(AwarenessIndicator.InvestigatingLastKnown);
             return;
         }
 
         _isInvestigating = false;
-        _currentTargetPlayer = null;
         _navMeshAgent.speed = defaultSpeed;
         SetIndicatorText(AwarenessIndicator.SearchingForPlayers);
 
@@ -287,38 +276,9 @@ public class GhostAISearching : UdonSharpBehaviour
 
         if (!_navMeshAgent.hasPath || _navMeshAgent.remainingDistance <= _navMeshAgent.stoppingDistance)
         {
-            PickDestinationAndStartLookAround();
+            StartIdleLookAround();
         }
 
-    }
-
-    // ==============================
-    // Snowball Hit Handling
-    // ==============================
-
-    private void CheckSnowballHits()
-    {
-        if (snowballs == null || _lastSnowballHitEventIds == null) return;
-        for (int i = 0; i < snowballs.Length; i++)
-        {
-            if (snowballs[i] == null) continue;
-            if (snowballs[i].syncedGhostHitEventId == _lastSnowballHitEventIds[i]) continue;
-            _lastSnowballHitEventIds[i] = snowballs[i].syncedGhostHitEventId;
-            HandleSnowballHit(snowballs[i].syncedThrowerPosition);
-        }
-    }
-
-    private void HandleSnowballHit(Vector3 throwerPosition)
-    {
-        // Ignore if already chasing a player or investigating — no override.
-        if (IsValidTargetPlayer(_currentTargetPlayer) || _isInvestigating) return;
-
-        CancelIdleLookAround();
-        EnsureAgentCanMove();
-        _navMeshAgent.speed = defaultSpeed;
-        _navMeshAgent.SetDestination(throwerPosition);
-        _isInvestigating = true;
-        SetIndicatorText(AwarenessIndicator.HeardSomething);
     }
 
     // ==============================
@@ -371,7 +331,7 @@ public class GhostAISearching : UdonSharpBehaviour
     // ==============================
 
     // Allow the navmesh agent to move and rotate the npc
-    private void EnsureAgentCanMove()
+    private void EnsureAgentIsMoving()
     {
         _navMeshAgent.isStopped = false;
         _navMeshAgent.updateRotation = true;
@@ -427,28 +387,11 @@ public class GhostAISearching : UdonSharpBehaviour
 
     private bool RotateTowardsSteeringTargetWhenCloseToArrival()
     {
-        if (_idleLookAroundState != IdleLookAroundState.NotIdle)
-        {
-            return false;
-        }
-
-        if (_navMeshAgent.pathPending)
-        {
-            Debug.Log("Path pending");
-            return false;
-        }
-
-        if(_navMeshAgent.hasPath == false)
-        {
-            Debug.Log("No path yet");
-            return false;
-        } 
-
+        if (_idleLookAroundState != IdleLookAroundState.NotIdle) return false;
+        if (_navMeshAgent.pathPending) return false;
         if (_navMeshAgent.remainingDistance >= _navMeshAgent.stoppingDistance + 1f) return false;
-        
+
         Vector3 directionToSteeringTarget = _navMeshAgent.steeringTarget - transform.position;
-        Debug.Log("direction to steering target" + directionToSteeringTarget);
-        Debug.Log("Angle to steering target: " +Vector3.Angle(transform.forward, directionToSteeringTarget));
         directionToSteeringTarget.y = 0f;
         if (directionToSteeringTarget.sqrMagnitude <= 0.0001f) return true;
 
@@ -574,52 +517,94 @@ public class GhostAISearching : UdonSharpBehaviour
     // Idle Look-Around (State Machine)
     // ==============================
 
-    private void PickDestinationAndStartLookAround()
+    // Begins idle behavior: choose next destination, stop movement, face a sensible base direction.
+    private void StartIdleLookAround()
     {
         Debug.Log("Start idle lookaround.");
+        // Immediately pick the next destination so the ai can be turned towards it later.
         _navMeshAgent.autoBraking = true;
         _navMeshAgent.stoppingDistance = 0.4f;
         _navMeshAgent.speed = defaultSpeed;
-        if (!TryGetRandomNavMeshPosition(out Vector3 nextDestination, out bool wallAhead))
+        if (!TryGetRandomNavMeshPosition(out Vector3 nextDestination))
         {
             Debug.Log("StartIdleLookAround: no valid NavMesh position found, skipping sweep — will retry next frame.");
             return;
         }
-        
         _navMeshAgent.SetDestination(nextDestination);
-        _targetPathIsPending = true;
+
+        _idleLookStep = 0;
         EnsureAgentIsIdle();
 
-        _currentSweepAngle = Random.Range(minLookAroundSweepAngle, lookAroundSweepAngle);
-        _idleLookStep = 0;
-        _idleLookTargetAngle = 0f; // first target is center (base direction)
-        _idleLookAroundState = IdleLookAroundState.LookAround;
+        // Center the sweep on the next destination direction.
+        // The InitialHoldAndSweep phase below will smoothly rotate the ghost toward
+        // this direction before the sweep starts, so the destination is guaranteed
+        // to be inside the swept arc — and the ghost ends the sweep already facing
+        // where it walks next, with no residual turn.
+        // Use _navMeshAgent.destination (set above) rather than steeringTarget — the
+        // path corners haven't been computed yet this frame, so steeringTarget still
+        // points to the old path.
+        // Zero the y component so _idleBaseDirection lies in the horizontal plane,
+        // otherwise Quaternion.LookRotation would tilt the ghost up/down.
+        Vector3 destOffset = _navMeshAgent.destination - transform.position;
+        destOffset.y = 0f;
+        _idleBaseDirection = destOffset.sqrMagnitude > 0.01f ? destOffset.normalized : transform.forward;
+
+        // First phase: hold and look around the base direction.
+        // (Sweep timing is computed on the transition to SecondHold, where _idleBaseDirection is final.)
+        _idleLookAroundState = IdleLookAroundState.InitialHoldAndSweep;
         _idleSweepCompleted = false;
         _idlePausingAtEndpoint = false;
+        _idleSweepAccumulatedPauseTime = 0f;
+        _idlePausedAtFirstEndpoint = false;
+        _idlePausedAtSecondEndpoint = false;
 
         SetIndicatorText(AwarenessIndicator.SearchingForPlayers);
     }
-
 
     // Return true if this logic did the work for this frame.
     private bool UpdateIdleLookAroundIfActive()
     {
         if (_idleLookAroundState == IdleLookAroundState.NotIdle)
-        {
-            Debug.Log("UpdateIdleLookAroundIfActive: Not idle");
             return false;
-        }
 
         EnsureAgentIsIdle();
 
-        if (_idleLookAroundState == IdleLookAroundState.LookAround)
+        if (_idleLookAroundState == IdleLookAroundState.InitialHoldAndSweep)
         {
-            UpdateIdleHoldAndSweep();
+            // Pre-rotation phase: smoothly rotate the ghost to face _idleBaseDirection
+            // (the next destination direction) before any sweeping happens. Once aligned,
+            // transition to SecondHold and start the sweep centered on the destination.
+            // This guarantees the destination direction is inside the swept arc.
+            if (RotateToIdleBaseDirection(idleTurnSpeed))
+            {
+                _idleLookAroundState = IdleLookAroundState.SecondHold;
+
+                // The ghost just rotated TO the base direction — don't recompute from facing
+                // (that would give t0≈0 and reverse direction). Instead, start at t=0.5 so the
+                // sweep continues past center in the same rotational direction, hits the left
+                // endpoint, sweeps back through center to the right endpoint, then returns.
+                _idleSweepStartTime = Time.time - 0.5f * lookAroundSweepDuration;
+                _idleFirstEndpointNormalizedTime = 0.75f;
+                _idleSecondEndpointNormalizedTime = 1.25f;
+                _idleSweepEndNormalizedTime = 1.5f;
+
+                _idleSweepCompleted = false;
+                _idlePausingAtEndpoint = false;
+                _idleSweepAccumulatedPauseTime = 0f;
+                _idlePausedAtFirstEndpoint = false;
+                _idlePausedAtSecondEndpoint = false;
+            }
+            return true;
+        }
+
+        if (_idleLookAroundState == IdleLookAroundState.SecondHold)
+        {
+            UpdateIdleHoldAndSweep(sweepDuration: lookAroundSweepDuration);
 
             if (_idleSweepCompleted && Time.time >= _idleStateEndTime)
             {
                 CancelIdleLookAround();
-                EnsureAgentCanMove();
+                EnsureAgentIsMoving();
             }
 
             return true;
@@ -627,90 +612,93 @@ public class GhostAISearching : UdonSharpBehaviour
 
         return false;
     }
-
     private void CancelIdleLookAround()
     {
-        _targetPathIsPending = false;
         _idleLookAroundState = IdleLookAroundState.NotIdle;
         _idleSweepCompleted = false;
         _idlePausingAtEndpoint = false;
+        _idleSweepAccumulatedPauseTime = 0f;
+        _idlePausedAtFirstEndpoint = false;
+        _idlePausedAtSecondEndpoint = false;
     }
 
     // Sweep runs immediately from the ghost's current facing — no pre-rotation.
     // Timing is set by InitSweepTimingFromCurrentFacing before this is called.
     // Flow: current angle → first endpoint (pause) → center → second endpoint (pause) → center (done).
-    private void UpdateIdleHoldAndSweep()
+    private void UpdateIdleHoldAndSweep(float sweepDuration)
     {
-
-        if (_targetPathIsPending)
-        {
-            // Wait until a path has been calculated before starting lookaround
-            // this is because we want the look around to pass over the direction
-            // it will eventually go.
-
-            if (_navMeshAgent.pathPending) return; 
-
-            _targetPathIsPending = false;
-            Vector3 destOffset = _navMeshAgent.steeringTarget - transform.position;
-            destOffset.y = 0f;
-            _idleBaseDirection = destOffset.sqrMagnitude > 0.01f ? destOffset.normalized : transform.forward;
-
-            // Determine which side of center the ghost is currently on so the sweep
-            // continues in the same direction it was already rotating toward center.
-            // Positive signed angle = ghost is clockwise (right) of base = rotating left → sweep left first.
-            float signedAngleFromBase = Vector3.SignedAngle(_idleBaseDirection, transform.forward, Vector3.up);
-            _firstSweepSign = signedAngleFromBase > 0f ? -1f : 1f;
-        }
+        Quaternion baseRotation = Quaternion.LookRotation(_idleBaseDirection, Vector3.up);
 
         if (_idleSweepCompleted)
         {
-            transform.rotation = Quaternion.LookRotation(_idleBaseDirection, Vector3.up);
+            transform.rotation = baseRotation;
             return;
         }
 
-        Quaternion targetRotation = Quaternion.LookRotation(
-            Quaternion.AngleAxis(_idleLookTargetAngle, Vector3.up) * _idleBaseDirection, Vector3.up);
-
-        transform.rotation = Quaternion.RotateTowards(
-            transform.rotation, targetRotation, idleTurnSpeed * Time.deltaTime);
-
-        if (Quaternion.Angle(transform.rotation, targetRotation) < 2f)
+        // Hold at endpoint while pausing.
+        if (_idlePausingAtEndpoint)
         {
-            // Pause at endpoints (steps 1 and 2), but not at center (steps 0 and 3)
-            if ((_idleLookStep == 1 || _idleLookStep == 2) && !_idlePausingAtEndpoint)
-            {
-                _idlePausingAtEndpoint = true;
-                _idleEndpointPauseUntil = Time.time + lookAroundEndpointPauseTime;
-                return;
-            }
-
-            if (_idlePausingAtEndpoint && Time.time < _idleEndpointPauseUntil) return;
+            transform.rotation = Quaternion.LookRotation(
+                Quaternion.AngleAxis(_idleEndpointHeldAngle, Vector3.up) * _idleBaseDirection, Vector3.up);
+            if (Time.time < _idleEndpointPauseUntil) return;
+            _idleSweepAccumulatedPauseTime += lookAroundEndpointPauseTime;
             _idlePausingAtEndpoint = false;
-            _idleLookStep++;
-
-            switch (_idleLookStep)
-            {
-                case 1: // reached center, continue in the direction we were already rotating
-                    Debug.Log("Case 1 reached center, sweep to " + (_firstSweepSign > 0 ? "right" : "left"));
-                    _idleLookTargetAngle = _firstSweepSign * _currentSweepAngle;
-                    break;
-                case 2: // reached first endpoint, sweep to the opposite side
-                    Debug.Log("case 2: sweep to " + (_firstSweepSign > 0 ? "left" : "right"));
-                    _idleLookTargetAngle = -_firstSweepSign * _currentSweepAngle;
-                    break;
-                case 3: // reached left, return to center
-                    Debug.Log("case 3: reached left, return to center");
-                    _idleLookTargetAngle = 0f;
-                    break;
-                case 4: // back at center, done
-                    Debug.Log("case 4: back at center, done");
-                    _idleSweepCompleted = true;
-                    _idleStateEndTime = Time.time + postSweepPauseDuration;
-                    break;
-            }
         }
+
+        float activeTime = (Time.time - _idleSweepStartTime) - _idleSweepAccumulatedPauseTime;
+        float normalizedTime = activeTime / sweepDuration;
+
+        if (normalizedTime >= _idleSweepEndNormalizedTime)
+        {
+            _idleSweepCompleted = true;
+            _idleStateEndTime = Time.time + postSweepPauseDuration;
+            transform.rotation = baseRotation;
+            return;
+        }
+
+        if (!_idlePausedAtFirstEndpoint && normalizedTime >= _idleFirstEndpointNormalizedTime)
+        {
+            _idlePausedAtFirstEndpoint = true;
+            _idlePausingAtEndpoint = true;
+            _idleEndpointHeldAngle = Mathf.Sin(_idleFirstEndpointNormalizedTime * Mathf.PI * 2f) * lookAroundSweepAngle;
+            _idleEndpointPauseUntil = Time.time + lookAroundEndpointPauseTime;
+            transform.rotation = Quaternion.LookRotation(
+                Quaternion.AngleAxis(_idleEndpointHeldAngle, Vector3.up) * _idleBaseDirection, Vector3.up);
+            return;
+        }
+
+        if (!_idlePausedAtSecondEndpoint && normalizedTime >= _idleSecondEndpointNormalizedTime)
+        {
+            _idlePausedAtSecondEndpoint = true;
+            _idlePausingAtEndpoint = true;
+            _idleEndpointHeldAngle = Mathf.Sin(_idleSecondEndpointNormalizedTime * Mathf.PI * 2f) * lookAroundSweepAngle;
+            _idleEndpointPauseUntil = Time.time + lookAroundEndpointPauseTime;
+            transform.rotation = Quaternion.LookRotation(
+                Quaternion.AngleAxis(_idleEndpointHeldAngle, Vector3.up) * _idleBaseDirection, Vector3.up);
+            return;
+        }
+
+        float sweepAngle = Mathf.Sin(normalizedTime * Mathf.PI * 2f) * lookAroundSweepAngle;
+        transform.rotation = Quaternion.LookRotation(
+            Quaternion.AngleAxis(sweepAngle, Vector3.up) * _idleBaseDirection, Vector3.up);
     }
-    
+
+    // Second idle phase, no look around, just make sure we face the correct
+    // rotation before leaving idle.
+    private bool RotateToIdleBaseDirection(float rotateSpeed)
+    {
+        Quaternion baseRotation = Quaternion.LookRotation(_idleBaseDirection, Vector3.up);
+        float angleToBase = Quaternion.Angle(transform.rotation, baseRotation);
+        if (angleToBase > 5f)
+        {
+            transform.rotation =
+                Quaternion.RotateTowards(transform.rotation, baseRotation, rotateSpeed * Time.deltaTime);
+            return false;
+        }
+
+        return true;
+    }
+
     // ==============================
     // Patrol Destination Selection
     // ==============================
@@ -740,49 +728,38 @@ public class GhostAISearching : UdonSharpBehaviour
 
     // Returns a random reachable NavMesh position around the NPC,
     // with basic rejection to avoid wall-facing arrivals.
-    private bool TryGetRandomNavMeshPosition(out Vector3 position, out bool wallAhead)
+    private bool TryGetRandomNavMeshPosition(out Vector3 position)
     {
-        wallAhead = false;
-        Vector3 fallbackPosition = transform.position;
-        bool hasFallback = false;
-        position = transform.position; // Default to current position if no valid position is found
         for (int attempt = 0; attempt < 10; attempt++)
         {
             float randomOffsetX = Random.Range(-maxWalkDistance, maxWalkDistance);
             float randomOffsetZ = Random.Range(-maxWalkDistance, maxWalkDistance);
 
-            randomOffsetX = Mathf.Sign(randomOffsetX) * Mathf.Clamp(Mathf.Abs(randomOffsetX), minWalkDistance, maxWalkDistance);
-            randomOffsetZ = Mathf.Sign(randomOffsetZ) * Mathf.Clamp(Mathf.Abs(randomOffsetZ), minWalkDistance, maxWalkDistance);
+            randomOffsetX = Mathf.Sign(randomOffsetX) *
+                            Mathf.Clamp(Mathf.Abs(randomOffsetX), minWalkDistance, maxWalkDistance);
+            randomOffsetZ = Mathf.Sign(randomOffsetZ) *
+                            Mathf.Clamp(Mathf.Abs(randomOffsetZ), minWalkDistance, maxWalkDistance);
 
             Vector3 desiredWorldPosition = transform.position + new Vector3(randomOffsetX, 0, randomOffsetZ);
 
-            float maxDistance = 2f;
-            wallAhead = false;
-            if (NavMesh.SamplePosition(desiredWorldPosition, out var navMeshHit, maxDistance, NavMesh.AllAreas))
+            NavMeshHit navMeshHit;
+            if (NavMesh.SamplePosition(desiredWorldPosition, out navMeshHit, 2f, NavMesh.AllAreas))
             {
-                if (!IsFacingWallOnArrival(navMeshHit.position))
+                if (IsFacingWallOnArrival(navMeshHit.position))
                 {
-                    position = navMeshHit.position;
-                    wallAhead = false;
-                    Debug.Log("Found acceptable position " + position + " distance " + Vector3.Distance(transform.position, position));
-                    return true; // No wall ahead, return this position
+                    Debug.Log($"Rejected position {navMeshHit.position} attempt {attempt} — wall ahead on arrival");
+                    continue;
                 }
-                fallbackPosition = navMeshHit.position;
-                hasFallback = true;
+                position = navMeshHit.position;
+                Debug.Log("Found acceptable position " + position + " distance " + Vector3.Distance(transform.position, position));
+                return true;
             }
 
-
-            Debug.Log($"Sample position failed to get random position within {maxDistance} of {desiredWorldPosition} attempt:  {attempt}");
+            Debug.Log($"Failed to get random position {attempt}");
         }
 
-
-        if (hasFallback)
-        {
-            position = fallbackPosition;
-            wallAhead = true;
-            return true;
-        }
-
+        Debug.LogError("Failed to get random position");
+        position = transform.position; 
         return false;
     }
 

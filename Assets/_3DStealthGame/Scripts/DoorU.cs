@@ -15,7 +15,7 @@ public class DoorU : Resettable
     private float timer;
     private Quaternion startRot;
     private Quaternion targetRot;
-    public ResetManager resetManager;
+    private ResetManager resetManager;
     public KeyType keyType;
 
     public override void Start()
@@ -35,7 +35,7 @@ public class DoorU : Resettable
 
         if (playerInventory != null)
         {
-            if (playerInventory.UseKey(keyType))
+            if (playerInventory.HasPill(keyType))
             {
                 Debug.Log($"Key {keyType} used");
                 timer = 0f;

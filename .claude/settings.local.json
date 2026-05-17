@@ -1,7 +1,16 @@
 {
   "permissions": {
     "allow": [
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "Bash(xargs grep:*)",
+      "Bash(Get-ChildItem -Recurse -Filter \"*.meta\")",
+      "Bash(Measure-Object)",
+      "Bash(Select-Object -ExpandProperty Count)",
+      "Bash(git -C \"C:\\\\dev\\\\unity\\\\vrchat\\\\vrchat-haunted-house\" diff HEAD \"Assets/Scenes/haunted.unity\")",
+      "Bash(grep -E \"\\\\.\\(txt|md|cz\\)$|notes|todo|ideas|thoughts|design|plan\")",
+      "PowerShell(ls *)",
+      "PowerShell(Get-ChildItem \"C:\\\\dev\\\\unity\\\\vrchat\\\\vrchat-haunted-house\" | Where-Object { $_.PSIsContainer -eq $false } | Select-Object Name, LastWriteTime)",
+      "Bash(grep -E \"\\\\.\\(cs|prefab\\)$\")"
     ]
   }
 }

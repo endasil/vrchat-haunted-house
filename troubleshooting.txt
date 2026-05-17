@@ -1,0 +1,24 @@
+[04:32:25.245][ClientSimUdonManager] Non-static field requires a target
+Shows a warning below
+[08:35:44.993][ClientSimUdonManager] Failed to set ready for object: /PlayerUI (1)/Red Pill
+UnityEngine.Debug:LogWarning (object)
+VRC.SDK3.ClientSim.ClientSimExtensions:LogWarning (string,string) (at ./Packages/com.vrchat.worlds/Integrations/ClientSim/Runtime/Utilities/ClientSimExtensions.cs:54)
+VRC.SDK3.ClientSim.ClientSimExtensions:LogWarning (object,string) (at ./Packages/com.vrchat.worlds/Integrations/ClientSim/Runtime/Utilities/ClientSimExtensions.cs:59)
+VRC.SDK3.ClientSim.ClientSimUdonManager/<OnClientSimReady>d__10:MoveNext () (at ./Packages/com.vrchat.worlds/Integrations/ClientSim/Runtime/System/ClientSimUdonManager.cs:107)
+UnityEngine.SetupCoroutine:InvokeMoveNext (System.Collections.IEnumerator,intptr)
+
+
+[08:35:44.993][ClientSimUdonManager] Non-static field requires a target
+  at System.Reflection.RuntimeFieldInfo.SetValue (System.Object obj, System.Object val, System.Reflection.BindingFlags invokeAttr, System.Reflection.Binder binder, System.Globalization.CultureInfo culture) [0x0000b] in <27124aa0e30a41659b903b822b959bc7>:0 
+  at System.Reflection.FieldInfo.SetValue (System.Object obj, System.Object value) [0x00009] in <27124aa0e30a41659b903b822b959bc7>:0 
+  at VRC.SDK3.ClientSim.ClientSimUdonHelper.SetIsReady (System.Boolean isReady) [0x00000] in .\Packages\com.vrchat.worlds\Integrations\ClientSim\Runtime\Helpers\ClientSimUdonHelper.cs:62 
+  at VRC.SDK3.ClientSim.ClientSimUdonHelper.OnReady () [0x00000] in .\Packages\com.vrchat.worlds\Integrations\ClientSim\Runtime\Helpers\ClientSimUdonHelper.cs:67 
+  at VRC.SDK3.ClientSim.ClientSimUdonManager+<OnClientSimReady>d__10.MoveNext () [0x00096] in .\Packages\com.vrchat.worlds\Integrations\ClientSim\Runtime\System\ClientSimUdonManager.cs:102 
+
+[08:35:44.993][ClientSimUdonManager] Failed to set ready for object: /PlayerUI (1)/Red Pill
+UnityEngine.Debug:LogWarning (object)
+VRC.SDK3.ClientSim.ClientSimExtensions:LogWarning (string,string) (at ./Packages/com.vrchat.worlds/Integrations/ClientSim/Runtime/Utilities/ClientSimExtensions.cs:54)
+VRC.SDK3.ClientSim.ClientSimExtensions:LogWarning (object,string) (at ./Packages/com.vrchat.worlds/Integrations/ClientSim/Runtime/Utilities/ClientSimExtensions.cs:59)
+VRC.SDK3.ClientSim.ClientSimUdonManager/<OnClientSimReady>d__10:MoveNext () (at ./Packages/com.vrchat.worlds/Integrations/ClientSim/Runtime/System/ClientSimUdonManager.cs:107)
+UnityEngine.SetupCoroutine:InvokeMoveNext (System.Collections.IEnumerator,intptr)
+

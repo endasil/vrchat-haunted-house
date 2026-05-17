@@ -9,6 +9,10 @@ public class PlayerMovementU : Resettable
         base.Start();
     }
 
+    public bool HasPill(KeyType keyType)
+    {
+        return keyCounts[(int)keyType] > 0;
+    }
     public void AddKey(KeyType keyType)
     {
         keyCounts[(int)keyType]++;

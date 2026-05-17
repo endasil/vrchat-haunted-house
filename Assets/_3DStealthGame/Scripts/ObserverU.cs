@@ -8,19 +8,19 @@ using VRC.Udon;
 
 public class ObserverU : UdonSharpBehaviour
 {
-    private bool m_IsPlayerInRange;
-    private VRCPlayerApi localPlayer;
-    public GameEndingU gameEnding;
+    private bool _isPlayerInRange;
+    private VRCPlayerApi _localPlayer;
+    public GameEndingU _gameEnding;
 
     public AudioSource exitAudio;
     public AudioSource caughtAudio;
-    bool m_HasAudioPlayed;
+    private bool _HasAudioPlayed;
 
 
     void Start()
     {
-        localPlayer = Networking.LocalPlayer;
-        if (gameEnding == null)
+        _localPlayer = Networking.LocalPlayer;
+        if (_gameEnding == null)
         {
             Debug.LogError("gameEnding is null, add it in inspector.");
         }
@@ -28,27 +28,26 @@ public class ObserverU : UdonSharpBehaviour
 
     public override void OnPlayerTriggerEnter(VRCPlayerApi player)
     {
-        Debug.Log("Player caught");
-        return;
-        if (player == localPlayer)
+        Debug.Log("Player caught");        
+        if (player == _localPlayer)
         {
-            m_IsPlayerInRange = true;
+            _isPlayerInRange = true;
         }
     }
 
     public override void OnPlayerTriggerExit(VRCPlayerApi player)
     {
-        if (player == localPlayer)
+        if (player == _localPlayer)
         {
-            m_IsPlayerInRange = false;
+            _isPlayerInRange = false;
         }
     }
 
     private void Update()
     {
-        if (m_IsPlayerInRange && localPlayer != null)
+        if (_isPlayerInRange && _localPlayer != null)
         {
-            Vector3 playerPos = localPlayer.GetPosition();
+            Vector3 playerPos = _localPlayer.GetPosition();
             Vector3 direction = playerPos - transform.position + Vector3.up;
             float distToPlayer = Vector3.Distance(transform.position, playerPos);
             Ray ray = new Ray(transform.position, direction);
@@ -56,7 +55,7 @@ public class ObserverU : UdonSharpBehaviour
             if (Physics.Raycast(ray, distToPlayer))
             {
                 Debug.Log("Player was caught");
-                gameEnding.CaughtPlayer();
+                _gameEnding.CaughtPlayer();
 
 
             }
