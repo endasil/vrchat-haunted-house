@@ -1,4 +1,4 @@
-﻿using System.Runtime.CompilerServices;
+﻿#pragma warning disable IDE0090 // Use 'new(...)'
 using UdonSharp;
 
 using UnityEngine;
@@ -30,7 +30,9 @@ public class WaypointNetwork : UdonSharpBehaviour
                 end = WaypointPositions[0].position;
             }
 
+
             NavMeshPath path = new NavMeshPath();
+
             bool success = NavMesh.CalculatePath(start, end, NavMesh.AllAreas, path);
             if (!success)
             {

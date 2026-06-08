@@ -1,6 +1,6 @@
 namespace Assets._3DStealthGame.Scripts
 {
-    public enum KeyType
+    public enum PillColor
     {
         Green,
         Red,

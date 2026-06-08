@@ -3,20 +3,21 @@
 using UdonSharp;
 using VRC.SDKBase;
 
+[UdonBehaviourSyncMode(BehaviourSyncMode.None)]
 public class FaceCamera : UdonSharpBehaviour
 {
-    private VRCPlayerApi localPlayer;
+    private VRCPlayerApi _localPlayer;
 
     void Start()
     {
-        localPlayer = Networking.LocalPlayer;
+        _localPlayer = Networking.LocalPlayer;
     }
 
     void LateUpdate()
     {
-        if (localPlayer == null || !localPlayer.IsValid()) return;
+        if (_localPlayer == null || !_localPlayer.IsValid()) return;
 
-        Vector3 playerPos = localPlayer.GetPosition();
+        Vector3 playerPos = _localPlayer.GetPosition();
         Vector3 direction = transform.position - playerPos;
         direction.y = 0f;
 

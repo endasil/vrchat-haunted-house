@@ -1,4 +1,4 @@
-﻿
+﻿#pragma warning disable UNT0039
 using MMMaellon;
 
 using System;
@@ -73,7 +73,9 @@ public class Snowball : SmartObjectSyncListener
         // While the snowball is in idle state, we do not want other snowballs to collide with it.
         if (physicsCollider) physicsCollider.enabled = false;
 
+
         _smartObjectSync = GetComponent<SmartObjectSync>();
+
         if (_smartObjectSync)
         {
             // We need to listen to state change events from SmartObjectSync and switch kinematic mode
@@ -211,8 +213,7 @@ public class Snowball : SmartObjectSyncListener
             GameObject particles = Instantiate(impactParticles);
             if (particles != null)
             {
-                particles.transform.position = _syncedImpactPosition;
-                particles.transform.rotation = Quaternion.LookRotation(_syncedImpactNormal);
+                particles.transform.SetPositionAndRotation(_syncedImpactPosition, Quaternion.LookRotation(_syncedImpactNormal));
             }
         }
         else

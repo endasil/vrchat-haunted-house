@@ -490,6 +490,8 @@ ModelImporter:
     optimizeGameObjects: 1
     removeConstantScaleCurves: 0
     motionNodeName: 
+    rigImportErrors: 
+    rigImportWarnings: 
     animationImportErrors: 
     animationImportWarnings: 
     animationRetargetingWarnings: 
@@ -501,7 +503,45 @@ ModelImporter:
     animationPositionError: 0.5
     animationScaleError: 0.5
     animationWrapMode: 0
-    extraExposedTransformPaths: []
+    extraExposedTransformPaths:
+    - Root/Pedestal/Hips/Spine1/Spine2/Head
+    - Root/Pedestal/Hips/Spine1/Spine2/Head/HeadEND
+    - Root/Pedestal/Hips/Spine1/Spine2/Head/LeftHorn/LeftHornEND
+    - Root/Pedestal/Hips/Spine1/Spine2/Head/LeftEar/LeftEarEND
+    - Root/Pedestal/Hips/Spine1/Spine2/Head/RightHorn/RightHornEND
+    - Root/Pedestal/Hips/Spine1/Spine2/Head/RightEar/RightEarEND
+    - Root/Pedestal/Hips/Spine1/Spine2/LeftShoulder/LeftUpperArm
+    - Root/Pedestal/Hips/Spine1/Spine2/LeftShoulder/LeftUpperArm/LeftArm
+    - Root/Pedestal/Hips/Spine1/Spine2/LeftShoulder/LeftUpperArm/LeftArm/LeftHand
+    - Root/Pedestal/Hips/Spine1/Spine2/LeftShoulder/LeftUpperArm/LeftArm/LeftHand/LeftThumb
+    - Root/Pedestal/Hips/Spine1/Spine2/LeftShoulder/LeftUpperArm/LeftArm/LeftHand/LeftThumb/LeftThumbEND
+    - Root/Pedestal/Hips/Spine1/Spine2/LeftShoulder/LeftUpperArm/LeftArm/LeftHand/LeftIndex
+    - Root/Pedestal/Hips/Spine1/Spine2/LeftShoulder/LeftUpperArm/LeftArm/LeftHand/LeftIndex/LeftIndexEND
+    - Root/Pedestal/Hips/Spine1/Spine2/LeftShoulder/LeftUpperArm/LeftArm/LeftHand/LeftMiddle
+    - Root/Pedestal/Hips/Spine1/Spine2/LeftShoulder/LeftUpperArm/LeftArm/LeftHand/LeftMiddle/LeftMiddleEND
+    - Root/Pedestal/Hips/Spine1/Spine2/LeftShoulder/LeftUpperArm/LeftArm/LeftHand/LeftPinky
+    - Root/Pedestal/Hips/Spine1/Spine2/LeftShoulder/LeftUpperArm/LeftArm/LeftHand/LeftPinky/LeftPinkyEND
+    - Root/Pedestal/Hips/Spine1/Spine2/RightShoulder/RightUpperArm
+    - Root/Pedestal/Hips/Spine1/Spine2/RightShoulder/RightUpperArm/RightArm
+    - Root/Pedestal/Hips/Spine1/Spine2/RightShoulder/RightUpperArm/RightArm/RightHand
+    - Root/Pedestal/Hips/Spine1/Spine2/RightShoulder/RightUpperArm/RightArm/RightHand/RightThumb
+    - Root/Pedestal/Hips/Spine1/Spine2/RightShoulder/RightUpperArm/RightArm/RightHand/RightThumb/RightThumbEND
+    - Root/Pedestal/Hips/Spine1/Spine2/RightShoulder/RightUpperArm/RightArm/RightHand/RightIndex
+    - Root/Pedestal/Hips/Spine1/Spine2/RightShoulder/RightUpperArm/RightArm/RightHand/RightIndex/RightIndexEND
+    - Root/Pedestal/Hips/Spine1/Spine2/RightShoulder/RightUpperArm/RightArm/RightHand/RightMiddle
+    - Root/Pedestal/Hips/Spine1/Spine2/RightShoulder/RightUpperArm/RightArm/RightHand/RightMiddle/RightMiddleEND
+    - Root/Pedestal/Hips/Spine1/Spine2/RightShoulder/RightUpperArm/RightArm/RightHand/RightPinky
+    - Root/Pedestal/Hips/Spine1/Spine2/RightShoulder/RightUpperArm/RightArm/RightHand/RightPinky/RightPinkyEND
+    - Root/Pedestal/Hips/Spine1/Spine2/LeftWing1/LeftWing2
+    - Root/Pedestal/Hips/Spine1/Spine2/LeftWing1/LeftWing2/LeftWingEND
+    - Root/Pedestal/Hips/Spine1/Spine2/RightWing1/RightWing2
+    - Root/Pedestal/Hips/Spine1/Spine2/RightWing1/RightWing2/RightWingEND
+    - Root/Pedestal/Hips/LeftLeg/LeftCalf
+    - Root/Pedestal/Hips/LeftLeg/LeftCalf/LeftFoot
+    - Root/Pedestal/Hips/LeftLeg/LeftCalf/LeftFoot/LeftFootEND
+    - Root/Pedestal/Hips/RightLeg/RightCalf
+    - Root/Pedestal/Hips/RightLeg/RightCalf/RightFoot
+    - Root/Pedestal/Hips/RightLeg/RightCalf/RightFoot/RightFootEND
     extraUserProperties: []
     clipAnimations: []
     isReadable: 1
@@ -579,10 +619,3 @@ ModelImporter:
   userData: 
   assetBundleName: 
   assetBundleVariant: 
-AssetOrigin:
-  serializedVersion: 1
-  productId: 143848
-  packageName: '3D Stealth Game: Haunted House'
-  packageVersion: 3.1
-  assetPath: Assets/_3DStealthGame/Art/Models/Characters/Enemies/Gargoyle_Model.fbx
-  uploadId: 770342

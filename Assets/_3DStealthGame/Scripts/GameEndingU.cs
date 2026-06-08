@@ -8,12 +8,13 @@ using UnityEngine.UIElements;
 using VRC.SDKBase;
 using VRC.Udon;
 
+[UdonBehaviourSyncMode(BehaviourSyncMode.None)]
 public class GameEndingU : UdonSharpBehaviour
 {
     public float fadeDuration = 1f;
     public float displayImageDuration = 1f;
 
-    private bool m_IsPlayerAtExit;
+    private bool _isPlayerAtExit;
     private bool m_IsPlayerCaught;
     private float m_Timer = 0;
 
@@ -22,7 +23,7 @@ public class GameEndingU : UdonSharpBehaviour
 
     public AudioSource exitAudio;
     public AudioSource caughtAudio;
-    bool m_HasAudioPlayed;
+    bool _endLevelStarted;
 
 
     private Vector3 m_SpawnPosition;
@@ -33,10 +34,10 @@ public class GameEndingU : UdonSharpBehaviour
         m_LocalPlayer = Networking.LocalPlayer;
 
         // Make sure screens start invisible
-        if (m_EndScreenCanvasGroup != null)
-            m_EndScreenCanvasGroup.alpha = 0f;
-        if (m_CaughtScreenCanvasGroup != null)
-            m_CaughtScreenCanvasGroup.alpha = 0f;
+        //if (m_EndScreenCanvasGroup != null)
+        //    m_EndScreenCanvasGroup.alpha = 0f;
+        //if (m_CaughtScreenCanvasGroup != null)
+        //    m_CaughtScreenCanvasGroup.alpha = 0f;
         
         // Store the spawn position when the player loads in
         m_SpawnPosition = m_LocalPlayer.GetPosition();
@@ -48,16 +49,11 @@ public class GameEndingU : UdonSharpBehaviour
         m_LocalPlayer.TeleportTo(m_SpawnPosition, m_SpawnRotation);
     }
 
-    // Update is called once per frame
-    public override void OnPlayerTriggerEnter(VRCPlayerApi player)
-    {
-        Debug.Log("OnPlayerTriggerEnter");
-        if (player == m_LocalPlayer)
-        {
-            Debug.Log("player == m_LocalPlayer");
 
-            m_IsPlayerAtExit = true;
-        }
+    // Called by ExitTriggerU when the local player walks into the exit trigger.
+    public void ReachedExit()
+    {
+        _isPlayerAtExit = true;
     }
 
     public void CaughtPlayer()
@@ -67,7 +63,7 @@ public class GameEndingU : UdonSharpBehaviour
 
     public void Update()
     {
-        if (m_IsPlayerAtExit)
+        if (_isPlayerAtExit)
         {
             EndLevel(m_EndScreenCanvasGroup, exitAudio);
         }
@@ -86,25 +82,33 @@ public class GameEndingU : UdonSharpBehaviour
         }
 
 
-        if (!m_HasAudioPlayed)
+        if (!_endLevelStarted)
         {
+            if (m_IsPlayerCaught)
+            {
+                Debug.Log("Player caught!");
+                TeleportPlayerToSpawn();
+            }
             audioSource.Play();
-            m_HasAudioPlayed = true;
+            _endLevelStarted = true;
         }
 
         m_Timer += Time.deltaTime;
         canvasGroup.alpha = m_Timer / fadeDuration;
-        Debug.Log($"EndLevel. alpha {canvasGroup.alpha}");
 
         if (m_Timer > fadeDuration + displayImageDuration)
         {
+            if (_isPlayerAtExit)
+            {
+                Debug.Log("Player at exit!");
                 TeleportPlayerToSpawn();
-                canvasGroup.alpha = 0;
-                m_IsPlayerAtExit = false;
-                m_IsPlayerCaught = false;
+            }
+            canvasGroup.alpha = 0;
+            _isPlayerAtExit = false;
+            m_IsPlayerCaught = false;
 
-                m_Timer = 0;
-                m_HasAudioPlayed = false;
+            m_Timer = 0;
+            _endLevelStarted = false;
         }
     }
 }

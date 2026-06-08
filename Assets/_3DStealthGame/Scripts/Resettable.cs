@@ -5,7 +5,7 @@ namespace Assets._3DStealthGame.Scripts
 {
     public class Resettable : UdonSharpBehaviour
     {
-        public ResetManager manager;
+        public ResetManager resetManager;
         protected bool registered;
 
         public virtual void Start()
@@ -16,22 +16,22 @@ namespace Assets._3DStealthGame.Scripts
         protected void TryRegister()
         {
             if (registered) return;
-            if (manager == null)
+            if (resetManager == null)
             {
                 var go = GameObject.Find("ResetManager");
-                if (go != null) manager = go.GetComponent<ResetManager>();
+                if (go != null) resetManager = go.GetComponent<ResetManager>();
                 else
                 {
                     Debug.LogError("Failed to find ResetManager.");
                 }
             }
-            if (manager == null)
+            if (resetManager == null)
             {
                 Debug.LogError($"[Resettable] {gameObject.name} could not find a ResetManager in the scene.", gameObject);
                 return;
             }
 
-            manager.Register(this);
+            resetManager.Register(this);
             registered = true;
         }
     }

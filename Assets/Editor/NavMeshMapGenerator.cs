@@ -1,4 +1,5 @@
 using System.IO;
+using Assets._3DStealthGame.Scripts;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.AI;
@@ -54,6 +55,20 @@ public static class NavMeshMapGenerator
             FillTriangle(tex, p0, p1, p2, Color.white);
         }
 
+        var doors = Object.FindObjectsByType<DoorU>(FindObjectsSortMode.None);
+        foreach (var door in doors)
+        {
+            Vector2Int px = ToPixel(door.transform.position, minX, minZ, worldW, worldH, texW, texH);
+            DrawCircle(tex, px, 6, PillColorToColor(door.PillColor));
+        }
+
+        var pills = Object.FindObjectsByType<Pill>(FindObjectsSortMode.None);
+        foreach (var pill in pills)
+        {
+            Vector2Int px = ToPixel(pill.transform.position, minX, minZ, worldW, worldH, texW, texH);
+            DrawCircle(tex, px, 4, PillColorToColor(pill.PillColor));
+        }
+
         tex.Apply();
 
         string fullPath = Path.Combine(Application.dataPath, "NavMeshMap.png");
@@ -69,6 +84,29 @@ public static class NavMeshMapGenerator
         int px = Mathf.Clamp((int)((world.x - minX) / worldW * texW), 0, texW - 1);
         int py = Mathf.Clamp((int)((world.z - minZ) / worldH * texH), 0, texH - 1);
         return new Vector2Int(px, py);
+    }
+
+    static Color PillColorToColor(PillColor pillColor) => pillColor switch
+    {
+        PillColor.Green => Color.green,
+        PillColor.Red   => Color.red,
+        PillColor.Blue  => Color.blue,
+        PillColor.Brown => new Color(0.55f, 0.27f, 0.07f),
+        _               => Color.magenta,
+    };
+
+    static void DrawCircle(Texture2D tex, Vector2Int center, int radius, Color color)
+    {
+        for (int dy = -radius; dy <= radius; dy++)
+        for (int dx = -radius; dx <= radius; dx++)
+        {
+            if (dx * dx + dy * dy <= radius * radius)
+            {
+                int x = center.x + dx, y = center.y + dy;
+                if ((uint)x < (uint)tex.width && (uint)y < (uint)tex.height)
+                    tex.SetPixel(x, y, color);
+            }
+        }
     }
 
     static void FillTriangle(Texture2D tex, Vector2Int a, Vector2Int b, Vector2Int c, Color color)

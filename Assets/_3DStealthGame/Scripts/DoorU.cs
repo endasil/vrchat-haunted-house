@@ -1,80 +1,83 @@
-﻿using Assets._3DStealthGame.Scripts;
-
+﻿#pragma warning disable IDE0044 // Add readonly modifier
+#pragma warning disable UNT0026
 using UdonSharp;
-
 using UnityEngine;
-
 using VRC.SDKBase;
-using VRC.Udon;
 
-public class DoorU : Resettable
+namespace Assets._3DStealthGame.Scripts
 {
-    public float openDuration = 1f;
-    private bool opened = false;
-    private bool opening;
-    private float timer;
-    private Quaternion startRot;
-    private Quaternion targetRot;
-    private ResetManager resetManager;
-    public KeyType keyType;
-    public float FloorAngle = -90;
-    public override void Start()
+    [UdonBehaviourSyncMode(BehaviourSyncMode.None)]
+    public class DoorU : Resettable
     {
-        startRot = transform.localRotation;
-        targetRot = Quaternion.Euler(FloorAngle, startRot.eulerAngles.y, startRot.eulerAngles.z);
-        base.Start();
-    }
+        public float openDuration = 1f;
+        private bool _opened = false;
+        private bool _opening;
+        private float _timer;
+        private Quaternion _startRot;
+        private Quaternion _targetRot;
 
-    public override void OnPlayerTriggerEnter(VRCPlayerApi player)
-    {
-        if (!player.isLocal || opened) return;
-
-        GameObject[] playerObjects = player.GetPlayerObjects();
-
-        PlayerInvenory playerInventory = playerObjects[0].GetComponent<PlayerInvenory>();
-
-        if (playerInventory != null)
+        private ResetManager _resetManager;
+        public PillColor PillColor;
+        public float FloorAngle = -90;
+        public override void Start()
         {
-            if (playerInventory.HasPill(keyType))
+            _startRot = transform.localRotation;
+            _targetRot = Quaternion.Euler(FloorAngle, _startRot.eulerAngles.y, _startRot.eulerAngles.z);
+            base.Start();
+        }
+
+        public override void OnPlayerTriggerEnter(VRCPlayerApi player)
+        {
+            if (!player.isLocal || _opened) return;
+
+            GameObject[] playerObjects = player.GetPlayerObjects();
+
+            PlayerInventory playerInventory = playerObjects[0].GetComponent<PlayerInventory>();
+
+
+            if (playerInventory != null)
             {
-                Debug.Log($"Key {keyType} used");
-                timer = 0f;
-                opening = true;
+                if (playerInventory.HasPill(PillColor))
+                {
+                    Debug.Log($"Pill {PillColor} used");
+                    _timer = 0f;
+                    _opening = true;
+                }
+                else
+                {
+                    Debug.Log($"No {PillColor} pill in player inventory.");
+                    return;
+                }
             }
             else
             {
-                Debug.Log($"No {keyType} key in player inventory. ");
-                return;
+                Debug.LogError("Unable to find PlayerInventory script on player object");
             }
         }
-        else
+
+        void Update()
         {
-            Debug.LogError("Unable to find PlayerInventory script on player object");
+            if (!_opening || _opened) return;
+
+            _timer += Time.deltaTime;
+            float normalizedTime = Mathf.Clamp01(_timer / openDuration);
+
+            transform.localRotation = Quaternion.Slerp(_startRot, _targetRot, normalizedTime );
+
+            if (normalizedTime  >= 1f)
+            {
+                _opened = true;
+                _opening = false;
+            }
         }
-    }
 
-    void Update()
-    {
-        if (!opening || opened) return;
-
-        timer += Time.deltaTime;
-        float normalizedTime = Mathf.Clamp01(timer / openDuration);
-
-        transform.localRotation = Quaternion.Slerp(startRot, targetRot, normalizedTime );
-
-        if (normalizedTime  >= 1f)
+        public void ResetState()
         {
-            opened = true;
-            opening = false;
+            Debug.Log(gameObject.name + "ResetState");
+            _opening = false;
+            _opened = false;
+            _timer = 0f;
+            transform.localRotation = _startRot;
         }
-    }
-
-    public void ResetState()
-    {
-        Debug.Log(gameObject.name + "ResetState");
-        opening = false;
-        opened = false;
-        timer = 0f;
-        transform.localRotation = startRot;
     }
 }

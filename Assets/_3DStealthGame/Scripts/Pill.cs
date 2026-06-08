@@ -1,12 +1,17 @@
-﻿using Assets._3DStealthGame.Scripts;
+﻿#pragma warning disable IDE0044 // Add readonly modifier
+#pragma warning disable UNT0026 // GetComponent allocatess even if no component found, no longer true in 2019.3+
+using Assets._3DStealthGame.Scripts;
+
+using UdonSharp;
 
 using UnityEngine;
 
 using VRC.SDKBase;
 
-public class KeyU : Resettable
+[UdonBehaviourSyncMode(BehaviourSyncMode.None)]
+public class Pill : Resettable
 {
-    public KeyType pillColor;
+    public PillColor PillColor;
     private ResetManager _resetManager;
     private VRCPlayerApi _localPlayer;
 
@@ -24,11 +29,11 @@ public class KeyU : Resettable
         Debug.Log("Key trigger");
         GameObject[] playerObjects = player.GetPlayerObjects();
 
-        PlayerInvenory playerInfoScript = playerObjects[0].GetComponent<PlayerInvenory>();
+        PlayerInventory playerInfoScript = playerObjects[0].GetComponent<PlayerInventory>();
 
         if (playerInfoScript != null)
         {
-            playerInfoScript.AddKey(pillColor);
+            playerInfoScript.AddKey(PillColor);
             Debug.Log("Adding key");
             gameObject.SetActive(false);
         }

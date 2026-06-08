@@ -1,6 +1,8 @@
+using Assets._3DStealthGame.Scripts;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.AI;
+
 
 public static class KeyUGizmos
 {
@@ -12,9 +14,9 @@ public static class KeyUGizmos
     };
 
     [DrawGizmo(GizmoType.NonSelected | GizmoType.Selected)]
-    static void DrawKeyGizmo(KeyU pill, GizmoType gizmoType)
+    static void DrawKeyGizmo(Pill pill, GizmoType gizmoType)    
     {
-        int typeIndex = (int)pill.pillColor;
+        int typeIndex = (int)pill.PillColor;
         Color c = typeIndex < KeyColors.Length ? KeyColors[typeIndex] : Color.white;
 
         Gizmos.color = c;
@@ -23,16 +25,16 @@ public static class KeyUGizmos
         Handles.color = c;
         Handles.Label(
             pill.transform.position + Vector3.up * 0.4f,
-            pill.pillColor.ToString() + " Pill"
+            pill.PillColor + " Pill"
         );
 
         var path = new NavMeshPath();
         foreach (DoorU door in Object.FindObjectsOfType<DoorU>())
         {
-            if (door.keyType != pill.pillColor) continue;
+            if (door.PillColor != pill.PillColor) continue;
             if (!NavMesh.CalculatePath(pill.transform.position, door.transform.position, NavMesh.AllAreas, path))
             {
-                Debug.LogWarning($"No NavMesh path from {pill.pillColor} Pill ({pill.name}) to {door.keyType} Door ({door.name})", door);
+                Debug.LogWarning($"No NavMesh path from {pill.PillColor} Pill ({pill.name}) to {door.PillColor} Door ({door.name})", door);
                 continue;
             }
 
@@ -47,7 +49,7 @@ public static class KeyUGizmos
     [DrawGizmo(GizmoType.NonSelected | GizmoType.Selected)]
     static void DrawDoorGizmo(DoorU door, GizmoType gizmoType)
     {
-        int typeIndex = (int)door.keyType;
+        int typeIndex = (int)door.PillColor;
         Color c = typeIndex < KeyColors.Length ? KeyColors[typeIndex] : Color.white;
 
         Gizmos.color = c;
@@ -56,7 +58,7 @@ public static class KeyUGizmos
         Handles.color = c;
         Handles.Label(
             door.transform.position + Vector3.up * 0.7f,
-            door.keyType.ToString() + " Door"
+            door.PillColor.ToString() + " Door"
         );
     }
 }

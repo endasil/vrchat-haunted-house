@@ -1,12 +1,10 @@
-// Assets/Editor/FindMissingScripts.cs
-using UnityEngine;
-
 using UnityEditor;
+using UnityEngine;
 
 public class FindMissingScripts
 {
     [MenuItem("Tools/Find Missing Scripts")]
-    static void Find()
+    private static void Find()
     {
         foreach (GameObject go in Resources.FindObjectsOfTypeAll<GameObject>())
         {

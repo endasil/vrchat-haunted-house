@@ -1,4 +1,4 @@
-﻿using Assets._3DStealthGame.Scripts;
+﻿#pragma warning disable IDE0056
 using Assets._3DStealthGame.Scripts.Enums;
 
 using TMPro;
@@ -9,6 +9,7 @@ using UnityEngine;
 using UnityEngine.AI;
 
 using VRC.SDKBase;
+// ReSharper disable SuggestVarOrType_BuiltInTypes
 
 public class GhostAISearching : UdonSharpBehaviour
 {
@@ -18,7 +19,7 @@ public class GhostAISearching : UdonSharpBehaviour
 
     // NavMesh agent used for pathfinding and movement
     private NavMeshAgent _navMeshAgent;
-    
+
 
     // Base movement speed when patrolling
     public float defaultSpeed = 1f;
@@ -37,9 +38,6 @@ public class GhostAISearching : UdonSharpBehaviour
     public float maxWalkDistance = 20f;
     public float minWalkDistance = 5f;
 
-    // Current AI behavior mode enum Walk / Chase etc
-    public AIBehavior aiBehavior;
-    
     // ==============================
     // Vision Settings
     // ==============================
@@ -124,7 +122,12 @@ public class GhostAISearching : UdonSharpBehaviour
 
         // If navMeshAgent reference not set in inspector, try to find one on the same GameObject
         if (!_navMeshAgent)
-            _navMeshAgent = (NavMeshAgent)GetComponent(typeof(NavMeshAgent));
+            _navMeshAgent = GetComponent<NavMeshAgent>();
+
+        // Only the owner drives the agent. On everyone else the transform comes from VRCObjectSync,
+        // so a live agent here would just fight the synced position. Keep it off on non-owners.
+        if (_navMeshAgent != null)
+            _navMeshAgent.enabled = Networking.IsOwner(gameObject);
 
         // Preallocate player cache, can't use lists in U# :(
         _playerCache = new VRCPlayerApi[80];
@@ -154,22 +157,8 @@ public class GhostAISearching : UdonSharpBehaviour
         UpdateRetargetingIfNeeded();
         CheckSnowballHits();
 
-        // ==============================
-        // Perform current AI behavior
-        // ==============================
+        WalkAndChaseBehavior();
 
-        switch (aiBehavior)
-        {
-            case AIBehavior.FollowPlayer:
-                FollowPlayerBehavior();
-                return;
-            case AIBehavior.RandomWalk:
-                RandomWalkBehavior();
-                return;
-            case AIBehavior.WalkNChase:
-                WalkAndChaseBehavior();
-                return;
-        }
     }
 
     // ==============================
@@ -182,75 +171,34 @@ public class GhostAISearching : UdonSharpBehaviour
         if (Time.time - _lastRetargetTime < retargetInterval) return;
         _lastRetargetTime = Time.time;
 
-        if (aiBehavior != AIBehavior.FollowPlayer) return;
-
         if (!IsValidTargetPlayer(_currentTargetPlayer))
             _currentTargetPlayer = FindNearestValidPlayer();
     }
-
-    // ==============================
-    // Behavior: Follow Player
-    // ==============================
-
-    private void FollowPlayerBehavior()
-    {
-        EnsureAgentCanMove();
-
-        if (IsValidTargetPlayer(_currentTargetPlayer))
-        {
-            // Actively chasing player
-            TurnTowardsSteeringTarget();
-            _navMeshAgent.speed = playerFoundSpeed;
-            _navMeshAgent.SetDestination(GetPlayerHeadPosition(_currentTargetPlayer));
-            SetIndicatorText(AwarenessIndicator.SpottedPlayer);
-            return;
-        }
-
-        // No target -> back to patrolling
-        SetIndicatorText(AwarenessIndicator.SearchingForPlayers);
-        _navMeshAgent.speed = defaultSpeed;
-        RandomWalkBehavior();
-    }
-
-    // ==============================
-    // Behavior: Random Walk
-    // ==============================
-    private void RandomWalkBehavior()
-    {
-        bool isFacingArrivalDirection = RotateTowardsSteeringTargetWhenCloseToArrival();
-
-        if (UpdateIdleLookAroundIfActive())
-        {
-            return;
-        }
-
-        bool isAtDestination = _navMeshAgent.remainingDistance <= _navMeshAgent.stoppingDistance && !_navMeshAgent.pathPending;
-
-        // Only begin idle look-around if we have arrived AND finished turning to face the arrival direction.
-        if (isAtDestination && isFacingArrivalDirection)
-            PickDestinationAndStartLookAround();
-    }
-
 
     // Patrol, but interrupt patrol if vision/hearing detects a player.
     private void WalkAndChaseBehavior()
     {
         // Detection runs before idle look-around so the ghost can spot players during its sweep.
-        bool detectedByVision;
-        bool didDetectPlayer = TryDetectBestPlayer(out var detectedPlayer, out detectedByVision);
+        bool didDetectPlayer = TryDetectBestPlayer(out var detectedPlayer, out var detectedByVision);
 
         if (didDetectPlayer)
         {
-            // Debug.Log("Detected player: " + detectedPlayer.displayName + " by " + (detectedByVision ? "vision" : "hearing"));
+            Debug.Log("Detected player: " + detectedPlayer.displayName + " by " + (detectedByVision ? "vision" : "hearing"));
             // Only pick a new target if we don't already have one — stick to current target until patrol resumes.
             if (!IsValidTargetPlayer(_currentTargetPlayer))
                 _currentTargetPlayer = detectedPlayer;
+            else if (_currentTargetPlayer.playerId != detectedPlayer.playerId)
+                Debug.LogWarning($"[GhostAI] Detected {detectedPlayer.displayName} but keeping existing target {_currentTargetPlayer.displayName}");
 
             CancelIdleLookAround();
             EnsureAgentCanMove();
 
             _navMeshAgent.speed = playerFoundSpeed;
-            _navMeshAgent.SetDestination(GetPlayerHeadPosition(_currentTargetPlayer));
+            bool pathSet = _navMeshAgent.SetDestination(GetPlayerHeadPosition(_currentTargetPlayer));
+            if (!pathSet)
+                Debug.LogError($"[GhostAI] SetDestination FAILED. isStopped={_navMeshAgent.isStopped}, agentPos={transform.position}");
+            else
+                Debug.Log($"[GhostAI] Chasing {_currentTargetPlayer.displayName} — hasPath={_navMeshAgent.hasPath}, pathStatus={_navMeshAgent.pathStatus}, speed={_navMeshAgent.speed}, isStopped={_navMeshAgent.isStopped}");
 
             _isInvestigating = true;
             SetIndicatorText(detectedByVision ? AwarenessIndicator.SpottedPlayer : AwarenessIndicator.HeardSomething);
@@ -277,6 +225,9 @@ public class GhostAISearching : UdonSharpBehaviour
             SetIndicatorText(AwarenessIndicator.InvestigatingLastKnown);
             return;
         }
+
+        if (_isInvestigating)
+            Debug.Log($"[GhostAI] Investigation ended — hasPath={_navMeshAgent.hasPath}, pathStatus={_navMeshAgent.pathStatus}, remainingDist={_navMeshAgent.remainingDistance:F2}");
 
         _isInvestigating = false;
         _currentTargetPlayer = null;
@@ -439,17 +390,17 @@ public class GhostAISearching : UdonSharpBehaviour
             return false;
         }
 
-        if(_navMeshAgent.hasPath == false)
+        if (_navMeshAgent.hasPath == false)
         {
-            Debug.Log("No path yet");
+            // Debug.Log("No path yet");
             return false;
-        } 
+        }
 
         if (_navMeshAgent.remainingDistance >= _navMeshAgent.stoppingDistance + 1f) return false;
-        
+
         Vector3 directionToSteeringTarget = _navMeshAgent.steeringTarget - transform.position;
-        Debug.Log("direction to steering target" + directionToSteeringTarget);
-        Debug.Log("Angle to steering target: " +Vector3.Angle(transform.forward, directionToSteeringTarget));
+        // Debug.Log("direction to steering target" + directionToSteeringTarget);
+        // Debug.Log("Angle to steering target: " + Vector3.Angle(transform.forward, directionToSteeringTarget));
         directionToSteeringTarget.y = 0f;
         if (directionToSteeringTarget.sqrMagnitude <= 0.0001f) return true;
 
@@ -507,13 +458,10 @@ public class GhostAISearching : UdonSharpBehaviour
                 continue;
             }
 
-            if (isInHearingRange)
+            if (isInHearingRange && squaredDistanceToPlayer < closestHearingDistanceSquared)
             {
-                if (squaredDistanceToPlayer < closestHearingDistanceSquared)
-                {
-                    closestHearingDistanceSquared = squaredDistanceToPlayer;
-                    closestHearingPlayer = playerCandidate;
-                }
+                closestHearingDistanceSquared = squaredDistanceToPlayer;
+                closestHearingPlayer = playerCandidate;
             }
         }
 
@@ -550,11 +498,11 @@ public class GhostAISearching : UdonSharpBehaviour
 
         if (angleToTargetDegrees > sideVisionAngle) return false;
 
-        RaycastHit raycastHit;
+
         bool hitSomething = Physics.Raycast(
             raycastOrigin,
             directionToTarget,
-            out raycastHit,
+            out var raycastHit,
             visionLength,
             ~0,
             QueryTriggerInteraction.Ignore
@@ -583,10 +531,10 @@ public class GhostAISearching : UdonSharpBehaviour
         _navMeshAgent.speed = defaultSpeed;
         if (!TryGetRandomNavMeshPosition(out Vector3 nextDestination, out bool wallAhead))
         {
-            Debug.Log("StartIdleLookAround: no valid NavMesh position found, skipping sweep — will retry next frame.");
+            Debug.Log($"StartIdleLookAround: no valid NavMesh position found, skipping sweep — will retry next frame. wallAhead: {wallAhead}");
             return;
         }
-        
+
         _navMeshAgent.SetDestination(nextDestination);
         _targetPathIsPending = true;
         EnsureAgentIsIdle();
@@ -607,7 +555,7 @@ public class GhostAISearching : UdonSharpBehaviour
     {
         if (_idleLookAroundState == IdleLookAroundState.NotIdle)
         {
-            Debug.Log("UpdateIdleLookAroundIfActive: Not idle");
+            //            Debug.Log("UpdateIdleLookAroundIfActive: Not idle");
             return false;
         }
 
@@ -649,7 +597,7 @@ public class GhostAISearching : UdonSharpBehaviour
             // this is because we want the look around to pass over the direction
             // it will eventually go.
 
-            if (_navMeshAgent.pathPending) return; 
+            if (_navMeshAgent.pathPending) return;
 
             _targetPathIsPending = false;
             Vector3 destOffset = _navMeshAgent.steeringTarget - transform.position;
@@ -711,7 +659,7 @@ public class GhostAISearching : UdonSharpBehaviour
             }
         }
     }
-    
+
     // ==============================
     // Patrol Destination Selection
     // ==============================
@@ -728,6 +676,7 @@ public class GhostAISearching : UdonSharpBehaviour
             return false;
 
         var lastCorner = path.corners[path.corners.Length - 1];
+
         var secondToLastCorner = path.corners[path.corners.Length - 2];
 
         Vector3 arrivalDirection = (lastCorner - secondToLastCorner).normalized;
@@ -799,6 +748,24 @@ public class GhostAISearching : UdonSharpBehaviour
         {
             _currentTargetPlayer = null;
             _isInvestigating = false;
+        }
+    }
+
+    // When the previous owner leaves, a new client takes over driving the ghost. Turn the agent on
+    // for the new owner (off for everyone else) and warp it to where the ghost currently is, since
+    // it was disabled and never tracked the synced position. Mirrors AIPatrolU.OnOwnershipTransferred.
+    public override void OnOwnershipTransferred(VRCPlayerApi player)
+    {
+        if (_navMeshAgent == null) return;
+
+        _navMeshAgent.enabled = Networking.IsOwner(gameObject);
+
+        if (_navMeshAgent.enabled)
+        {
+            _navMeshAgent.Warp(transform.position);
+            _currentTargetPlayer = null;
+            _isInvestigating = false;
+            CancelIdleLookAround();
         }
     }
 

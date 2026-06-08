@@ -1,16 +1,12 @@
-﻿using UnityEngine;
+﻿using Assets._3DStealthGame.Scripts.Enums;
+using UnityEngine;
 using UdonSharp;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
 namespace StealthGame
 {
-    public enum FlickerMode
-    {
-        Random,
-        AnimationCurve
-    }
-
+    [UdonBehaviourSyncMode(BehaviourSyncMode.None)]
     public class LightFlickerU : UdonSharpBehaviour
     {
        

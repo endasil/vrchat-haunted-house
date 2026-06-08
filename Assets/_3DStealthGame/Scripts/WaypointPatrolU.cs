@@ -3,7 +3,7 @@ using UdonSharp;
 using UnityEngine;
 using VRC.SDKBase;
 using VRC.Udon;
-
+#pragma warning disable UNT0039
 public class WaypointPatrolU : UdonSharpBehaviour
 {
     public float moveSpeed = 1.0f;

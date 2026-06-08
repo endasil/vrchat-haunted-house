@@ -1,7 +1,6 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿#pragma warning disable UNT0039 // Use RequireComponent attribute when self-invoking GetComponent
 using UnityEngine;
-using UnityEngine.AI;
+
 
 namespace StealthGame
 {

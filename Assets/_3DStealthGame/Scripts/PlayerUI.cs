@@ -1,3 +1,4 @@
+#pragma warning disable IDE1006 // Naming Styles
 using UdonSharp;
 
 using UnityEngine;
@@ -6,9 +7,10 @@ using UnityEngine.UI;
 using VRC.SDKBase;
 using Assets._3DStealthGame.Scripts;
 
+[UdonBehaviourSyncMode(BehaviourSyncMode.None)] 
 public class PlayerUI : Resettable
 {
-    public PlayerInvenory playerInventory;
+    public PlayerInventory playerInventory;
     public Snowball snowball;
     public VRC_Pickup snowballPickup;
     public Canvas canvas;
@@ -17,7 +19,7 @@ public class PlayerUI : Resettable
     public Image redPillIcon;
     public Image bluePillIcon;
     public Image brownPillIcon;
-
+    public Vector3 UIOffset = new Vector3(0.3f, 0.2f, 0.5f);
     private VRCPlayerApi localPlayer;
     private Collider snowballCollider;
 
@@ -35,16 +37,16 @@ public class PlayerUI : Resettable
         _FindPlayerInventory();
     }
 
-    private Image _GetIcon(KeyType keyType)
+    private Image _GetIcon(PillColor pillColor)
     {
-        switch (keyType)
+        switch (pillColor)
         {
-            case KeyType.Green: return greenPillIcon;
-            case KeyType.Red:   return redPillIcon;
-            case KeyType.Blue:  return bluePillIcon;
-            case KeyType.Brown: return brownPillIcon;
+            case PillColor.Green: return greenPillIcon;
+            case PillColor.Red:   return redPillIcon;
+            case PillColor.Blue:  return bluePillIcon;
+            case PillColor.Brown: return brownPillIcon;
             default:
-                Debug.LogError($"Unknown KeyType: {keyType}");
+                Debug.LogError($"Unknown KeyType: {pillColor}");
                 return null;
         }
     }
@@ -73,7 +75,7 @@ public class PlayerUI : Resettable
             return;
         }
 
-        playerInventory = playerObjects[0].GetComponent<PlayerInvenory>();
+        playerInventory = playerObjects[0].GetComponent<PlayerInventory>();
         if (playerInventory == null)
         {
             Debug.LogError("Could not find any PlayerInventory script on local player!");
@@ -86,17 +88,21 @@ public class PlayerUI : Resettable
     {
         if (playerInventory)
         {
-            int typeCount = (int)KeyType.LastEnum;
+            int typeCount = (int)PillColor.LastEnum;
             for (int i = 0; i < typeCount; i++)
             {
-                KeyType kt = (KeyType)i;
+                PillColor kt = (PillColor)i;
                 Image icon = _GetIcon(kt);
-                if (icon == null)
+                if (!icon)
                 {
                     Debug.LogError($"Pill icon for {kt} is not assigned in the inspector.");
                     continue;
                 }
-                icon.gameObject.SetActive(playerInventory.HasPill(kt));
+
+                if (playerInventory.HasPill(kt))
+                {
+                    icon.gameObject.SetActive(true);
+                }
             }
         }
         else
@@ -107,7 +113,7 @@ public class PlayerUI : Resettable
         if (localPlayer != null && localPlayer.IsValid())
         {
             VRCPlayerApi.TrackingData headData = localPlayer.GetTrackingData(VRCPlayerApi.TrackingDataType.Head);
-            Vector3 offset = headData.rotation * new Vector3(0.3f, 0.2f, 0.5f);
+            Vector3 offset = headData.rotation * UIOffset;
             canvas.transform.position = headData.position + offset;
             canvas.transform.rotation = headData.rotation;
         }
@@ -115,10 +121,10 @@ public class PlayerUI : Resettable
 
     public void ResetState()
     {
-        int typeCount = (int)KeyType.LastEnum;
+        int typeCount = (int)PillColor.LastEnum;
         for (int i = 0; i < typeCount; i++)
         {
-            Image icon = _GetIcon((KeyType)i);
+            Image icon = _GetIcon((PillColor)i);
             if (icon != null)
                 icon.gameObject.SetActive(false);
         }

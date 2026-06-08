@@ -19,7 +19,7 @@ MonoBehaviour:
   sourceCsScript: {fileID: 11500000, guid: 829977fec280e3b41a874d007b7e96b4, type: 3}
   scriptVersion: 2
   compiledVersion: 2
-  behaviourSyncMode: 0
+  behaviourSyncMode: 1
   hasInteractEvent: 0
   scriptID: 6141966880906518725
   serializationData:
@@ -170,7 +170,7 @@ MonoBehaviour:
       Data: 9|System.RuntimeType, mscorlib
     - Name: 
       Entry: 1
-      Data: StealthGame.FlickerMode, Assembly-CSharp
+      Data: Assets._3DStealthGame.Scripts.Enums.FlickerMode, Assembly-CSharp
     - Name: 
       Entry: 8
       Data: 
