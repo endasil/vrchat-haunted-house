@@ -21,7 +21,8 @@
       "Bash(powershell -NoProfile -Command \"[guid]::NewGuid\\(\\).ToString\\('N'\\)\")",
       "Bash(grep:*)",
       "PowerShell(git *)",
-      "PowerShell(Get-Content 'Assets\\\\_3DStealthGame\\\\Scripts\\\\ObserverU.cs.meta'; Get-Content 'Assets\\\\_3DStealthGame\\\\Scripts\\\\GhostAISearching.asset.meta'; 1..2 | ForEach-Object { [Guid]::NewGuid\\(\\).ToString\\('N'\\) })"
+      "PowerShell(Get-Content 'Assets\\\\_3DStealthGame\\\\Scripts\\\\ObserverU.cs.meta'; Get-Content 'Assets\\\\_3DStealthGame\\\\Scripts\\\\GhostAISearching.asset.meta'; 1..2 | ForEach-Object { [Guid]::NewGuid\\(\\).ToString\\('N'\\) })",
+      "Bash(Sort-Object)"
     ]
   }
 }
