@@ -69,6 +69,24 @@ public static class NavMeshMapGenerator
             DrawCircle(tex, px, 4, PillColorToColor(pill.PillColor));
         }
 
+        var ghosts = Object.FindObjectsByType<GhostAISearching>(FindObjectsSortMode.None);
+        foreach (var ghost in ghosts)
+        {
+            Vector2Int px = ToPixel(ghost.transform.position, minX, minZ, worldW, worldH, texW, texH);
+            DrawX(tex, px, 6, Color.cyan);
+        }
+
+        var gargoyles = Object.FindObjectsByType<GargoyleU>(FindObjectsSortMode.None);
+        foreach (var gargoyle in gargoyles)
+        {
+            Vector2Int px = ToPixel(gargoyle.transform.position, minX, minZ, worldW, worldH, texW, texH);
+            FillTriangle(tex,
+                new Vector2Int(px.x, px.y + 6),
+                new Vector2Int(px.x - 6, px.y - 5),
+                new Vector2Int(px.x + 6, px.y - 5),
+                new Color(1f, 0.5f, 0f));
+        }
+
         tex.Apply();
 
         string fullPath = Path.Combine(Application.dataPath, "NavMeshMap.png");
@@ -106,6 +124,21 @@ public static class NavMeshMapGenerator
                 if ((uint)x < (uint)tex.width && (uint)y < (uint)tex.height)
                     tex.SetPixel(x, y, color);
             }
+        }
+    }
+
+    static void DrawX(Texture2D tex, Vector2Int center, int arm, Color color)
+    {
+        for (int d = -arm; d <= arm; d++)
+        for (int t = 0; t <= 1; t++) // 2 px thick so it stays visible
+        {
+            int x = center.x + d;
+            if ((uint)x >= (uint)tex.width) continue;
+
+            int y1 = center.y + d + t;
+            int y2 = center.y - d + t;
+            if ((uint)y1 < (uint)tex.height) tex.SetPixel(x, y1, color);
+            if ((uint)y2 < (uint)tex.height) tex.SetPixel(x, y2, color);
         }
     }
 

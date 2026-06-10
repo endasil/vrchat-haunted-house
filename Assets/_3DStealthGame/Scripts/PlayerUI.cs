@@ -5,6 +5,7 @@ using UnityEngine;
 using UnityEngine.UI;
 
 using VRC.SDKBase;
+using VRC.SDK3.Rendering;
 using Assets._3DStealthGame.Scripts;
 
 [UdonBehaviourSyncMode(BehaviourSyncMode.None)] 
@@ -19,7 +20,16 @@ public class PlayerUI : Resettable
     public Image redPillIcon;
     public Image bluePillIcon;
     public Image brownPillIcon;
+    // Where to put the HUD canvas relative to the head (x = right, y = up, z = forward, in
+    // metres). In VR we use this as-is. On desktop we only keep the z (how far in front) and
+    // work out x and y ourselves each frame in GetDesktopOffset — see the long note there.
     public Vector3 UIOffset = new Vector3(0.3f, 0.2f, 0.5f);
+
+    // Desktop only: where the pills sit on the screen. 0 is the middle, +-1 is the edge, and
+    // the sign picks which side or corner. They stay in that spot no matter how the window is
+    // sized or shaped — just set both in the inspector. 
+    public float desktopVerticalFraction = 0.7f;
+    public float desktopHorizontalFraction = -0.7f;
     private VRCPlayerApi localPlayer;
     private Collider snowballCollider;
 
@@ -113,10 +123,63 @@ public class PlayerUI : Resettable
         if (localPlayer != null && localPlayer.IsValid())
         {
             VRCPlayerApi.TrackingData headData = localPlayer.GetTrackingData(VRCPlayerApi.TrackingDataType.Head);
-            Vector3 offset = headData.rotation * UIOffset;
-            canvas.transform.position = headData.position + offset;
+
+            canvas.transform.position = headData.position + headData.rotation * UIOffset;
             canvas.transform.rotation = headData.rotation;
+
+            // On desktop, nudge the pills so they hold a fixed screen corner at any window
+            // shape. The other screens on the canvas are untouched.
+            if (!localPlayer.IsUserInVR())
+            {
+                PinPillsToCorner(headData);
+            }
         }
+    }
+
+    // Slides the pill row to a fixed corner of the screen on desktop, whatever size or shape the
+    // window is.
+    //
+    // The HUD is a canvas floating in the world, not a flat overlay glued to the screen. It has
+    // VRChat doesn't draw overlay canvases inside a headset. The canvas sits a
+    // short distance in front of the head, and the pills are one corner of it.
+    //
+    // The trouble is that the same point in front of you lands in a different spot on screen
+    // depending on the camera's field of view. On desktop the up-down field of view stays put,
+    // but the left-right one gets wider as you widen the window. So the pills' fixed spot on the
+    // canvas slides around on screen, fine in one window shape, off the edge in another. (A
+    // headset never changes its field of view, so in VR we don't touch any of this.)
+    //
+    // To undo that you need to know how the camera turns a 3D point into a screen position. For a
+    // point at (x, y, z) in front of the head it works out to (0 = middle, +-1 = edge):
+    //     across the screen: (x / z) / (tan(fov/2) * aspect)
+    //     up the screen:     (y / z) /  tan(fov/2)
+    // The left-right one is divided by the aspect ratio and the up-down one isn't, that one
+    // difference is the whole problem. We want to pick the screen spot ourselves, so we run
+    // those backwards to get the point in front of the head that lands there:
+    //     x = (spot across) * z * tan(fov/2) * aspect
+    //     y = (spot up)      * z * tan(fov/2)
+    // desktopHorizontalFraction and desktopVerticalFraction are those two screen spots. The extra
+    // "* aspect" on x cancels out the aspect the camera divides back in, so the pills hold still
+    // as the window stretches. Then we just park the pill container on that point directly.
+    private void PinPillsToCorner(VRCPlayerApi.TrackingData headData)
+    {
+        // The desktop camera's up-down field of view (in degrees) and its width-to-height ratio.
+        // VRCCameraSettings is how you read these in Udon — Unity's own Screen and Camera classes
+        // aren't allowed in here.
+        float fov = VRCCameraSettings.ScreenCamera.FieldOfView;
+        float aspect = VRCCameraSettings.ScreenCamera.Aspect;
+        float z = UIOffset.z;                                    // distance out in front of the head
+        float tanV = Mathf.Tan(0.5f * fov * Mathf.Deg2Rad);   // tan of half the up-down field of view
+
+        // The screen spot we want, turned back into a point in front of the head.
+        float x = desktopHorizontalFraction * z * tanV * aspect;
+        float y = desktopVerticalFraction * z * tanV;
+
+        // Move only the pill container. greenPillIcon's parent IS that container — we get it this
+        // way rather than by child index because the caught/end screens are also children of the
+        // canvas and the child order isn't something we want to depend on.
+        Transform pills = greenPillIcon.transform.parent;
+        pills.position = headData.position + headData.rotation * new Vector3(x, y, z);
     }
 
     public void ResetState()

@@ -30,10 +30,7 @@ Concrete resettables: `PlayerMovementU`, `DoorU`, `KeyU`.
 
 ### Ghost AI (`GhostAISearching.cs`)
 
-The main AI behaviour. Uses a `NavMeshAgent` for pathfinding. Three modes stored in `AIBehavior` enum:
-- `RandomWalk` — patrol to random NavMesh positions
-- `FollowPlayer` — always chase the nearest valid player
-- `WalkNChase` — patrol and interrupt when a player is detected
+The main AI behaviour. Uses a `NavMeshAgent` for pathfinding. The ghost patrols to random NavMesh positions and interrupts patrol to chase when a player is detected; after losing the player it investigates the last known position, then resumes patrol. Snowball hits can also send it to investigate the thrower's position.
 
 Detection uses a vision cone (angle + raycast occlusion check) and a hearing radius. On arrival at a waypoint the ghost performs an idle look-around sweep before selecting a new destination.
 
@@ -51,8 +48,8 @@ Runs exclusively on the owner client (`Networking.IsOwner` guard in `Update`).
 
 - Most game scripts: global namespace.
 - `LightFlickerU` + `FlickerMode` enum: `StealthGame` namespace (also contains editor code under `#if UNITY_EDITOR`).
-- `KeyType`, `KeyTypeHelper`, `AIBehavior`: `Assets._3DStealthGame.Scripts` namespace.
-- `AwarenessIndicator`, `IdleLookAroundState`: `Assets._3DStealthGame.Scripts.Enums` namespace.
+- `KeyType`, `KeyTypeHelper`: `Assets._3DStealthGame.Scripts` namespace.
+- `AwarenessIndicator`: `Assets._3DStealthGame.Scripts.Enums` namespace.
 
 ### VPM Dependencies
 

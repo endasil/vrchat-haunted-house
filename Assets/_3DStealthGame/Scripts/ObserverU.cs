@@ -33,7 +33,8 @@ public class ObserverU : UdonSharpBehaviour
 
     public override void OnPlayerTriggerEnter(VRCPlayerApi player)
     {
-        Debug.Log("OnPlayerTriggerEnter, setting _isPlayerCaught to true.");        
+        Vector3 playerPos = player.GetPosition();
+        Debug.Log($"OnPlayerTriggerEnter | entity '{transform.root.name}' | player pos {playerPos} | entity pos {transform.position} | distance {Vector3.Distance(transform.position, playerPos):F2}m");
         if (player == _localPlayer)
         {
             _isPlayerInRange = true;
@@ -62,10 +63,43 @@ public class ObserverU : UdonSharpBehaviour
 
             if (!Physics.Raycast(ray, out RaycastHit hitInfo, distToPlayer, playerMask, QueryTriggerInteraction.Ignore))
             {
-                Debug.Log("Player was caught by raycast");
+                string fromDir = DirectionToText(playerPos);
+                Debug.Log($"Player caught by '{transform.root.name}' | from the {fromDir} | player pos {playerPos} | catcher pos {transform.position} | distance {distToPlayer:F2}m");
                 if (_gameEnding != null)
                     _gameEnding.CaughtPlayer();
             }
+        }
+    }
+
+    // Works out where the catcher is relative to the way the player is facing,
+    // as plain words (in front, behind, to the right, etc.). Flattened to the
+    // horizontal plane so up/down doesn't matter.
+    private string DirectionToText(Vector3 playerPos)
+    {
+        Vector3 forward = _localPlayer.GetRotation() * Vector3.forward;
+        forward.y = 0f;
+
+        Vector3 toCatcher = transform.position - playerPos;
+        toCatcher.y = 0f;
+
+        // Positive angle = catcher is to the player's right, negative = left.
+        float angle = Vector3.SignedAngle(forward, toCatcher, Vector3.up);
+        float a = Mathf.Abs(angle);
+
+        if (a <= 22.5f) return "front";
+        if (a >= 157.5f) return "behind";
+
+        if (angle > 0f)
+        {
+            if (a <= 67.5f) return "front-right";
+            if (a <= 112.5f) return "right";
+            return "behind-right";
+        }
+        else
+        {
+            if (a <= 67.5f) return "front-left";
+            if (a <= 112.5f) return "left";
+            return "behind-left";
         }
     }
 }

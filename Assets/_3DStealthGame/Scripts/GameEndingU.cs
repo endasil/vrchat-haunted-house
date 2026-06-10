@@ -86,7 +86,6 @@ public class GameEndingU : UdonSharpBehaviour
         {
             if (m_IsPlayerCaught)
             {
-                Debug.Log("Player caught!");
                 TeleportPlayerToSpawn();
             }
             audioSource.Play();
