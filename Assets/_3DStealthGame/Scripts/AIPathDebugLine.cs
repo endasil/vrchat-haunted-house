@@ -50,7 +50,7 @@ namespace Assets._3DStealthGame.Scripts
             _markerRenderers = new Renderer[maxMarkers];
             for (int i = 0; i < maxMarkers; i++)
             {
-                _markers[i] = VRCInstantiate(markerPrefab);
+                _markers[i] = Instantiate(markerPrefab);
                 _markers[i].SetActive(false);
                 _markerRenderers[i] = _markers[i].GetComponentInChildren<Renderer>();
             }

@@ -64,7 +64,7 @@ public class ObserverU : UdonSharpBehaviour
             if (!Physics.Raycast(ray, out RaycastHit hitInfo, distToPlayer, playerMask, QueryTriggerInteraction.Ignore))
             {
                 string fromDir = DirectionToText(playerPos);
-                Debug.Log($"Player caught by '{transform.root.name}' | from the {fromDir} | player pos {playerPos} | catcher pos {transform.position} | distance {distToPlayer:F2}m");
+                // Debug.Log($"Player caught by '{transform.root.name}' | from the {fromDir} | player pos {playerPos} | catcher pos {transform.position} | distance {distToPlayer:F2}m");
                 if (_gameEnding != null)
                     _gameEnding.CaughtPlayer();
             }

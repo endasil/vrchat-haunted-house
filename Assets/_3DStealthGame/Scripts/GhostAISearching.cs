@@ -11,6 +11,7 @@ using UnityEngine.AI;
 using VRC.SDKBase;
 // ReSharper disable SuggestVarOrType_BuiltInTypes
 
+[DisallowMultipleComponent]
 public class GhostAISearching : UdonSharpBehaviour
 {
     // ==============================

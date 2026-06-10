@@ -1,5 +1,6 @@
 using System.IO;
 using Assets._3DStealthGame.Scripts;
+using StealthGame;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.AI;
@@ -87,6 +88,25 @@ public static class NavMeshMapGenerator
                 new Color(1f, 0.5f, 0f));
         }
 
+        var butlers = Object.FindObjectsByType<WaypointPatrol>(FindObjectsSortMode.None);
+        foreach (var butler in butlers)
+        {
+            Vector2Int px = ToPixel(butler.transform.position, minX, minZ, worldW, worldH, texW, texH);
+            DrawSquare(tex, px, 5, Color.yellow);
+        }
+
+        var networks = Object.FindObjectsByType<WaypointNetwork>(FindObjectsSortMode.None);
+        foreach (var network in networks)
+        {
+            if (network.WaypointPositions == null) continue;
+            foreach (var wp in network.WaypointPositions)
+            {
+                if (wp == null) continue;
+                Vector2Int px = ToPixel(wp.position, minX, minZ, worldW, worldH, texW, texH);
+                DrawCircle(tex, px, 3, new Color(1f, 0.8f, 0f));
+            }
+        }
+
         tex.Apply();
 
         string fullPath = Path.Combine(Application.dataPath, "NavMeshMap.png");
@@ -139,6 +159,17 @@ public static class NavMeshMapGenerator
             int y2 = center.y - d + t;
             if ((uint)y1 < (uint)tex.height) tex.SetPixel(x, y1, color);
             if ((uint)y2 < (uint)tex.height) tex.SetPixel(x, y2, color);
+        }
+    }
+
+    static void DrawSquare(Texture2D tex, Vector2Int center, int half, Color color)
+    {
+        for (int dy = -half; dy <= half; dy++)
+        for (int dx = -half; dx <= half; dx++)
+        {
+            int x = center.x + dx, y = center.y + dy;
+            if ((uint)x < (uint)tex.width && (uint)y < (uint)tex.height)
+                tex.SetPixel(x, y, color);
         }
     }
 

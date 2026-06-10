@@ -1,36 +1,82 @@
-﻿
+
 using UdonSharp;
 using UnityEngine;
+using UnityEngine.AI;
 using VRC.SDKBase;
-using VRC.Udon;
-#pragma warning disable UNT0039
+
+[RequireComponent(typeof(NavMeshAgent))]
 public class WaypointPatrolU : UdonSharpBehaviour
 {
     public float moveSpeed = 1.0f;
-    public Transform[] waypoints;
-    private Rigidbody m_RigidBody;
+    public WaypointNetwork WaypointNetwork;
 
-    // Make sure late joiners get the current waypoint index.
+    private NavMeshAgent _navMeshAgent;
+
     [UdonSynced]
-    private int m_CurrentWaypointIndex;
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
+    private int _currentWaypointIndex;
+
+    private const float NavMeshSampleRadius = 2f;
+
     void Start()
     {
-        m_RigidBody = GetComponent<Rigidbody>();
-    }
-
-    void FixedUpdate()
-    {
-        Transform currentWaypoint = waypoints[m_CurrentWaypointIndex];
-        Vector3 currentToTarget = currentWaypoint.position - m_RigidBody.position;
-
-        if (currentToTarget.magnitude <= 0.1f)
+        _navMeshAgent = GetComponent<NavMeshAgent>();
+        if (_navMeshAgent == null)
         {
-            m_CurrentWaypointIndex = (m_CurrentWaypointIndex + 1) % waypoints.Length;
+            Debug.LogError($"{gameObject.name} is missing a NavMeshAgent component.");
+            return;
         }
 
-        Quaternion forwardRotation = Quaternion.LookRotation(currentToTarget);
-        m_RigidBody.MoveRotation(forwardRotation);
-        m_RigidBody.MovePosition(m_RigidBody.position + currentToTarget.normalized * (moveSpeed * Time.deltaTime));
+        if (WaypointNetwork == null)
+        {
+            Debug.LogError($"{gameObject.name} does not have a WaypointNetwork assigned in the inspector.");
+            return;
+        }
+
+        _navMeshAgent.speed = moveSpeed;
+        _navMeshAgent.enabled = Networking.IsOwner(gameObject);
+    }
+
+    void Update()
+    {
+        if (!Networking.IsOwner(gameObject)) return;
+        if (_navMeshAgent == null || !_navMeshAgent.enabled) return;
+        if (WaypointNetwork == null || WaypointNetwork.WaypointPositions == null) return;
+        if (WaypointNetwork.WaypointPositions.Length == 0) return;
+
+        if (!_navMeshAgent.hasPath && !_navMeshAgent.pathPending)
+        {
+            SetDestinationToCurrentWaypoint();
+            return;
+        }
+
+        if (_navMeshAgent.pathPending) return;
+
+        if (_navMeshAgent.remainingDistance <= _navMeshAgent.stoppingDistance)
+        {
+            _currentWaypointIndex = (_currentWaypointIndex + 1) % WaypointNetwork.WaypointPositions.Length;
+            SetDestinationToCurrentWaypoint();
+        }
+    }
+
+    public override void OnOwnershipTransferred(VRCPlayerApi player)
+    {
+        if (_navMeshAgent == null) return;
+
+        _navMeshAgent.enabled = Networking.IsOwner(gameObject);
+
+        if (_navMeshAgent.enabled)
+        {
+            _navMeshAgent.Warp(transform.position);
+            SetDestinationToCurrentWaypoint();
+        }
+    }
+
+    private void SetDestinationToCurrentWaypoint()
+    {
+        Transform wp = WaypointNetwork.WaypointPositions[_currentWaypointIndex];
+        if (wp == null) return;
+
+        if (NavMesh.SamplePosition(wp.position, out var hit, NavMeshSampleRadius, NavMesh.AllAreas))
+            _navMeshAgent.SetDestination(hit.position);
     }
 }

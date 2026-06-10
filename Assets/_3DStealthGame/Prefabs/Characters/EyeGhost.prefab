@@ -438,10 +438,9 @@ MonoBehaviour:
     SerializationNodes: []
   _udonSharpBackingUdonBehaviour: {fileID: 5325553299032489330}
   defaultSpeed: 0.5
-  playerFoundSpeed: 2
+  playerFoundSpeed: 1.7
   maxWalkDistance: 10
   minWalkDistance: 2
-  aiBehavior: 0
   sideVisionAngle: 45
   visionLength: 10
   hearingRange: 3
@@ -655,6 +654,26 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 11400000, guid: 7378a2729d3b73e4289058b5197387c6,
         type: 2}
+    - target: {fileID: 2267701452001014329, guid: f2cae6e4d4716174b871aa1eef66e635,
+        type: 3}
+      propertyPath: m_Height
+      value: 1.2
+      objectReference: {fileID: 0}
+    - target: {fileID: 2267701452001014329, guid: f2cae6e4d4716174b871aa1eef66e635,
+        type: 3}
+      propertyPath: m_Radius
+      value: 0.6
+      objectReference: {fileID: 0}
+    - target: {fileID: 2267701452001014329, guid: f2cae6e4d4716174b871aa1eef66e635,
+        type: 3}
+      propertyPath: m_Center.y
+      value: -0.3
+      objectReference: {fileID: 0}
+    - target: {fileID: 2267701452001014329, guid: f2cae6e4d4716174b871aa1eef66e635,
+        type: 3}
+      propertyPath: m_Center.z
+      value: 0.37
+      objectReference: {fileID: 0}
     - target: {fileID: 4914946058161335606, guid: f2cae6e4d4716174b871aa1eef66e635,
         type: 3}
       propertyPath: m_Name
