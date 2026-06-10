@@ -18,7 +18,8 @@
       "Bash(Measure-Object)",
       "Bash(Out-String)",
       "Bash(dir *)",
-      "Bash(powershell -NoProfile -Command \"[guid]::NewGuid\\(\\).ToString\\('N'\\)\")"
+      "Bash(powershell -NoProfile -Command \"[guid]::NewGuid\\(\\).ToString\\('N'\\)\")",
+      "Bash(grep:*)"
     ]
   }
 }
