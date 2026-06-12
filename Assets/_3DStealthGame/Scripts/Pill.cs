@@ -1,4 +1,3 @@
-﻿#pragma warning disable IDE0044 // Add readonly modifier
 #pragma warning disable UNT0026 // GetComponent allocatess even if no component found, no longer true in 2019.3+
 using Assets._3DStealthGame.Scripts;
 
@@ -7,44 +6,34 @@ using UdonSharp;
 using UnityEngine;
 
 using VRC.SDKBase;
-
+[DisallowMultipleComponent]
 [UdonBehaviourSyncMode(BehaviourSyncMode.None)]
 public class Pill : Resettable
 {
     public PillColor PillColor;
-    private ResetManager _resetManager;
-    private VRCPlayerApi _localPlayer;
-
-    public override void Start()
-    {
-        _localPlayer = Networking.LocalPlayer;
-        base.Start();
-    }
 
     public override void OnPlayerTriggerEnter(VRCPlayerApi player)
     {
-        if (player != _localPlayer)
+        if (!player.isLocal)
             return;
 
-        Debug.Log("Key trigger");
         GameObject[] playerObjects = player.GetPlayerObjects();
 
-        PlayerInventory playerInfoScript = playerObjects[0].GetComponent<PlayerInventory>();
+        PlayerInventory playerInventory = playerObjects[0].GetComponent<PlayerInventory>();
 
-        if (playerInfoScript != null)
+        if (playerInventory != null)
         {
-            playerInfoScript.AddKey(PillColor);
-            Debug.Log("Adding key");
+            playerInventory.AddPill(PillColor);
             gameObject.SetActive(false);
         }
         else
         {
-            Debug.LogError("Unable to find PlayerInfoScript");
+            Debug.LogError("Unable to find PlayerInventory script on player object");
         }
     }
-    public void ResetState()
+
+    public override void ResetState()
     {
-        Debug.Log(gameObject.name + "ResetState");
         gameObject.SetActive(true);
     }
 }

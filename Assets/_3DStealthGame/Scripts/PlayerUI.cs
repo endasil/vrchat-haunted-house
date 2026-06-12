@@ -7,8 +7,8 @@ using UnityEngine.UI;
 using VRC.SDKBase;
 using VRC.SDK3.Rendering;
 using Assets._3DStealthGame.Scripts;
-
-[UdonBehaviourSyncMode(BehaviourSyncMode.None)] 
+[DisallowMultipleComponent]
+[UdonBehaviourSyncMode(BehaviourSyncMode.None)]
 public class PlayerUI : Resettable
 {
     public PlayerInventory playerInventory;
@@ -16,10 +16,16 @@ public class PlayerUI : Resettable
     public VRC_Pickup snowballPickup;
     public Canvas canvas;
 
-    public Image greenPillIcon;
-    public Image redPillIcon;
-    public Image bluePillIcon;
-    public Image brownPillIcon;
+    // One icon per PillColor, indexed by (int)PillColor. An icon is switched on
+    // when the player holds at least one pill of that color.
+    public Image[] pillIcons;
+
+    // The full-screen caught/end panels on this canvas. On desktop, FitScreenPanels
+    // resizes them every frame to exactly match the camera's view, so they behave
+    // like a screen overlay at any window size or shape. In VR the values saved in
+    // the scene are used as-is (a headset's field of view never changes).
+    public RectTransform caughtScreen;
+    public RectTransform endScreen;
     // Where to put the HUD canvas relative to the head (x = right, y = up, z = forward, in
     // metres). In VR we use this as-is. On desktop we only keep the z (how far in front) and
     // work out x and y ourselves each frame in GetDesktopOffset — see the long note there.
@@ -27,7 +33,7 @@ public class PlayerUI : Resettable
 
     // Desktop only: where the pills sit on the screen. 0 is the middle, +-1 is the edge, and
     // the sign picks which side or corner. They stay in that spot no matter how the window is
-    // sized or shaped — just set both in the inspector. 
+    // sized or shaped, just set both in the inspector.
     public float desktopVerticalFraction = 0.7f;
     public float desktopHorizontalFraction = -0.7f;
     private VRCPlayerApi localPlayer;
@@ -44,43 +50,34 @@ public class PlayerUI : Resettable
             snowballPickup = snowball.GetComponent<VRC_Pickup>();
         }
 
-        _FindPlayerInventory();
-    }
-
-    private Image _GetIcon(PillColor pillColor)
-    {
-        switch (pillColor)
+        // Validate the icon wiring once here instead of logging every frame.
+        int typeCount = (int)PillColor.LastEnum;
+        if (pillIcons == null || pillIcons.Length != typeCount)
         {
-            case PillColor.Green: return greenPillIcon;
-            case PillColor.Red:   return redPillIcon;
-            case PillColor.Blue:  return bluePillIcon;
-            case PillColor.Brown: return brownPillIcon;
-            default:
-                Debug.LogError($"Unknown KeyType: {pillColor}");
-                return null;
+            Debug.LogError($"PlayerUI: pillIcons must have {typeCount} entries (one per PillColor), found {(pillIcons == null ? 0 : pillIcons.Length)}.");
         }
+        else
+        {
+            for (int i = 0; i < typeCount; i++)
+                if (pillIcons[i] == null)
+                    Debug.LogError($"PlayerUI: pill icon for {(PillColor)i} is not assigned in the inspector.");
+        }
+
+        _FindPlayerInventory();
     }
 
     private void _FindPlayerInventory()
     {
         if (!Utilities.IsValid(localPlayer))
         {
-            Debug.Log("LocalPlayer not valid");
             SendCustomEventDelayedFrames(nameof(_FindPlayerInventory), 1);
             return;
         }
 
         GameObject[] playerObjects = localPlayer.GetPlayerObjects();
-        if (playerObjects == null || playerObjects.Length == 0)
+        if (playerObjects == null || playerObjects.Length == 0 || !Utilities.IsValid(playerObjects[0]))
         {
-            Debug.Log("No playerobject found");
-            SendCustomEventDelayedFrames(nameof(_FindPlayerInventory), 1);
-            return;
-        }
-
-        if (!Utilities.IsValid(playerObjects[0]))
-        {
-            Debug.Log("playerObjects[0] not valid");
+            // Player objects take a few frames to appear after joining — keep polling.
             SendCustomEventDelayedFrames(nameof(_FindPlayerInventory), 1);
             return;
         }
@@ -88,9 +85,7 @@ public class PlayerUI : Resettable
         playerInventory = playerObjects[0].GetComponent<PlayerInventory>();
         if (playerInventory == null)
         {
-            Debug.LogError("Could not find any PlayerInventory script on local player!");
-            SendCustomEventDelayedFrames(nameof(_FindPlayerInventory), 1);
-            return;
+            Debug.LogError("PlayerUI: local player object has no PlayerInventory component.");
         }
     }
 
@@ -101,23 +96,14 @@ public class PlayerUI : Resettable
             int typeCount = (int)PillColor.LastEnum;
             for (int i = 0; i < typeCount; i++)
             {
-                PillColor kt = (PillColor)i;
-                Image icon = _GetIcon(kt);
-                if (!icon)
-                {
-                    Debug.LogError($"Pill icon for {kt} is not assigned in the inspector.");
-                    continue;
-                }
+                Image icon = pillIcons[i];
+                if (icon == null) continue; // already reported in Start
 
-                if (playerInventory.HasPill(kt))
+                if (playerInventory.HasPill((PillColor)i))
                 {
                     icon.gameObject.SetActive(true);
                 }
             }
-        }
-        else
-        {
-            Debug.LogError("No playerInventory.");
         }
 
         if (localPlayer != null && localPlayer.IsValid())
@@ -132,6 +118,7 @@ public class PlayerUI : Resettable
             if (!localPlayer.IsUserInVR())
             {
                 PinPillsToCorner(headData);
+                FitScreenPanels();
             }
         }
     }
@@ -175,19 +162,67 @@ public class PlayerUI : Resettable
         float x = desktopHorizontalFraction * z * tanV * aspect;
         float y = desktopVerticalFraction * z * tanV;
 
-        // Move only the pill container. greenPillIcon's parent IS that container — we get it this
-        // way rather than by child index because the caught/end screens are also children of the
-        // canvas and the child order isn't something we want to depend on.
-        Transform pills = greenPillIcon.transform.parent;
+        // Move only the pill container. The first icon's parent IS that container — we get it
+        // this way rather than by child index because the caught/end screens are also children
+        // of the canvas and the child order isn't something we want to depend on.
+        Transform pills = pillIcons[0].transform.parent;
         pills.position = headData.position + headData.rotation * new Vector3(x, y, z);
     }
 
-    public void ResetState()
+    // Sizes the caught/end panels to fill the camera's view on desktop. Same maths
+    // as PinPillsToCorner, but applied to a whole rectangle instead of one point:
+    // at distance z the camera sees a rectangle 2 * z * tan(fov/2) tall, and that
+    // times the aspect ratio wide.
+    //
+    // The panel stretches over the canvas rect (600 units tall in this scene, but
+    // read live rather than assumed), so after scaling, 1 unit is always 1/600 of
+    // the screen's height — a fontSize of 42 on a child is 7% of the screen tall
+    // at every resolution. The width is matched by widening the rect (sizeDelta)
+    // rather than scaling, so the scale stays uniform and text isn't stretched.
+    // Children with fractional anchors follow along automatically.
+    private void FitScreenPanels()
+    {
+        float fov = VRCCameraSettings.ScreenCamera.FieldOfView;
+        float aspect = VRCCameraSettings.ScreenCamera.Aspect;
+        float tanV = Mathf.Tan(0.5f * fov * Mathf.Deg2Rad);
+
+        // 5% extra so the panel's edges never peek into view.
+        float worldHeight = 2f * UIOffset.z * tanV * 1.05f;
+
+        RectTransform canvasRect = (RectTransform)canvas.transform;
+        Rect cr = canvasRect.rect;
+
+        // Uniform scale that makes the panel exactly the visible height.
+        float scale = worldHeight / (cr.height * canvasRect.localScale.y);
+        // Widen (or narrow) the rect so width/height matches the window's shape.
+        float widthDelta = cr.height * aspect - cr.width;
+        // Cancel the canvas's off-centre offset so the panel sits dead ahead.
+        // (UIOffset.x/y are 0 in this scene, but don't assume that stays true.)
+        Vector2 centre = new Vector2(-UIOffset.x / canvasRect.localScale.x,
+                                     -UIOffset.y / canvasRect.localScale.y);
+
+        FitOnePanel(caughtScreen, scale, widthDelta, centre);
+        FitOnePanel(endScreen, scale, widthDelta, centre);
+    }
+
+    private void FitOnePanel(RectTransform panel, float scale, float widthDelta, Vector2 centre)
+    {
+        if (panel == null)
+        {
+            Debug.LogError("PlayerUI: caught/end screen panel is not wired up");
+            return;
+        }
+        panel.localScale = new Vector3(scale, scale, scale);
+        panel.sizeDelta = new Vector2(widthDelta, 0f);
+        panel.anchoredPosition = centre;
+    }
+
+    public override void ResetState()
     {
         int typeCount = (int)PillColor.LastEnum;
         for (int i = 0; i < typeCount; i++)
         {
-            Image icon = _GetIcon((PillColor)i);
+            Image icon = pillIcons[i];
             if (icon != null)
                 icon.gameObject.SetActive(false);
         }

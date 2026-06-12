@@ -1,4 +1,4 @@
-﻿using UdonSharp;
+using UdonSharp;
 using UnityEngine;
 
 namespace Assets._3DStealthGame.Scripts
@@ -11,6 +11,13 @@ namespace Assets._3DStealthGame.Scripts
         public virtual void Start()
         {
             TryRegister();
+        }
+
+        // Called by ResetManager.ResetAll() between attempts. Subclasses override
+        // this to restore their initial state.
+        public virtual void ResetState()
+        {
+            Debug.LogError($"[Resettable] {gameObject.name} registered for reset but does not override ResetState().", gameObject);
         }
 
         protected void TryRegister()
@@ -36,4 +43,3 @@ namespace Assets._3DStealthGame.Scripts
         }
     }
 }
-

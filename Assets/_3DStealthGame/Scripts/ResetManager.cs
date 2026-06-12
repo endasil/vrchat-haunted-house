@@ -1,20 +1,22 @@
-﻿using UdonSharp;
+using Assets._3DStealthGame.Scripts;
+
+using UdonSharp;
 
 public class ResetManager : UdonSharpBehaviour
 {
-    public UdonSharpBehaviour[] resettables = new UdonSharpBehaviour[0];
+    public Resettable[] resettables = new Resettable[0];
 
-    public void Register(UdonSharpBehaviour udonScript)
+    public void Register(Resettable resettable)
     {
-        if (udonScript == null) return;
+        if (resettable == null) return;
 
         int count = resettables.Length;
-        var next = new UdonSharpBehaviour[count  + 1];
-        for (int i = 0; i < count ; i++)
+        var next = new Resettable[count + 1];
+        for (int i = 0; i < count; i++)
         {
             next[i] = resettables[i];
         }
-        next[count ] = udonScript;
+        next[count] = resettable;
         resettables = next;
     }
 
@@ -22,8 +24,8 @@ public class ResetManager : UdonSharpBehaviour
     {
         for (int i = 0; i < resettables.Length; i++)
         {
-            var b = resettables[i];
-            if (b != null) b.SendCustomEvent("ResetState");
+            var resettable = resettables[i];
+            if (resettable != null) resettable.ResetState();
         }
     }
 }

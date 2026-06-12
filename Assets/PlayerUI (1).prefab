@@ -406,7 +406,9 @@ MonoBehaviour:
   canvas: {fileID: 2108626836431522408}
   pillIcons:
   - {fileID: 7326972558851471034}
-  - {fileID: 0}
+  - {fileID: 8701307300903151349}
+  - {fileID: 6883004856075285667}
+  - {fileID: 3681698034526860979}
 --- !u!114 &8453472303589274121
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -16,7 +16,6 @@ namespace Assets._3DStealthGame.Scripts
         private Quaternion _startRot;
         private Quaternion _targetRot;
 
-        private ResetManager _resetManager;
         public PillColor PillColor;
         public float FloorAngle = -90;
         public override void Start()
@@ -71,9 +70,8 @@ namespace Assets._3DStealthGame.Scripts
             }
         }
 
-        public void ResetState()
+        public override void ResetState()
         {
-            Debug.Log(gameObject.name + "ResetState");
             _opening = false;
             _opened = false;
             _timer = 0f;

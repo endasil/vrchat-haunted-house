@@ -14,19 +14,15 @@ public class ExitTriggerU : UdonSharpBehaviour
 {
     public GameEndingU gameEnding;
 
-    private VRCPlayerApi _localPlayer;
-
     void Start()
     {
-        _localPlayer = Networking.LocalPlayer;
-
         if (gameEnding == null)
             Debug.LogError("ExitTriggerU: gameEnding reference is not set in the inspector");
     }
 
     public override void OnPlayerTriggerEnter(VRCPlayerApi player)
     {
-        if (player != _localPlayer)
+        if (!player.isLocal)
             return;
 
         gameEnding.ReachedExit();
