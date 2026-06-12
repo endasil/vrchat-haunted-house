@@ -4,9 +4,9 @@ using UnityEngine;
 using UnityEngine.AI;
 
 
-public static class KeyUGizmos
+public static class PillGizmos
 {
-    private static readonly Color[] KeyColors = {
+    private static readonly Color[] PillColors = {
         Color.green,
         Color.red,
         new Color(0.2f, 0.5f, 1f),
@@ -14,10 +14,10 @@ public static class KeyUGizmos
     };
 
     [DrawGizmo(GizmoType.NonSelected | GizmoType.Selected)]
-    static void DrawKeyGizmo(Pill pill, GizmoType gizmoType)    
+    static void DrawPillGizmo(Pill pill, GizmoType gizmoType)
     {
         int typeIndex = (int)pill.PillColor;
-        Color c = typeIndex < KeyColors.Length ? KeyColors[typeIndex] : Color.white;
+        Color c = typeIndex < PillColors.Length ? PillColors[typeIndex] : Color.white;
 
         Gizmos.color = c;
         Gizmos.DrawWireSphere(pill.transform.position, 0.25f);
@@ -38,8 +38,6 @@ public static class KeyUGizmos
                 continue;
             }
 
-            // Debug.Log($"NavMesh path found from {KeyTypeHelper.GetName(key.keyType)} Pill ({key.name}) to {KeyTypeHelper.GetName(door.keyType)} Door ({door.name})", door);
-
             Gizmos.color = c;
             for (int i = 0; i < path.corners.Length - 1; i++)
                 Gizmos.DrawLine(path.corners[i], path.corners[i + 1]);
@@ -50,7 +48,7 @@ public static class KeyUGizmos
     static void DrawDoorGizmo(DoorU door, GizmoType gizmoType)
     {
         int typeIndex = (int)door.PillColor;
-        Color c = typeIndex < KeyColors.Length ? KeyColors[typeIndex] : Color.white;
+        Color c = typeIndex < PillColors.Length ? PillColors[typeIndex] : Color.white;
 
         Gizmos.color = c;
         Gizmos.DrawWireCube(door.transform.position, new Vector3(0.5f, 1f, 0.1f));
