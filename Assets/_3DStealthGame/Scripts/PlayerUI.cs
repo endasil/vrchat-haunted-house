@@ -28,7 +28,7 @@ public class PlayerUI : Resettable
     public RectTransform endScreen;
     // Where to put the HUD canvas relative to the head (x = right, y = up, z = forward, in
     // metres). In VR we use this as-is. On desktop we only keep the z (how far in front) and
-    // work out x and y ourselves each frame in GetDesktopOffset — see the long note there.
+    // work out x and y ourselves each frame in GetDesktopOffset. See the long note there.
     public Vector3 UIOffset = new Vector3(0.3f, 0.2f, 0.5f);
 
     // Desktop only: where the pills sit on the screen. 0 is the middle, +-1 is the edge, and
@@ -63,30 +63,19 @@ public class PlayerUI : Resettable
                     Debug.LogError($"PlayerUI: pill icon for {(PillColor)i} is not assigned in the inspector.");
         }
 
-        _FindPlayerInventory();
+        
     }
 
-    private void _FindPlayerInventory()
+    public override void OnPlayerRestored(VRCPlayerApi player)
     {
-        if (!Utilities.IsValid(localPlayer))
-        {
-            SendCustomEventDelayedFrames(nameof(_FindPlayerInventory), 1);
-            return;
-        }
+        if (!player.isLocal) return;
 
-        GameObject[] playerObjects = localPlayer.GetPlayerObjects();
-        if (playerObjects == null || playerObjects.Length == 0 || !Utilities.IsValid(playerObjects[0]))
-        {
-            // Player objects take a few frames to appear after joining — keep polling.
-            SendCustomEventDelayedFrames(nameof(_FindPlayerInventory), 1);
-            return;
-        }
+        GameObject[] playerObjects = player.GetPlayerObjects();
+        if (playerObjects == null || playerObjects.Length == 0) return;
 
         playerInventory = playerObjects[0].GetComponent<PlayerInventory>();
         if (playerInventory == null)
-        {
             Debug.LogError("PlayerUI: local player object has no PlayerInventory component.");
-        }
     }
 
     private void LateUpdate()
@@ -97,7 +86,7 @@ public class PlayerUI : Resettable
             for (int i = 0; i < typeCount; i++)
             {
                 Image icon = pillIcons[i];
-                if (icon == null) continue; // already reported in Start
+                if (!icon) continue; 
 
                 if (playerInventory.HasPill((PillColor)i))
                 {
@@ -150,9 +139,6 @@ public class PlayerUI : Resettable
     // as the window stretches. Then we just park the pill container on that point directly.
     private void PinPillsToCorner(VRCPlayerApi.TrackingData headData)
     {
-        // The desktop camera's up-down field of view (in degrees) and its width-to-height ratio.
-        // VRCCameraSettings is how you read these in Udon — Unity's own Screen and Camera classes
-        // aren't allowed in here.
         float fov = VRCCameraSettings.ScreenCamera.FieldOfView;
         float aspect = VRCCameraSettings.ScreenCamera.Aspect;
         float z = UIOffset.z;                                    // distance out in front of the head
@@ -162,7 +148,7 @@ public class PlayerUI : Resettable
         float x = desktopHorizontalFraction * z * tanV * aspect;
         float y = desktopVerticalFraction * z * tanV;
 
-        // Move only the pill container. The first icon's parent IS that container — we get it
+        // Move only the pill container. The first icon's parent IS that container, and we get it
         // this way rather than by child index because the caught/end screens are also children
         // of the canvas and the child order isn't something we want to depend on.
         Transform pills = pillIcons[0].transform.parent;
@@ -174,12 +160,12 @@ public class PlayerUI : Resettable
     // at distance z the camera sees a rectangle 2 * z * tan(fov/2) tall, and that
     // times the aspect ratio wide.
     //
-    // The panel stretches over the canvas rect (600 units tall in this scene, but
-    // read live rather than assumed), so after scaling, 1 unit is always 1/600 of
-    // the screen's height — a fontSize of 42 on a child is 7% of the screen tall
-    // at every resolution. The width is matched by widening the rect (sizeDelta)
-    // rather than scaling, so the scale stays uniform and text isn't stretched.
-    // Children with fractional anchors follow along automatically.
+    // The panel always ends up filling the screen, no matter how big the canvas
+    // rect is, because the scale and the rect size cancel out. A child with a fixed
+    // font size doesn't get that cancellation, so its size relative to the panel
+    // depends on the canvas rect's height. The width is matched by widening the
+    // rect (sizeDelta) rather than scaling, so the scale stays uniform and text
+    // isn't stretched. Children with fractional anchors follow along automatically.
     private void FitScreenPanels()
     {
         float fov = VRCCameraSettings.ScreenCamera.FieldOfView;

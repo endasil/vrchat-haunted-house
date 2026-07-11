@@ -17,18 +17,15 @@ public class WaypointNetwork : UdonSharpBehaviour
 
         for (int i = 0; i < WaypointPositions.Length; i++)
         {
-            
-            Vector3 start = WaypointPositions[i].position;
-            Vector3 end;
+            if (WaypointPositions[i] == null) continue;
 
-            if (i + 1 != WaypointPositions.Length)
-            {
-                end = WaypointPositions[i + 1].position;
-            }
-            else
-            {
-                end = WaypointPositions[0].position;
-            }
+            Transform endWaypoint = i + 1 != WaypointPositions.Length
+                ? WaypointPositions[i + 1]
+                : WaypointPositions[0];
+            if (endWaypoint == null) continue;
+
+            Vector3 start = WaypointPositions[i].position;
+            Vector3 end = endWaypoint.position;
 
 
             NavMeshPath path = new NavMeshPath();

@@ -1,4 +1,4 @@
-﻿using UdonSharp;
+﻿    using UdonSharp;
 using UnityEngine;
 using UnityEngine.AI;
 #pragma warning disable UNT0039
@@ -10,8 +10,7 @@ namespace Assets._3DStealthGame.Scripts
     public class AIPathDebugLine : UdonSharpBehaviour
     {
         public NavMeshAgent navAi;
-        public GhostAISearching ghostAI;
-    
+
         public LineRenderer ArrivalLineRenderer;
         public GameObject markerPrefab;
         public int maxMarkers = 20;
@@ -46,6 +45,11 @@ namespace Assets._3DStealthGame.Scripts
                 Debug.LogError("[AIPathDebugLine] No NavMeshAgent found!", this);
             }
 
+            if (markerPrefab == null)
+            {
+                Debug.LogError("[AIPathDebugLine] markerPrefab is not assigned!", this);
+                return;
+            }
             _markers = new GameObject[maxMarkers];
             _markerRenderers = new Renderer[maxMarkers];
             for (int i = 0; i < maxMarkers; i++)

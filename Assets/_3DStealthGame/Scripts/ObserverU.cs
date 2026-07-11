@@ -1,24 +1,22 @@
-﻿
+
 #pragma warning disable IDE0090 // Use 'new(...)'
 using UdonSharp;
+
 using UnityEngine;
+
 using VRC.SDKBase;
 
 public class ObserverU : UdonSharpBehaviour
 {
     private bool _isPlayerInRange;
-    private VRCPlayerApi _localPlayer;
     private GameEndingU _gameEnding;
 
-    public AudioSource exitAudio;
-    public AudioSource caughtAudio;
-    private readonly bool _hasAudioPlayed;
-
+    // Which ghost this trigger belongs to, worked out from the AI script on the
+    // ghost root. Matches the ghost type ints in GameEndingU.
+    private int _ghostType = -1;
 
     void Start()
     {
-        _localPlayer = Networking.LocalPlayer;
-
         var gameManagerObj = GameObject.Find("GameManager");
         if (gameManagerObj == null)
         {
@@ -29,77 +27,84 @@ public class ObserverU : UdonSharpBehaviour
         _gameEnding = gameManagerObj.GetComponent<GameEndingU>();
         if (_gameEnding == null)
             Debug.LogError("ObserverU: GameManager has no GameEndingU component");
+
+        // Walk up the hierarchy and take the NEAREST ghost AI script.
+        Transform t = transform;
+        while (t != null && _ghostType == -1)
+        {
+            if (t.GetComponent<WaypointPatrolU>() != null)
+                _ghostType = GameEndingU.GHOST_BUTLER;
+            else if (t.GetComponent<GhostAISearching>() != null)
+                _ghostType = GameEndingU.GHOST_SEEKER;
+            else if (t.GetComponent<GargoyleU>() != null)
+                _ghostType = GameEndingU.GHOST_GARGOYLE;
+            t = t.parent;
+        }
+        if (_ghostType == -1)
+            Debug.LogError($"ObserverU on '{transform.root.name}': no ghost AI script found on any parent, death messages will use the fallback line");
     }
 
     public override void OnPlayerTriggerEnter(VRCPlayerApi player)
     {
-        Vector3 playerPos = player.GetPosition();
-        Debug.Log($"OnPlayerTriggerEnter | entity '{transform.root.name}' | player pos {playerPos} | entity pos {transform.position} | distance {Vector3.Distance(transform.position, playerPos):F2}m");
-        if (player == _localPlayer)
+        if (player.isLocal)
         {
             _isPlayerInRange = true;
+            // Catch right here too, not only in Update: the trigger can flicker
+            // in/out every physics step (the ghost's rigidbody jitters the
+            // collider), and then the exit clears the flag before Update ever
+            // sees it.
+            TryCatch();
         }
     }
 
     public override void OnPlayerTriggerExit(VRCPlayerApi player)
     {
-        if (player == _localPlayer)
+        if (player.isLocal)
         {
             _isPlayerInRange = false;
         }
     }
 
+    // The trigger capsule on this object is the ghost's vision cone. While the
+    // player is inside it, cast a ray at them and look at what the ray meets
+    // first: the player's own capsule (or nothing solid) means a clear view and
+    // they're caught; anything else is a wall in between and they're safe.
     private void Update()
     {
-        if (_isPlayerInRange && _localPlayer != null)
-        {
-            Vector3 playerPos = _localPlayer.GetPosition();
-            Vector3 direction = playerPos - transform.position + Vector3.up;
-            float distToPlayer = Vector3.Distance(transform.position, playerPos);
-
-            Ray ray = new Ray(transform.position, direction);
-
-            LayerMask playerMask = 1 << LayerMask.NameToLayer("Player");
-
-            if (!Physics.Raycast(ray, out RaycastHit hitInfo, distToPlayer, playerMask, QueryTriggerInteraction.Ignore))
-            {
-                string fromDir = DirectionToText(playerPos);
-                // Debug.Log($"Player caught by '{transform.root.name}' | from the {fromDir} | player pos {playerPos} | catcher pos {transform.position} | distance {distToPlayer:F2}m");
-                if (_gameEnding != null)
-                    _gameEnding.CaughtPlayer();
-            }
-        }
+        if (_isPlayerInRange)
+            TryCatch();
     }
 
-    // Works out where the catcher is relative to the way the player is facing,
-    // as plain words (in front, behind, to the right, etc.). Flattened to the
-    // horizontal plane so up/down doesn't matter.
-    private string DirectionToText(Vector3 playerPos)
+    private void TryCatch()
     {
-        Vector3 forward = _localPlayer.GetRotation() * Vector3.forward;
-        forward.y = 0f;
+        if (_gameEnding == null)
+            return;
 
-        Vector3 toCatcher = transform.position - playerPos;
-        toCatcher.y = 0f;
+        VRCPlayerApi localPlayer = Networking.LocalPlayer;
+        if (localPlayer == null)
+            return;
 
-        // Positive angle = catcher is to the player's right, negative = left.
-        float angle = Vector3.SignedAngle(forward, toCatcher, Vector3.up);
-        float a = Mathf.Abs(angle);
-
-        if (a <= 22.5f) return "front";
-        if (a >= 157.5f) return "behind";
-
-        if (angle > 0f)
+        Vector3 origin = transform.position;
+        // Aim at roughly the torso (feet + 1m) so the ray doesn't hit the floor.
+        Vector3 offset = localPlayer.GetPosition() + Vector3.up - origin;
+        float distToPlayer = offset.magnitude;
+        const int allLayers = ~0;
+        if (distToPlayer > 0.0001f
+            && Physics.Raycast(origin,
+                offset / distToPlayer,
+                out RaycastHit hit, distToPlayer,
+                allLayers, QueryTriggerInteraction.Ignore))
         {
-            if (a <= 67.5f) return "front-right";
-            if (a <= 112.5f) return "right";
-            return "behind-right";
+            // VRChat hides player colliders from Udon: a ray that hits a player
+            // reports the hit but with collider == null. So null collider means
+            // we hit the player. Only a real (non-null) collider on
+            // a non-player layer is a wall in the way.
+            Collider hitCollider = hit.collider;
+            if (hitCollider != null)
+                return;
         }
-        else
-        {
-            if (a <= 67.5f) return "front-left";
-            if (a <= 112.5f) return "left";
-            return "behind-left";
-        }
+
+        _gameEnding.CaughtPlayerBy(_ghostType);
     }
+
 }

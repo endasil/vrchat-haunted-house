@@ -9,6 +9,7 @@ using UdonSharp;
 using UnityEngine;
 
 using VRC.SDK3.Components;
+using VRC.SDK3.UdonNetworkCalling;
 using VRC.SDKBase;
 using VRC.Udon.Common;
 using VRC.Udon.Common.Interfaces;
@@ -40,8 +41,6 @@ public class Snowball : SmartObjectSyncListener
 
     [Header("Ghost Interaction")]
     public GhostAISearching ghostAI;
-    [UdonSynced] public Vector3 syncedThrowerPosition;
-    [UdonSynced] public int syncedGhostHitEventId;
 
     private bool _hasImpacted = false;
     private VRCPickup _vrcPickup;
@@ -197,13 +196,14 @@ public class Snowball : SmartObjectSyncListener
             NotifyGhostHit();
     }
 
+    // Tell the ghost's owner (the client driving the AI) where the thrower stood
+    // so it can investigate, using a network event instead of synced variables
+    // or polling.
     private void NotifyGhostHit()
     {
         VRCPlayerApi thrower = Networking.GetOwner(gameObject);
         if (thrower == null || !thrower.IsValid()) return;
-        syncedThrowerPosition = thrower.GetPosition();
-        syncedGhostHitEventId++;
-        RequestSerialization();
+        ghostAI.SendCustomNetworkEvent(NetworkEventTarget.Owner, nameof(GhostAISearching.OnSnowballHit), thrower.GetPosition());
     }
 
     public void CreateSnowballParticles()

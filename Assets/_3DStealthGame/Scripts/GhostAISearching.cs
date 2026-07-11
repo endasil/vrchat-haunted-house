@@ -1,26 +1,26 @@
-﻿#pragma warning disable IDE0056
+#pragma warning disable IDE0056
 using Assets._3DStealthGame.Scripts.Enums;
-
-using TMPro;
-
-using UdonSharp;
 
 using UnityEngine;
 using UnityEngine.AI;
 
+using VRC.SDK3.UdonNetworkCalling;
 using VRC.SDKBase;
 // ReSharper disable SuggestVarOrType_BuiltInTypes
 
+// The seeker ghost: roams to random NavMesh positions, interrupts patrol to chase
+// when a player is seen or heard, investigates the last known position after
+// losing them, then resumes patrol. Snowball hits send it to investigate the
+// thrower's position. On arrival at a patrol point it does an idle look-around
+// sweep before picking the next destination.
+//
+// Shared vision/navigation/ownership plumbing lives in GhostAgentBase.
 [DisallowMultipleComponent]
-public class GhostAISearching : UdonSharpBehaviour
+public class GhostAISearching : GhostAgentBase
 {
     // ==============================
     // Navigation & Movement Settings
     // ==============================
-
-    // NavMesh agent used for pathfinding and movement
-    private NavMeshAgent _navMeshAgent;
-
 
     // Base movement speed when patrolling
     public float defaultSpeed = 1f;
@@ -34,9 +34,6 @@ public class GhostAISearching : UdonSharpBehaviour
     // While chasing, only request a new path once the player has moved this far
     // from the current path's destination.
     private readonly float _chaseRepathDistance = 1f;
-
-    // How far a point may be from the NavMesh and still get snapped onto it.
-    private const float NavMeshSampleRadius = 2f;
 
     // Turn speed (deg/s) used to face the arrival direction when close to a patrol destination.
     private const float ArrivalTurnSpeed = 240f;
@@ -63,32 +60,10 @@ public class GhostAISearching : UdonSharpBehaviour
     public float hearingRange = 3f;      // Radius for hearing-based detection
 
     // ==============================
-    // Targeting
+    // Runtime State: Target
     // ==============================
 
-    public float retargetInterval = 0.2f;            // How often to re-evaluate target
-
-    //==============================
-    // Component References
-    //==============================
-
-    public TextMeshPro Indicator;  // Displays AI state symbol (! ? ~ .)
-
-
-    // ==============================
-    // Snowball Interaction
-    // ==============================
-
-    public Snowball[] snowballs;
-    private int[] _lastSnowballHitEventIds;
-
-    // ==============================
-    // Runtime State: Players & Target
-    // ==============================
-
-    private VRCPlayerApi[] _playerCache;
-    private VRCPlayerApi _currentTargetPlayer;       // Currently targeted player
-    private float _lastRetargetTime;                 // Time of last retarget check
+    private VRCPlayerApi _currentTargetPlayer;      // Currently targeted player
     private bool _isInvestigating;        // True while chasing last known location
 
     // ==============================
@@ -128,62 +103,17 @@ public class GhostAISearching : UdonSharpBehaviour
 
     private void Start()
     {
-        // Cache references to not have to look them up at runtime.
-        // Only look up the indicator if it wasn't assigned in the inspector.
-        if (Indicator == null)
-            Indicator = GetComponentInChildren<TextMeshPro>();
-
-        _navMeshAgent = GetComponent<NavMeshAgent>();
-
-        // Only the owner drives the agent. On everyone else the transform comes from VRCObjectSync,
-        // so a live agent here would just fight the synced position. Keep it off on non-owners.
-        if (_navMeshAgent != null)
-            _navMeshAgent.enabled = Networking.IsOwner(gameObject);
-
-        // Preallocate player cache, can't use lists in U# :(
-        _playerCache = new VRCPlayerApi[80];
-
-        // Make sure we can find a target right away.
-        _lastRetargetTime = -999f;
-
-        // Snapshot current snowball hit counters so we don't react to hits that happened before we joined.
-        if (snowballs != null)
-        {
-            _lastSnowballHitEventIds = new int[snowballs.Length];
-            for (int i = 0; i < snowballs.Length; i++)
-                if (snowballs[i] != null)
-                    _lastSnowballHitEventIds[i] = snowballs[i].syncedGhostHitEventId;
-        }
-
+        InitGhostAgent();
     }
 
     private void Update()
     {
         // Only run AI logic on one client to make sure the ai behavior is the same for all players.
-        if (!Networking.IsOwner(gameObject)) return;
-
+        if (!_isOwner) return;
 
         if (_navMeshAgent == null) return;
 
-        UpdateRetargetingIfNeeded();
-        CheckSnowballHits();
-
         WalkAndChaseBehavior();
-
-    }
-
-    // ==============================
-    // Update Subsystems
-    // ==============================
-
-    private void UpdateRetargetingIfNeeded()
-    {
-        // Periodic retarget (handles join/leave)
-        if (Time.time - _lastRetargetTime < retargetInterval) return;
-        _lastRetargetTime = Time.time;
-
-        if (!IsValidTargetPlayer(_currentTargetPlayer))
-            _currentTargetPlayer = FindNearestValidPlayer();
     }
 
     // Patrol, but interrupt patrol if vision/hearing detects a player.
@@ -194,12 +124,9 @@ public class GhostAISearching : UdonSharpBehaviour
 
         if (didDetectPlayer)
         {
-            Debug.Log("Detected player: " + detectedPlayer.displayName + " by " + (detectedByVision ? "vision" : "hearing"));
-            // Only pick a new target if we don't already have one — stick to current target until patrol resumes.
-            if (!IsValidTargetPlayer(_currentTargetPlayer))
-                _currentTargetPlayer = detectedPlayer;
-            else if (_currentTargetPlayer.playerId != detectedPlayer.playerId)
-                Debug.LogWarning($"[GhostAI] Detected {detectedPlayer.displayName} but keeping existing target {_currentTargetPlayer.displayName}");
+            // Detection owns the target: always chase the player it just picked
+            // (the closest seen one, or the closest heard one if nobody is seen).
+            _currentTargetPlayer = detectedPlayer;
 
             CancelIdleLookAround();
             EnsureAgentCanMove();
@@ -222,19 +149,17 @@ public class GhostAISearching : UdonSharpBehaviour
                     bool pathSet = SetDestinationOnNavMesh(playerPosition);
                     if (!pathSet)
                     {
-                        Debug.LogError($"[GhostAI] SetDestination FAILED — could not snap target onto NavMesh. agentPos={transform.position}");
+                        Debug.LogError($"[GhostAI] SetDestination failed: could not snap target onto NavMesh. agentPos={transform.position}");
                     }
-                    // else
-                        // Debug.Log($"[GhostAI] Chasing {_currentTargetPlayer.displayName} — hasPath={_navMeshAgent.hasPath}, pathStatus={_navMeshAgent.pathStatus}, remainingDist={_navMeshAgent.remainingDistance:F2}, dest={_navMeshAgent.destination}, speed={_navMeshAgent.speed}, isStopped={_navMeshAgent.isStopped}");
                 }
             }
 
             // Within hearing distance the ghost is too close for the agent's velocity-based
-            // rotation to look right (it brakes/stops, velocity ~0, so the turn freezes/snaps) —
-            // steer the facing ourselves toward the player. Farther out, the agent moves fast
-            // enough that its own rotation looks fine, same as patrol, so leave updateRotation on
-            // (set by EnsureAgentCanMove above). Distance uses head position to match how hearing
-            // range is measured in TryDetectBestPlayer.
+            // rotation to look right (it brakes and stops, so velocity is near zero and the
+            // turn freezes or snaps), so steer the facing ourselves toward the player. Farther
+            // out, the agent moves fast enough that its own rotation looks fine, same as patrol,
+            // so leave updateRotation on (set by EnsureAgentCanMove above). Distance uses head
+            // position to match how hearing range is measured in detection.
             float distanceToTarget = Vector3.Distance(transform.position, GetPlayerHeadPosition(_currentTargetPlayer));
             if (distanceToTarget <= hearingRange)
             {
@@ -262,14 +187,10 @@ public class GhostAISearching : UdonSharpBehaviour
         // If we already started investigating, keep moving until we reach the destination.
         if (_isInvestigating && _navMeshAgent.hasPath && _navMeshAgent.remainingDistance > _navMeshAgent.stoppingDistance)
         {
-            Debug.Log("Is investigating");
             _navMeshAgent.speed = playerFoundSpeed;
             SetIndicatorText(AwarenessIndicator.InvestigatingLastKnown);
             return;
         }
-
-        if (_isInvestigating)
-            Debug.Log($"[GhostAI] Investigation ended — hasPath={_navMeshAgent.hasPath}, pathStatus={_navMeshAgent.pathStatus}, remainingDist={_navMeshAgent.remainingDistance:F2}");
 
         _isInvestigating = false;
         _currentTargetPlayer = null;
@@ -290,21 +211,16 @@ public class GhostAISearching : UdonSharpBehaviour
     // Snowball Hit Handling
     // ==============================
 
-    private void CheckSnowballHits()
+    // Called over the network by a snowball that hit this ghost
+    // (Snowball.NotifyGhostHit targets NetworkEventTarget.Owner, the client
+    // driving the AI).
+    [NetworkCallable]
+    public void OnSnowballHit(Vector3 throwerPosition)
     {
-        if (snowballs == null || _lastSnowballHitEventIds == null) return;
-        for (int i = 0; i < snowballs.Length; i++)
-        {
-            if (snowballs[i] == null) continue;
-            if (snowballs[i].syncedGhostHitEventId == _lastSnowballHitEventIds[i]) continue;
-            _lastSnowballHitEventIds[i] = snowballs[i].syncedGhostHitEventId;
-            HandleSnowballHit(snowballs[i].syncedThrowerPosition);
-        }
-    }
+        if (!Networking.IsOwner(gameObject)) return;
+        if (_navMeshAgent == null) return;
 
-    private void HandleSnowballHit(Vector3 throwerPosition)
-    {
-        // Ignore if already chasing a player or investigating — no override.
+        // Ignore this if already chasing a player or investigating, don't override that.
         if (IsValidTargetPlayer(_currentTargetPlayer) || _isInvestigating) return;
 
         CancelIdleLookAround();
@@ -324,126 +240,40 @@ public class GhostAISearching : UdonSharpBehaviour
         return playerCandidate != null && playerCandidate.IsValid();
     }
 
-    // Finds the player closest to this npc in world
-    private VRCPlayerApi FindNearestValidPlayer()
-    {
-        int totalPlayerCount = VRCPlayerApi.GetPlayerCount();
-        VRCPlayerApi.GetPlayers(_playerCache);
-
-        VRCPlayerApi closestPlayer = null;
-        float closestPlayerDistanceSquared = float.MaxValue;
-
-        Vector3 agentPosition = transform.position;
-
-        for (int playerIndex = 0; playerIndex < totalPlayerCount && playerIndex < _playerCache.Length; playerIndex++)
-        {
-            VRCPlayerApi playerCandidate = _playerCache[playerIndex];
-            if (playerCandidate == null || !playerCandidate.IsValid()) continue;
-
-            Vector3 playerPosition = playerCandidate.GetPosition();
-            float squaredDistanceToPlayer = (playerPosition - agentPosition).sqrMagnitude;
-
-            if (squaredDistanceToPlayer < closestPlayerDistanceSquared)
-            {
-                closestPlayerDistanceSquared = squaredDistanceToPlayer;
-                closestPlayer = playerCandidate;
-            }
-        }
-
-        return closestPlayer;
-    }
-
-    // Better to focus on the head than the root of the body since this is where the player experience that they are at.
-    private Vector3 GetPlayerHeadPosition(VRCPlayerApi player)
-    {
-        VRCPlayerApi.TrackingData headTrackingData = player.GetTrackingData(VRCPlayerApi.TrackingDataType.Head);
-        return headTrackingData.position;
-    }
-
-    // ==============================
-    // NavMeshAgent Helpers
-    // ==============================
-
-    // Snap a world point onto the NavMesh before pathing to it. Points off the mesh
-    // (like a player's head 1.5m up) otherwise map onto a nearby wall edge and produce
-    // a useless partial path. Returns false if nothing on the mesh is within range.
-    private bool SetDestinationOnNavMesh(Vector3 worldPoint)
-    {
-        if (NavMesh.SamplePosition(worldPoint, out var navMeshHit, NavMeshSampleRadius, NavMesh.AllAreas))
-            return _navMeshAgent.SetDestination(navMeshHit.position);
-
-        return false;
-    }
-
-    // Allow the navmesh agent to move and rotate the npc
-    private void EnsureAgentCanMove()
-    {
-        _navMeshAgent.isStopped = false;
-        _navMeshAgent.updateRotation = true;
-    }
-
-    // Prevent the navmesh agent from controlling the rotation and position of the npc 
-    // so we can move it from code directly.
-    private void EnsureAgentIsIdle()
-    {
-        _navMeshAgent.isStopped = true;
-        _navMeshAgent.updateRotation = false;
-    }
-
     // Sets the indicator text based on logical AI awareness state instead of raw strings.
     private void SetIndicatorText(AwarenessIndicator awarenessIndicator)
     {
-        if (Indicator == null) return;
-
         switch (awarenessIndicator)
         {
             case AwarenessIndicator.SearchingForPlayers:
-                Indicator.text = "?";
+                SetIndicatorSymbol("?");
                 break;
 
             case AwarenessIndicator.HeardSomething:
-                Indicator.text = "~";
+                SetIndicatorSymbol("~");
                 break;
 
             case AwarenessIndicator.SpottedPlayer:
-                Indicator.text = "!";
+                SetIndicatorSymbol("!");
                 break;
 
             case AwarenessIndicator.InvestigatingLastKnown:
-                Indicator.text = ".";
+                SetIndicatorSymbol(".");
+                break;
+
+            default:
+                Debug.LogError($"Unknown AwarenessIndicator: {awarenessIndicator}");
                 break;
         }
-    }
-
-    // Smoothly rotate (horizontal only) toward a fixed world point.
-    // Used while chasing at close range — a stable target (the player) instead of steeringTarget,
-    // which jumps around during per-frame repathing and makes the turn snap.
-    private void TurnTowardsWorldPosition(Vector3 worldPosition, float degreesPerSecond)
-    {
-        Vector3 direction = worldPosition - transform.position;
-        direction.y = 0f;
-        if (direction.sqrMagnitude < 0.0001f) return;
-
-        Quaternion targetRotation = Quaternion.LookRotation(direction, Vector3.up);
-        transform.rotation = Quaternion.RotateTowards(
-            transform.rotation, targetRotation, degreesPerSecond * Time.deltaTime);
     }
 
     private void RotateTowardsSteeringTargetWhenCloseToArrival()
     {
         if (_isLookingAround) return;
 
-        if (_navMeshAgent.pathPending)
-        {
-            Debug.Log("Path pending");
-            return;
-        }
+        if (_navMeshAgent.pathPending) return;
 
-        if (_navMeshAgent.hasPath == false)
-        {
-            // Debug.Log("No path yet");
-            return;
-        }
+        if (_navMeshAgent.hasPath == false) return;
 
         if (_navMeshAgent.remainingDistance >= _navMeshAgent.stoppingDistance + 1f) return;
 
@@ -455,104 +285,19 @@ public class GhostAISearching : UdonSharpBehaviour
     // Detection Logic
     // ==============================
 
-    // Attempts to detect the best player via vision first, then hearing
+    // Attempts to detect the best player via vision first, then hearing.
     private bool TryDetectBestPlayer(out VRCPlayerApi bestDetectedPlayer, out bool bestDetectedByVision)
     {
-        bestDetectedPlayer = null;
-        bestDetectedByVision = false;
-
-        int totalPlayerCount = VRCPlayerApi.GetPlayerCount();
-        VRCPlayerApi.GetPlayers(_playerCache);
-
-        Vector3 agentPosition = transform.position;
-
-        float closestVisionDistanceSquared = float.MaxValue;
-        float closestHearingDistanceSquared = float.MaxValue;
-
-        VRCPlayerApi closestVisionPlayer = null;
-        VRCPlayerApi closestHearingPlayer = null;
-
-        for (int playerIndex = 0; playerIndex < totalPlayerCount && playerIndex < _playerCache.Length; playerIndex++)
+        bestDetectedPlayer = FindClosestVisiblePlayer(sideVisionAngle, visionLength);
+        if (bestDetectedPlayer != null)
         {
-            VRCPlayerApi playerCandidate = _playerCache[playerIndex];
-            if (playerCandidate == null || !playerCandidate.IsValid()) continue;
-
-            Vector3 playerHeadPosition = GetPlayerHeadPosition(playerCandidate);
-            Vector3 offsetToPlayer = playerHeadPosition - agentPosition;
-
-            float squaredDistanceToPlayer = offsetToPlayer.sqrMagnitude;
-            float distanceToPlayer = Mathf.Sqrt(squaredDistanceToPlayer);
-
-            bool isInVisionRange = distanceToPlayer <= visionLength;
-            bool isInHearingRange = distanceToPlayer <= hearingRange;
-
-            if (isInVisionRange && IsWithinViewCone(playerHeadPosition))
-            {
-                if (squaredDistanceToPlayer < closestVisionDistanceSquared)
-                {
-                    closestVisionDistanceSquared = squaredDistanceToPlayer;
-                    closestVisionPlayer = playerCandidate;
-                }
-                continue;
-            }
-
-            if (isInHearingRange && squaredDistanceToPlayer < closestHearingDistanceSquared)
-            {
-                closestHearingDistanceSquared = squaredDistanceToPlayer;
-                closestHearingPlayer = playerCandidate;
-            }
-        }
-
-        if (closestVisionPlayer != null)
-        {
-            bestDetectedPlayer = closestVisionPlayer;
             bestDetectedByVision = true;
             return true;
         }
 
-        if (closestHearingPlayer != null)
-        {
-            bestDetectedPlayer = closestHearingPlayer;
-            bestDetectedByVision = false;
-            return true;
-        }
-
-        return false;
-    }
-
-    // Checks if target is inside view cone and nothing is in the way
-    private bool IsWithinViewCone(Vector3 targetWorldPosition)
-    {
-        Vector3 raycastOrigin = transform.position + new Vector3(0f, 0.5f, 0f);
-        Vector3 offsetToTarget = targetWorldPosition - raycastOrigin;
-
-        float distanceToTarget = offsetToTarget.magnitude;
-        if (distanceToTarget <= 0.0001f) return true;
-
-        Vector3 directionToTarget = offsetToTarget / distanceToTarget;
-
-        float angleToTargetDegrees = Vector3.Angle(transform.forward, directionToTarget);
-        if (angleToTargetDegrees > sideVisionAngle) return false;
-
-
-        bool hitSomething = Physics.Raycast(
-            raycastOrigin,
-            directionToTarget,
-            out var raycastHit,
-            visionLength,
-            ~0,
-            QueryTriggerInteraction.Ignore
-        );
-
-        if (!hitSomething)
-        {
-            // No obstruction detected within vision length
-            return true;
-        }
-
-        // If the first hit is basically at the target distance, treat as visible.
-        bool hitIsAtOrBeyondTarget = raycastHit.distance >= distanceToTarget - 0.2f;
-        return hitIsAtOrBeyondTarget;
+        bestDetectedPlayer = FindClosestPlayerWithin(hearingRange);
+        bestDetectedByVision = false;
+        return bestDetectedPlayer != null;
     }
 
     // ==============================
@@ -561,12 +306,11 @@ public class GhostAISearching : UdonSharpBehaviour
 
     private void PickDestinationAndStartLookAround()
     {
-        Debug.Log("Start idle lookaround.");
         _navMeshAgent.stoppingDistance = 0.4f;
         _navMeshAgent.speed = defaultSpeed;
         if (!TryGetRandomNavMeshPosition(out Vector3 nextDestination))
         {
-            Debug.Log("StartIdleLookAround: no valid NavMesh position found, skipping sweep — will retry next frame.");
+            Debug.Log("StartIdleLookAround: no valid NavMesh position found, skipping sweep, will retry next frame.");
             return;
         }
 
@@ -611,7 +355,7 @@ public class GhostAISearching : UdonSharpBehaviour
         _idlePausingAtEndpoint = false;
     }
 
-    // Sweep runs immediately from the ghost's current facing — no pre-rotation.
+    // Sweep runs immediately from the ghost's current facing, with no pre-rotation.
     // Flow: current angle → first endpoint (pause) → center → second endpoint (pause) → center (done).
     private void UpdateIdleHoldAndSweep()
     {
@@ -665,19 +409,15 @@ public class GhostAISearching : UdonSharpBehaviour
             switch (_idleLookStep)
             {
                 case 1: // reached center, continue in the direction we were already rotating
-                //     Debug.Log("Case 1 reached center, sweep to " + (_firstSweepSign > 0 ? "right" : "left"));
                     _idleLookTargetAngle = _firstSweepSign * _currentSweepAngle;
                     break;
                 case 2: // reached first endpoint, sweep to the opposite side
-                 //    Debug.Log("case 2: sweep to " + (_firstSweepSign > 0 ? "left" : "right"));
                     _idleLookTargetAngle = -_firstSweepSign * _currentSweepAngle;
                     break;
-                case 3: // reached left, return to center
-                  //   Debug.Log("case 3: reached left, return to center");
+                case 3: // reached the second endpoint, return to center
                     _idleLookTargetAngle = 0f;
                     break;
                 case 4: // back at center, done
-                    // Debug.Log("case 4: back at center, done");
                     _idleSweepCompleted = true;
                     _idleStateEndTime = Time.time + postSweepPauseDuration;
                     break;
@@ -705,8 +445,7 @@ public class GhostAISearching : UdonSharpBehaviour
         var secondToLastCorner = path.corners[path.corners.Length - 2];
 
         Vector3 arrivalDirection = (lastCorner - secondToLastCorner).normalized;
-        Vector3 raycastOrigin = lastCorner;// + Vector3.up * 0.5f;
-                                           // Debug.DrawRay(raycastOrigin, arrivalDirection * 1.5f, Color.red, 999f);
+        Vector3 raycastOrigin = lastCorner;
 
         var wallHit = Physics.Raycast(raycastOrigin, arrivalDirection, _wallNearDistance);
         return wallHit;
@@ -736,15 +475,11 @@ public class GhostAISearching : UdonSharpBehaviour
                 if (!IsFacingWallOnArrival(navMeshHit.position))
                 {
                     position = navMeshHit.position;
-                    // Debug.Log("Found acceptable position " + position + " distance " + Vector3.Distance(transform.position, position));
                     return true; // No wall ahead, return this position
                 }
                 position = navMeshHit.position; // Keep as fallback in case no wall-free spot turns up
                 hasFallback = true;
             }
-
-
-            // Debug.Log($"{gameObject.name} Sample position failed to get random position within {NavMeshSampleRadius} of {desiredWorldPosition} attempt:  {attempt}");
         }
 
         return hasFallback;
@@ -765,22 +500,11 @@ public class GhostAISearching : UdonSharpBehaviour
         }
     }
 
-    // When the previous owner leaves, a new client takes over driving the ghost. Turn the agent on
-    // for the new owner (off for everyone else) and warp it to where the ghost currently is, since
-    // it was disabled and never tracked the synced position. Mirrors AIPatrolU.OnOwnershipTransferred.
-    public override void OnOwnershipTransferred(VRCPlayerApi player)
+    // This client just took over driving the ghost, drop any stale chase state.
+    protected override void OnBecameAgentOwner()
     {
-        if (_navMeshAgent == null) return;
-
-        _navMeshAgent.enabled = Networking.IsOwner(gameObject);
-
-        if (_navMeshAgent.enabled)
-        {
-            _navMeshAgent.Warp(transform.position);
-            _currentTargetPlayer = null;
-            _isInvestigating = false;
-            CancelIdleLookAround();
-        }
+        _currentTargetPlayer = null;
+        _isInvestigating = false;
+        CancelIdleLookAround();
     }
-
 }
