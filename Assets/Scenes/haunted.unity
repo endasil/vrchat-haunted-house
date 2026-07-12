@@ -4342,7 +4342,7 @@ PrefabInstance:
     - target: {fileID: 4239884419719708567, guid: 1a0153f892094ae408b09b65dabefd14,
         type: 3}
       propertyPath: m_Name
-      value: ButlerGost West Wing
+      value: ButlerGhost West Wing
       objectReference: {fileID: 0}
     - target: {fileID: 6351217336306525678, guid: 1a0153f892094ae408b09b65dabefd14,
         type: 3}
@@ -4627,7 +4627,7 @@ PrefabInstance:
     - target: {fileID: 4239884419719708567, guid: 1a0153f892094ae408b09b65dabefd14,
         type: 3}
       propertyPath: m_Name
-      value: ButlerGost South Corridor
+      value: ButlerGhost South Corridor
       objectReference: {fileID: 0}
     - target: {fileID: 6351217336306525678, guid: 1a0153f892094ae408b09b65dabefd14,
         type: 3}
@@ -30502,7 +30502,7 @@ PrefabInstance:
     - target: {fileID: 4239884419719708567, guid: 1a0153f892094ae408b09b65dabefd14,
         type: 3}
       propertyPath: m_Name
-      value: ButlerGost
+      value: ButlerGhost
       objectReference: {fileID: 0}
     - target: {fileID: 5812786437880342109, guid: 1a0153f892094ae408b09b65dabefd14,
         type: 3}
