@@ -88,7 +88,7 @@ public static class NavMeshMapGenerator
                 new Color(1f, 0.5f, 0f));
         }
 
-        var butlers = Object.FindObjectsByType<WaypointPatrolU>(FindObjectsSortMode.None);
+        var butlers = Object.FindObjectsByType<ButlerGhost>(FindObjectsSortMode.None);
         foreach (var butler in butlers)
         {
             Vector2Int px = ToPixel(butler.transform.position, minX, minZ, worldW, worldH, texW, texH);

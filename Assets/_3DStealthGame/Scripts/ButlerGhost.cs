@@ -20,7 +20,7 @@ using VRC.SDKBase;
 // Shared vision/navigation/ownership plumbing lives in GhostAgentBase.
 [DisallowMultipleComponent]
 [RequireComponent(typeof(NavMeshAgent))]
-public class WaypointPatrolU : GhostAgentBase
+public class ButlerGhost : GhostAgentBase
 {
     // ==============================
     // Patrol

@@ -32,7 +32,7 @@ public class ObserverU : UdonSharpBehaviour
         Transform t = transform;
         while (t != null && _ghostType == -1)
         {
-            if (t.GetComponent<WaypointPatrolU>() != null)
+            if (t.GetComponent<ButlerGhost>() != null)
                 _ghostType = GameEndingU.GHOST_BUTLER;
             else if (t.GetComponent<GhostAISearching>() != null)
                 _ghostType = GameEndingU.GHOST_SEEKER;
