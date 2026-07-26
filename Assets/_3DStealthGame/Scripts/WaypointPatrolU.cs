@@ -1,3 +1,6 @@
+using _3DStealthGame.Scripts.Constants;
+using Assets._3DStealthGame.Scripts.Enums;
+
 using UdonSharp;
 
 using UnityEngine;
@@ -91,9 +94,15 @@ public class WaypointPatrolU : GhostAgentBase
 
         InitGhostAgent();
         if (_navMeshAgent == null) return;
-
         _navMeshAgent.speed = moveSpeed;
         SetIndicatorSymbol("");
+
+        if (_state == StatePatrol)
+        {
+            SetDestinationToCurrentWaypoint();
+        }
+
+        EnsureAgentCanMove();
 
         _initialized = true;
     }
@@ -197,7 +206,7 @@ public class WaypointPatrolU : GhostAgentBase
         _lockOnUntil = Time.time + lockOnPauseTime;
         _lostSightTime = -1f;
         EnsureAgentIsIdle();
-        SetIndicatorSymbol("!");
+        SetIndicatorSymbol(AwarenessIndicator.SpottedPlayer);
     }
 
     // ==============================
@@ -208,28 +217,40 @@ public class WaypointPatrolU : GhostAgentBase
     // is computing, skip while still travelling, otherwise advance and head on.
     private void AdvanceWaypointIfArrived()
     {
+        Debug.Log($"{gameObject.name} AdvanceWaypointIfArrived: frameTime: {Time.frameCount} " +
+                  $"stopped:{_navMeshAgent.isStopped} status: {_navMeshAgent.pathStatus} " +
+                  $"hasPath:{_navMeshAgent.hasPath} pending:{_navMeshAgent.pathPending} " +
+                  $"remaining:{_navMeshAgent.remainingDistance} speed:{_navMeshAgent.speed} " +
+                  $"vel:{_navMeshAgent.velocity.magnitude} desired:{_navMeshAgent.desiredVelocity.magnitude}");
+
         if (_navMeshAgent.pathPending)
         {
             Debug.Log($"{gameObject.name} PathPending.");
             return;
         }
-
-        if (_navMeshAgent.hasPath &&
-            _navMeshAgent.remainingDistance > _navMeshAgent.stoppingDistance + 0.1f)
+        Transform wp = WaypointNetwork.WaypointPositions[_currentWaypointIndex];
+        if (wp == null)
         {
-            Debug.Log($"{gameObject.name} _navMeshAgent.remainingDistance: {_navMeshAgent.remainingDistance}. no need to find new path.");
+            Debug.LogError($"{gameObject.name} Waypoint is null!");
             return;
         }
 
-        // No path yet means we're starting, so head to the current waypoint without
-        // advancing. That way we don't skip waypoint 0. Otherwise, we've arrived: advance.
-        if (_navMeshAgent.hasPath)
+        // Real distance to waypoint, _navMeshAgent.remainingDistance is 0 while calculating waypoint.
+        Vector3 toWaypoint = wp.position - transform.position;
+        toWaypoint.y = 0;
+        float threshold = _navMeshAgent.stoppingDistance + 0.5f;
+        Debug.Log($"{gameObject.name} ft{Time.frameCount} toWaypoint.sqrMagnitude {toWaypoint.sqrMagnitude} threshold * threshold: {threshold * threshold} ");
+        if (toWaypoint.sqrMagnitude  < threshold * threshold)
         {
-            Debug.Log($"{gameObject.name} Has path and reached waypoint. Advance.");
+            Debug.Log($"{gameObject.name} reached waypoint. Advance.");
             _currentWaypointIndex = (_currentWaypointIndex + 1) % WaypointNetwork.WaypointPositions.Length;
+            SetDestinationToCurrentWaypoint();
         }
-
-        SetDestinationToCurrentWaypoint();
+        else if (_navMeshAgent.pathStatus == NavMeshPathStatus.PathInvalid)
+        {
+            Debug.LogWarning($"{gameObject.name} path invalid, requesting new waypoint {_currentWaypointIndex}.");
+            SetDestinationToCurrentWaypoint();
+        }
     }
 
     private void SetDestinationToCurrentWaypoint()
@@ -244,11 +265,11 @@ public class WaypointPatrolU : GhostAgentBase
 
         if (!SetDestinationOnNavMesh(wp.position))
         {
-            Debug.LogError($"{gameObject.name}: waypoint {_currentWaypointIndex} at {wp.position} is not within {NavMeshSampleRadius}m of the NavMesh.");
+            Debug.LogError($"{gameObject.name} frame {Time.frameCount}: waypoint {_currentWaypointIndex} at {wp.position} is not within {NavMeshSampleRadius}m of the NavMesh.");
         }
         else
         {
-            Debug.Log($"{gameObject.name} New destination: waypoint {_currentWaypointIndex} at {wp.position} real distance to wp: {Vector3.Distance(gameObject.transform.position, wp.position)} Remaining distance {_navMeshAgent.remainingDistance}");
+            Debug.Log($"{gameObject.name} f: {Time.frameCount} New dest: wp[{_currentWaypointIndex}] at {wp.position} real dist: {Vector3.Distance(gameObject.transform.position, wp.position)} agent.remain: {_navMeshAgent.remainingDistance} pathpending: {_navMeshAgent.pathPending} agent dest: {_navMeshAgent.destination} hasPath: {_navMeshAgent.hasPath}");
         }
     }
 

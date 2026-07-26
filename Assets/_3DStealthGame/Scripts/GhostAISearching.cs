@@ -1,6 +1,5 @@
 #pragma warning disable IDE0056
-using Assets._3DStealthGame.Scripts.Enums;
-
+using _3DStealthGame.Scripts.Constants;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -168,7 +167,11 @@ public class GhostAISearching : GhostAgentBase
             }
 
             _isInvestigating = true;
-            SetIndicatorText(detectedByVision ? AwarenessIndicator.SpottedPlayer : AwarenessIndicator.HeardSomething);
+            if (detectedByVision)
+                SetIndicatorSymbol(AwarenessIndicator.SpottedPlayer);
+            else 
+                SetIndicatorSymbol(AwarenessIndicator.HeardSomething);
+            
             return;
         }
 
@@ -188,14 +191,14 @@ public class GhostAISearching : GhostAgentBase
         if (_isInvestigating && _navMeshAgent.hasPath && _navMeshAgent.remainingDistance > _navMeshAgent.stoppingDistance)
         {
             _navMeshAgent.speed = playerFoundSpeed;
-            SetIndicatorText(AwarenessIndicator.InvestigatingLastKnown);
+            SetIndicatorSymbol(AwarenessIndicator.InvestigatingLastKnown);
             return;
         }
 
         _isInvestigating = false;
         _currentTargetPlayer = null;
         _navMeshAgent.speed = defaultSpeed;
-        SetIndicatorText(AwarenessIndicator.SearchingForPlayers);
+        SetIndicatorSymbol(AwarenessIndicator.SearchingForPlayers);
 
         // If a new patrol destination is needed, start look around logic which
         // will also select a new target.
@@ -228,7 +231,7 @@ public class GhostAISearching : GhostAgentBase
         _navMeshAgent.speed = defaultSpeed;
         SetDestinationOnNavMesh(throwerPosition);
         _isInvestigating = true;
-        SetIndicatorText(AwarenessIndicator.HeardSomething);
+        SetIndicatorSymbol(AwarenessIndicator.HeardSomething);
     }
 
     // ==============================
@@ -238,33 +241,6 @@ public class GhostAISearching : GhostAgentBase
     private bool IsValidTargetPlayer(VRCPlayerApi playerCandidate)
     {
         return playerCandidate != null && playerCandidate.IsValid();
-    }
-
-    // Sets the indicator text based on logical AI awareness state instead of raw strings.
-    private void SetIndicatorText(AwarenessIndicator awarenessIndicator)
-    {
-        switch (awarenessIndicator)
-        {
-            case AwarenessIndicator.SearchingForPlayers:
-                SetIndicatorSymbol("?");
-                break;
-
-            case AwarenessIndicator.HeardSomething:
-                SetIndicatorSymbol("~");
-                break;
-
-            case AwarenessIndicator.SpottedPlayer:
-                SetIndicatorSymbol("!");
-                break;
-
-            case AwarenessIndicator.InvestigatingLastKnown:
-                SetIndicatorSymbol(".");
-                break;
-
-            default:
-                Debug.LogError($"Unknown AwarenessIndicator: {awarenessIndicator}");
-                break;
-        }
     }
 
     private void RotateTowardsSteeringTargetWhenCloseToArrival()
@@ -325,7 +301,7 @@ public class GhostAISearching : GhostAgentBase
         _idleSweepCompleted = false;
         _idlePausingAtEndpoint = false;
 
-        SetIndicatorText(AwarenessIndicator.SearchingForPlayers);
+        SetIndicatorSymbol(AwarenessIndicator.SearchingForPlayers);
     }
 
 
