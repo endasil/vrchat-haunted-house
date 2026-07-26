@@ -191,7 +191,7 @@ GameObject:
   - component: {fileID: 6789012345678901234}
   - component: {fileID: 1728358856713280733}
   m_Layer: 0
-  m_Name: EyeGhost
+  m_Name: SeekerGhost
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

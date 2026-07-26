@@ -60,7 +60,7 @@ MonoBehaviour:
     - Name: <UserType>k__BackingField
       Entry: 7
       Data: 3|System.RuntimeType, mscorlib
-    - Name:
+    - Name: 
       Entry: 1
       Data: SeekerGhost, Assembly-CSharp
     - Name: 
