@@ -7355,7 +7355,7 @@ PrefabInstance:
     - target: {fileID: 2748437014591206475, guid: 1c8e9a53b17007c42ac721810158aa49,
         type: 3}
       propertyPath: m_Name
-      value: EyeGhost (1)
+      value: SeekerGhost (1)
       objectReference: {fileID: 0}
     - target: {fileID: 3301040605965128301, guid: 1c8e9a53b17007c42ac721810158aa49,
         type: 3}
@@ -20942,7 +20942,7 @@ PrefabInstance:
     - target: {fileID: 2748437014591206475, guid: 1c8e9a53b17007c42ac721810158aa49,
         type: 3}
       propertyPath: m_Name
-      value: EyeGhost
+      value: SeekerGhost
       objectReference: {fileID: 0}
     - target: {fileID: 2748437014591206475, guid: 1c8e9a53b17007c42ac721810158aa49,
         type: 3}
