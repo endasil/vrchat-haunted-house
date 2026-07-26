@@ -32,7 +32,7 @@ Concrete resettables: `PlayerInventory`, `PlayerUI`, `DoorU`, `Pill`.
 
 `GhostAgentBase` holds what the ghosts share: owner-only `NavMeshAgent` handling (with an `OnBecameAgentOwner` hook for ownership handoffs), player scanning (`FindClosestVisiblePlayer` = distance + vision cone + line-of-sight raycast; `FindClosestPlayerWithin` = plain radius for hearing), `SetDestinationOnNavMesh` (snaps points onto the mesh first), turn helpers, and the indicator text. It is never attached directly, so it has no UdonSharpProgramAsset (same as `Resettable`).
 
-- **`GhostAISearching`** — the seeker. Patrols to random NavMesh positions, chases when a player is seen or heard, investigates the last known position after losing them, then resumes patrol with an idle look-around sweep at each stop. Receives `[NetworkCallable] OnSnowballHit(Vector3)` from `Snowball` (sent to the ghost's owner) and investigates the thrower's position.
+- **`SeekerGhost`** — the seeker. Patrols to random NavMesh positions, chases when a player is seen or heard, investigates the last known position after losing them, then resumes patrol with an idle look-around sweep at each stop. Receives `[NetworkCallable] OnSnowballHit(Vector3)` from `Snowball` (sent to the ghost's owner) and investigates the thrower's position.
 - **`ButlerGhost`** — the butler. Walks a fixed `WaypointNetwork` loop with a narrow forward cone (no hearing); on sight it locks on, then marches at the player; after losing sight it returns to its route. The patrol index is `[UdonSynced]`.
 - **`GargoyleU`** — marker script only (used by `ObserverU` and the editor map generator).
 

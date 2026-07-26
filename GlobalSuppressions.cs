@@ -5,4 +5,4 @@
 
 using System.Diagnostics.CodeAnalysis;
 
-[assembly: SuppressMessage("Style", "IDE0090:Use 'new(...)'", Justification = "<Pending>", Scope = "member", Target = "~M:GhostAISearching.IsFacingWallOnArrival(UnityEngine.Vector3)~System.Boolean")]
+[assembly: SuppressMessage("Style", "IDE0090:Use 'new(...)'", Justification = "<Pending>", Scope = "member", Target = "~M:SeekerGhost.IsFacingWallOnArrival(UnityEngine.Vector3)~System.Boolean")]

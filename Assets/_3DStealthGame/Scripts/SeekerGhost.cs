@@ -15,7 +15,7 @@ using VRC.SDKBase;
 //
 // Shared vision/navigation/ownership plumbing lives in GhostAgentBase.
 [DisallowMultipleComponent]
-public class GhostAISearching : GhostAgentBase
+public class SeekerGhost : GhostAgentBase
 {
     // ==============================
     // Navigation & Movement Settings

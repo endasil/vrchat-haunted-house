@@ -6,7 +6,7 @@ using UnityEngine;
 public class NpcSensorVisualizer : UdonSharpBehaviour
 {
     [Header("Reference")]
-    public GhostAISearching npc;
+    public SeekerGhost npc;
 
     [Header("Line Renderers (assign in Inspector)")]
     public LineRenderer outlineRenderer; // Draws the cone perimeter

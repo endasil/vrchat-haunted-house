@@ -70,7 +70,7 @@ public static class NavMeshMapGenerator
             DrawCircle(tex, px, 4, PillColorToColor(pill.PillColor));
         }
 
-        var ghosts = Object.FindObjectsByType<GhostAISearching>(FindObjectsSortMode.None);
+        var ghosts = Object.FindObjectsByType<SeekerGhost>(FindObjectsSortMode.None);
         foreach (var ghost in ghosts)
         {
             Vector2Int px = ToPixel(ghost.transform.position, minX, minZ, worldW, worldH, texW, texH);

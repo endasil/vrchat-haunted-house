@@ -60,9 +60,9 @@ MonoBehaviour:
     - Name: <UserType>k__BackingField
       Entry: 7
       Data: 3|System.RuntimeType, mscorlib
-    - Name: 
+    - Name:
       Entry: 1
-      Data: GhostAISearching, Assembly-CSharp
+      Data: SeekerGhost, Assembly-CSharp
     - Name: 
       Entry: 8
       Data: 

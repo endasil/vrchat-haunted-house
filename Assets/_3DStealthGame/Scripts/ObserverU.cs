@@ -34,7 +34,7 @@ public class ObserverU : UdonSharpBehaviour
         {
             if (t.GetComponent<ButlerGhost>() != null)
                 _ghostType = GameEndingU.GHOST_BUTLER;
-            else if (t.GetComponent<GhostAISearching>() != null)
+            else if (t.GetComponent<SeekerGhost>() != null)
                 _ghostType = GameEndingU.GHOST_SEEKER;
             else if (t.GetComponent<GargoyleU>() != null)
                 _ghostType = GameEndingU.GHOST_GARGOYLE;

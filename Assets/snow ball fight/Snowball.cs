@@ -40,7 +40,7 @@ public class Snowball : SmartObjectSyncListener
     private int _lastHandledImpactEventId = 0;
 
     [Header("Ghost Interaction")]
-    public GhostAISearching ghostAI;
+    public SeekerGhost ghostAI;
 
     private bool _hasImpacted = false;
     private VRCPickup _vrcPickup;
@@ -203,7 +203,7 @@ public class Snowball : SmartObjectSyncListener
     {
         VRCPlayerApi thrower = Networking.GetOwner(gameObject);
         if (thrower == null || !thrower.IsValid()) return;
-        ghostAI.SendCustomNetworkEvent(NetworkEventTarget.Owner, nameof(GhostAISearching.OnSnowballHit), thrower.GetPosition());
+        ghostAI.SendCustomNetworkEvent(NetworkEventTarget.Owner, nameof(SeekerGhost.OnSnowballHit), thrower.GetPosition());
     }
 
     public void CreateSnowballParticles()
