@@ -19,7 +19,7 @@ public class NpcSensorVisualizer : UdonSharpBehaviour
     {
         if (npc == null) return;
 
-        float halfAngle = npc.sideVisionAngle;
+        float halfAngle = npc.visionHalfAngle;
         float length = npc.visionLength;
         Vector3 origin = npc.transform.position + Vector3.up * coneHeight;
         float forwardAngle = npc.transform.eulerAngles.y;

@@ -12153,7 +12153,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5838504322276388236, guid: 1c8e9a53b17007c42ac721810158aa49,
         type: 3}
-      propertyPath: sideVisionAngle
+      propertyPath: visionHalfAngle
       value: 40
       objectReference: {fileID: 0}
     - target: {fileID: 5838504322276388236, guid: 1c8e9a53b17007c42ac721810158aa49,

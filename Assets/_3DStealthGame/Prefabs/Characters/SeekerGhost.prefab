@@ -441,7 +441,7 @@ MonoBehaviour:
   playerFoundSpeed: 1.7
   maxWalkDistance: 10
   minWalkDistance: 2
-  sideVisionAngle: 45
+  visionHalfAngle: 45
   visionLength: 10
   hearingRange: 3
   retargetInterval: 0.2

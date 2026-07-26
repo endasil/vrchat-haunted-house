@@ -1003,7 +1003,7 @@ MonoBehaviour:
   maxWalkDistance: 3
   minWalkDistance: 3
   aiBehavior: 0
-  sideVisionAngle: 45
+  visionHalfAngle: 45
   visionLength: 10
   hearingRange: 3
   retargetInterval: 0.2
@@ -21162,7 +21162,7 @@ MonoBehaviour:
   maxWalkDistance: 20
   minWalkDistance: 5
   aiBehavior: 0
-  sideVisionAngle: 45
+  visionHalfAngle: 45
   visionLength: 10
   hearingRange: 3
   retargetInterval: 0.2

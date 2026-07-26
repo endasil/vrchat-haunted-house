@@ -49,7 +49,7 @@ public class SeekerGhost : GhostAgentBase
     // Vision Settings
     // ==============================
 
-    public float sideVisionAngle = 45f; // half-angle vision cone
+    public float visionHalfAngle = 45f; // half-angle vision cone
     public float visionLength = 10f;    // Maximum sight distance
 
     // ==============================
@@ -264,7 +264,7 @@ public class SeekerGhost : GhostAgentBase
     // Attempts to detect the best player via vision first, then hearing.
     private bool TryDetectBestPlayer(out VRCPlayerApi bestDetectedPlayer, out bool bestDetectedByVision)
     {
-        bestDetectedPlayer = FindClosestVisiblePlayer(sideVisionAngle, visionLength);
+        bestDetectedPlayer = FindClosestVisiblePlayer(visionHalfAngle, visionLength);
         if (bestDetectedPlayer != null)
         {
             bestDetectedByVision = true;
