@@ -14,11 +14,18 @@ namespace _3DStealthGame.Scripts.Debugging
 
         [Header("Line Renderers (assign in Inspector)")]
         public LineRenderer outlineRenderer; // Draws the cone perimeter
-    
+        public LineRenderer hearingRenderer; // Draws the hearing radius circle (seeker only)
+
         [Header("Cone Settings")]
         public int coneSegments = 40;
         public float coneHeight = 1f;
         public float lineWidth = 0.02f;
+
+        [Header("Hearing Settings")]
+        public int hearingSegments = 48;
+
+        // Set when npc is a SeekerGhost; the base ghost has no hearing.
+        private SeekerGhost seeker;
 
         void Start()
         {
@@ -33,6 +40,16 @@ namespace _3DStealthGame.Scripts.Debugging
             if (npc == null)
             {
                 npc = GetComponent<GhostAgentBase>();
+            }
+
+            if (npc != null)
+            {
+                seeker = npc.GetComponent<SeekerGhost>();
+            }
+            if (hearingRenderer != null)
+            {
+                hearingRenderer.widthMultiplier = lineWidth;
+                hearingRenderer.gameObject.SetActive(seeker != null);
             }
         }
 
@@ -71,6 +88,17 @@ namespace _3DStealthGame.Scripts.Debugging
 
             outlineRenderer.SetPosition(outlineCount - 1, origin);
 
+            if (seeker != null && hearingRenderer != null)
+            {
+                float radius = seeker.hearingRange;
+                int count = hearingSegments + 1;
+                hearingRenderer.positionCount = count;
+                for (int i = 0; i < count; i++)
+                {
+                    float angle = 360f * (float)i / hearingSegments;
+                    hearingRenderer.SetPosition(i, origin + AngleToDir(angle) * radius);
+                }
+            }
         }
 
         private Vector3 AngleToDir(float angleDeg)
