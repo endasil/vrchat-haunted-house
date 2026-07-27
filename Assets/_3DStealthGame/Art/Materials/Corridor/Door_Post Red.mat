@@ -8,23 +8,22 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Door_Post Red
-  m_Shader: {fileID: 4800000, guid: 61451c522ea10e1438000638d95c5111, type: 3}
+  m_Shader: {fileID: 211, guid: 0000000000000000f000000000000000, type: 0}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
-  m_ValidKeywords:
-  - _ENABLE_GEOMETRIC_SPECULAR_AA
+  m_ValidKeywords: []
   m_InvalidKeywords:
-  - _METALLICGLOSSMAP
+  - _ENABLE_GEOMETRIC_SPECULAR_AA
   - _METALLICSPECGLOSSMAP
-  - _NORMALMAP
   - _OCCLUSIONMAP
-  m_LightmapFlags: 4
+  m_LightmapFlags: 0
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
   m_CustomRenderQueue: -1
   stringTagMap: {}
   disabledShaderPasses:
   - MOTIONVECTORS
+  - GRABPASS
   m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
@@ -93,20 +92,32 @@ Material:
     - _Bicubic: 0
     - _Blend: 0
     - _BlendModePreserveSpecular: 1
+    - _BlendOp: 0
     - _BumpScale: 1
+    - _CameraFadingEnabled: 0
+    - _CameraFarFadeDistance: 2
+    - _CameraNearFadeDistance: 1
     - _ClearCoatMask: 0
     - _ClearCoatSmoothness: 0
+    - _ColorMode: 0
     - _Cull: 0
     - _Cutoff: 0.5
     - _DetailAlbedoMapScale: 1
     - _DetailNormalMapScale: 1
+    - _DistortionBlend: 0.5
+    - _DistortionEnabled: 0
+    - _DistortionStrength: 1
+    - _DistortionStrengthScaled: 0
     - _DstBlend: 0
     - _DstBlendAlpha: 0
+    - _EmissionEnabled: 0
     - _EnableGeometricSpecularAA: 1
     - _EnvironmentReflections: 1
+    - _FlipbookMode: 0
     - _GlossMapScale: 1
     - _Glossiness: 0.5
     - _GlossyReflections: 1
+    - _LightingEnabled: 0
     - _LightmapType: 0
     - _Metallic: 0
     - _Mode: 0
@@ -116,6 +127,9 @@ Material:
     - _ReceiveShadows: 1
     - _Smoothness: 0.757
     - _SmoothnessTextureChannel: 0
+    - _SoftParticlesEnabled: 0
+    - _SoftParticlesFarFadeDistance: 1
+    - _SoftParticlesNearFadeDistance: 0
     - _SpecularAAScreenSpaceVariance: 0.1
     - _SpecularAAThreshold: 0.2
     - _SpecularHighlights: 1
@@ -127,8 +141,11 @@ Material:
     - _ZWrite: 1
     m_Colors:
     - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
+    - _CameraFadeParams: {r: 0, g: Infinity, b: 0, a: 0}
     - _Color: {r: 1, g: 0.047169685, b: 0.047169685, a: 1}
+    - _ColorAddSubDiff: {r: 0, g: 0, b: 0, a: 0}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
+    - _SoftParticleFadeParams: {r: 0, g: 0, b: 0, a: 0}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
   m_BuildTextureStacks: []
 --- !u!114 &6908999637804455752
