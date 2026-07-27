@@ -26,6 +26,11 @@ public class GhostAgentBase : UdonSharpBehaviour
     // Looked up in children if not assigned in the inspector. Null is fine.
     public TextMeshPro Indicator;
 
+    // Forward vision cone: half-angle in degrees (so 45 = a 90° cone) and how far
+    // the ghost can see. Each ghost sets its own values in the inspector.
+    public float visionHalfAngle = 45f;
+    public float visionLength = 10f;
+
     protected NavMeshAgent _navMeshAgent;
 
     // Preallocated for VRChat's max instance size; can't use lists in U#.

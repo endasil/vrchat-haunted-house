@@ -45,12 +45,7 @@ public class SeekerGhost : GhostAgentBase
     public float maxWalkDistance = 20f;
     public float minWalkDistance = 5f;
 
-    // ==============================
-    // Vision Settings
-    // ==============================
-
-    public float visionHalfAngle = 45f; // half-angle vision cone
-    public float visionLength = 10f;    // Maximum sight distance
+    // Vision settings (visionHalfAngle, visionLength) live in GhostAgentBase.
 
     // ==============================
     // Hearing Settings

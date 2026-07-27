@@ -33,12 +33,9 @@ public class ButlerGhost : GhostAgentBase
     // Gaze / chase tuning
     // ==============================
 
-    // Half-angle of the forward vision cone (so 25 = a 50° cone). Deliberately
-    // narrower than the eye ghost's 45° half-angle so you can slip behind it.
-    public float visionHalfAngle = 25f;
-
-    // How far the butler can see.
-    public float visionLength = 8f;
+    // Vision settings (visionHalfAngle, visionLength) live in GhostAgentBase.
+    // The butler's cone is deliberately narrow so you can slip behind it; its
+    // values are set on the prefab.
 
     public float chaseSpeed = 2.5f;
 
