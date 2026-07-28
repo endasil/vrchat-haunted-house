@@ -17,7 +17,7 @@ public class ExitTriggerU : UdonSharpBehaviour
     void Start()
     {
         if (gameEnding == null)
-            Debug.LogError("ExitTriggerU: gameEnding reference is not set in the inspector");
+            Debug.LogError($"ExitTriggerU ({gameObject.name}): gameEnding reference is not set in the inspector");
     }
 
     public override void OnPlayerTriggerEnter(VRCPlayerApi player)

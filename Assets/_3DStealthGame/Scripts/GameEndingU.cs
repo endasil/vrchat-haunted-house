@@ -117,7 +117,7 @@ public class GameEndingU : UdonSharpBehaviour
             if (go != null) resetManager = go.GetComponent<ResetManager>();
         }
         if (resetManager == null)
-            Debug.LogError("GameEndingU: could not find a ResetManager in the scene, so doors and pills won't reset after a catch.");
+            Debug.LogError($"GameEndingU ({gameObject.name}): could not find a ResetManager in the scene, so doors and pills won't reset after a catch.");
     }
 
     public void TeleportPlayerToSpawn()
@@ -138,7 +138,7 @@ public class GameEndingU : UdonSharpBehaviour
 
         if (_localPlayer == null)
         {
-            Debug.LogError("GameEndingU: _localPlayer is null, Start ran before the local player existed.");
+            Debug.LogError($"GameEndingU ({gameObject.name}): _localPlayer is null, Start ran before the local player existed.");
             return;
         }
 
@@ -149,7 +149,7 @@ public class GameEndingU : UdonSharpBehaviour
         string myName = _localPlayer.displayName;
 
         if (caughtMessageText == null)
-            Debug.LogError("GameEndingU: caughtMessageText is not wired up");
+            Debug.LogError($"GameEndingU ({gameObject.name}): caughtMessageText is not wired up");
         else
             caughtMessageText.text = BuildDeathMessage(ghostType, messageIndex, myName);
 
@@ -165,7 +165,7 @@ public class GameEndingU : UdonSharpBehaviour
 
         if (deathFeedText == null)
         {
-            Debug.LogError("GameEndingU: deathFeedText is not wired up");
+            Debug.LogError($"GameEndingU ({gameObject.name}): deathFeedText is not wired up");
             return;
         }
 
@@ -198,13 +198,13 @@ public class GameEndingU : UdonSharpBehaviour
         string[] messages = GetMessagesFor(ghostType);
         if (messages == null)
         {
-            Debug.LogError($"GameEndingU: unknown ghost type {ghostType}, using fallback death message");
+            Debug.LogError($"GameEndingU ({gameObject.name}): unknown ghost type {ghostType}, using fallback death message");
             return playerName + " was claimed by something nameless in the dark.";
         }
 
         if (messageIndex < 0 || messageIndex >= messages.Length)
         {
-            Debug.LogError($"GameEndingU: death message index {messageIndex} out of range, using 0");
+            Debug.LogError($"GameEndingU ({gameObject.name}): death message index {messageIndex} out of range, using 0");
             messageIndex = 0;
         }
         return messages[messageIndex].Replace("[Player]", playerName);
@@ -226,7 +226,7 @@ public class GameEndingU : UdonSharpBehaviour
     {
         if (canvasGroup == null)
         {
-            Debug.LogError("CanvasGroup is null in EndLevel");
+            Debug.LogError($"GameEndingU ({gameObject.name}): CanvasGroup is null in EndLevel");
             return;
         }
 

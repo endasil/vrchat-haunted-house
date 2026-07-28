@@ -54,13 +54,13 @@ public class PlayerUI : Resettable
         int typeCount = (int)PillColor.LastEnum;
         if (pillIcons == null || pillIcons.Length != typeCount)
         {
-            Debug.LogError($"PlayerUI: pillIcons must have {typeCount} entries (one per PillColor), found {(pillIcons == null ? 0 : pillIcons.Length)}.");
+            Debug.LogError($"PlayerUI ({gameObject.name}): pillIcons must have {typeCount} entries (one per PillColor), found {(pillIcons == null ? 0 : pillIcons.Length)}.");
         }
         else
         {
             for (int i = 0; i < typeCount; i++)
                 if (pillIcons[i] == null)
-                    Debug.LogError($"PlayerUI: pill icon for {(PillColor)i} is not assigned in the inspector.");
+                    Debug.LogError($"PlayerUI ({gameObject.name}): pill icon for {(PillColor)i} is not assigned in the inspector.");
         }
 
         
@@ -75,7 +75,7 @@ public class PlayerUI : Resettable
 
         playerInventory = playerObjects[0].GetComponent<PlayerInventory>();
         if (playerInventory == null)
-            Debug.LogError("PlayerUI: local player object has no PlayerInventory component.");
+            Debug.LogError($"PlayerUI ({gameObject.name}): local player object has no PlayerInventory component.");
     }
 
     private void LateUpdate()
@@ -195,7 +195,7 @@ public class PlayerUI : Resettable
     {
         if (panel == null)
         {
-            Debug.LogError("PlayerUI: caught/end screen panel is not wired up");
+            Debug.LogError($"PlayerUI ({gameObject.name}): caught/end screen panel is not wired up");
             return;
         }
         panel.localScale = new Vector3(scale, scale, scale);

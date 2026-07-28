@@ -20,13 +20,13 @@ public class ObserverU : UdonSharpBehaviour
         var gameManagerObj = GameObject.Find("GameManager");
         if (gameManagerObj == null)
         {
-            Debug.LogError("ObserverU: could not find a GameManager GameObject in the scene");
+            Debug.LogError($"ObserverU ({gameObject.name}): could not find a GameManager GameObject in the scene");
             return;
         }
 
         _gameEnding = gameManagerObj.GetComponent<GameEndingU>();
         if (_gameEnding == null)
-            Debug.LogError("ObserverU: GameManager has no GameEndingU component");
+            Debug.LogError($"ObserverU ({gameObject.name}): GameManager has no GameEndingU component");
 
         // Walk up the hierarchy and take the NEAREST ghost AI script.
         Transform t = transform;

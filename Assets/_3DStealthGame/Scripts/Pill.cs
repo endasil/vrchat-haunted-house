@@ -28,7 +28,7 @@ public class Pill : Resettable
         }
         else
         {
-            Debug.LogError("Unable to find PlayerInventory script on player object");
+            Debug.LogError($"{gameObject.name}: Unable to find PlayerInventory script on player object");
         }
     }
 

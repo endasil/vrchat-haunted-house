@@ -143,7 +143,7 @@ public class SeekerGhost : GhostAgentBase
                     bool pathSet = SetDestinationOnNavMesh(playerPosition);
                     if (!pathSet)
                     {
-                        Debug.LogError($"[GhostAI] SetDestination failed: could not snap target onto NavMesh. agentPos={transform.position}");
+                        Debug.LogError($"{gameObject.name} SetDestination failed to find a path to the player with samplePosition. player pos: {playerPosition} from agent at: agentPos={transform.position}");
                     }
                 }
             }
@@ -281,7 +281,7 @@ public class SeekerGhost : GhostAgentBase
         _navMeshAgent.speed = defaultSpeed;
         if (!TryGetRandomNavMeshPosition(out Vector3 nextDestination))
         {
-            Debug.Log("StartIdleLookAround: no valid NavMesh position found, skipping sweep, will retry next frame.");
+            Debug.Log($"{gameObject.name} StartIdleLookAround: no valid NavMesh position found, skipping sweep, will retry next frame.");
             return;
         }
 

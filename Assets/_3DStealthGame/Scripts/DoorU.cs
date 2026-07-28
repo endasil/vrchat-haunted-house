@@ -38,19 +38,19 @@ namespace Assets._3DStealthGame.Scripts
             {
                 if (playerInventory.HasPill(PillColor))
                 {
-                    Debug.Log($"Pill {PillColor} used");
+                    Debug.Log($"{gameObject.name}: Pill {PillColor} used");
                     _timer = 0f;
                     _opening = true;
                 }
                 else
                 {
-                    Debug.Log($"No {PillColor} pill in player inventory.");
+                    Debug.Log($"{gameObject.name}: No {PillColor} pill in player inventory.");
                     return;
                 }
             }
             else
             {
-                Debug.LogError("Unable to find PlayerInventory script on player object");
+                Debug.LogError($"{gameObject.name}: Unable to find PlayerInventory script on player object");
             }
         }
 

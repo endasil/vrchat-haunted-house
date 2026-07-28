@@ -29,7 +29,7 @@ namespace Assets._3DStealthGame.Scripts
                 if (go != null) resetManager = go.GetComponent<ResetManager>();
                 else
                 {
-                    Debug.LogError("Failed to find ResetManager.");
+                    Debug.LogError($"Resettable ({gameObject.name}): Failed to find ResetManager.");
                 }
             }
             if (resetManager == null)
