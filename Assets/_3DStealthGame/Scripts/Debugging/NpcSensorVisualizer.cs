@@ -5,7 +5,6 @@ using UnityEngine.AI;
 
 namespace _3DStealthGame.Scripts.Debugging
 {
-    [RequireComponent(typeof(LineRenderer))]
     [UdonBehaviourSyncMode(BehaviourSyncMode.None)]
     public class NpcSensorVisualizer : UdonSharpBehaviour
     {
