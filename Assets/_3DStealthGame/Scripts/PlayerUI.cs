@@ -36,6 +36,13 @@ public class PlayerUI : Resettable
     // sized or shaped, just set both in the inspector.
     public float desktopVerticalFraction = 0.7f;
     public float desktopHorizontalFraction = -0.7f;
+
+    // The escape-run timer text. On desktop it's pinned to a fixed screen spot
+    // the same way the pills are, because only a small strip of the canvas is on
+    // screen. 0 is the middle, +-1 is the edge.
+    public RectTransform escapeTimerText;
+    public float escapeTimerVerticalFraction = 0.85f;
+    public float escapeTimerHorizontalFraction = 0f;
     private VRCPlayerApi localPlayer;
     private Collider snowballCollider;
 
@@ -107,6 +114,7 @@ public class PlayerUI : Resettable
             if (!localPlayer.IsUserInVR())
             {
                 PinPillsToCorner(headData);
+                PinEscapeTimer(headData);
                 FitScreenPanels();
             }
         }
@@ -153,6 +161,23 @@ public class PlayerUI : Resettable
         // of the canvas and the child order isn't something we want to depend on.
         Transform pills = pillIcons[0].transform.parent;
         pills.position = headData.position + headData.rotation * new Vector3(x, y, z);
+    }
+
+    // Pins the escape timer to a fixed screen spot on desktop, same trick as the
+    // pills. See the long note in PinPillsToCorner.
+    private void PinEscapeTimer(VRCPlayerApi.TrackingData headData)
+    {
+        if (escapeTimerText == null) return;
+
+        float fov = VRCCameraSettings.ScreenCamera.FieldOfView;
+        float aspect = VRCCameraSettings.ScreenCamera.Aspect;
+        float z = UIOffset.z;
+        float tanV = Mathf.Tan(0.5f * fov * Mathf.Deg2Rad);
+
+        float x = escapeTimerHorizontalFraction * z * tanV * aspect;
+        float y = escapeTimerVerticalFraction * z * tanV;
+
+        escapeTimerText.position = headData.position + headData.rotation * new Vector3(x, y, z);
     }
 
     // Sizes the caught/end panels to fill the camera's view on desktop. Same maths

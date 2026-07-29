@@ -13,11 +13,14 @@ using VRC.Udon;
 public class ExitTriggerU : UdonSharpBehaviour
 {
     public GameEndingU gameEnding;
+    public EscapeTimer escapeTimer;
 
     void Start()
     {
         if (gameEnding == null)
             Debug.LogError($"ExitTriggerU ({gameObject.name}): gameEnding reference is not set in the inspector");
+        if (escapeTimer == null)
+            Debug.LogError($"ExitTriggerU ({gameObject.name}): escapeTimer reference is not set in the inspector");
     }
 
     public override void OnPlayerTriggerEnter(VRCPlayerApi player)
@@ -26,5 +29,6 @@ public class ExitTriggerU : UdonSharpBehaviour
             return;
 
         gameEnding.ReachedExit();
+        escapeTimer.Stop();
     }
 }
