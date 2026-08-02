@@ -43,7 +43,8 @@
       "Bash(awk '{print $1}')",
       "Bash(cp C:/dev/unity/vrchat/vrchat-haunted-house/Assets/Scenes/haunted.unity C:/dev/unity/vrchat/vrchat-haunted-house/Assets/Scenes/haunted.unity.bak)",
       "Bash(sed -i '2204,2307d; 12428,12431d; 24833d; 24913,25016d' C:/dev/unity/vrchat/vrchat-haunted-house/Assets/Scenes/haunted.unity)",
-      "Bash(python -c \"import uuid; print\\(uuid.uuid4\\(\\).hex\\); print\\(uuid.uuid4\\(\\).hex\\)\")"
+      "Bash(python -c \"import uuid; print\\(uuid.uuid4\\(\\).hex\\); print\\(uuid.uuid4\\(\\).hex\\)\")",
+      "Bash(echo \"grep exit=$?\")"
     ]
   }
 }

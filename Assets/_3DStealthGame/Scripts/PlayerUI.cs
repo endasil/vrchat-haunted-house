@@ -43,6 +43,12 @@ public class PlayerUI : Resettable
     public RectTransform escapeTimerText;
     public float escapeTimerVerticalFraction = 0.85f;
     public float escapeTimerHorizontalFraction = 0f;
+
+    // The FPS counter text, pinned to a fixed screen spot on desktop the same
+    // way the escape timer is.
+    public RectTransform fpsText;
+    public float fpsVerticalFraction = 0.85f;
+    public float fpsHorizontalFraction = 0.85f;
     private VRCPlayerApi localPlayer;
     private Collider snowballCollider;
 
@@ -115,6 +121,7 @@ public class PlayerUI : Resettable
             {
                 PinPillsToCorner(headData);
                 PinEscapeTimer(headData);
+                PinFps(headData);
                 FitScreenPanels();
             }
         }
@@ -178,6 +185,23 @@ public class PlayerUI : Resettable
         float y = escapeTimerVerticalFraction * z * tanV;
 
         escapeTimerText.position = headData.position + headData.rotation * new Vector3(x, y, z);
+    }
+
+    // Pins the FPS counter to a fixed screen spot on desktop, same trick as the
+    // pills. See the long note in PinPillsToCorner.
+    private void PinFps(VRCPlayerApi.TrackingData headData)
+    {
+        if (fpsText == null) return;
+
+        float fov = VRCCameraSettings.ScreenCamera.FieldOfView;
+        float aspect = VRCCameraSettings.ScreenCamera.Aspect;
+        float z = UIOffset.z;
+        float tanV = Mathf.Tan(0.5f * fov * Mathf.Deg2Rad);
+
+        float x = fpsHorizontalFraction * z * tanV * aspect;
+        float y = fpsVerticalFraction * z * tanV;
+
+        fpsText.position = headData.position + headData.rotation * new Vector3(x, y, z);
     }
 
     // Sizes the caught/end panels to fill the camera's view on desktop. Same maths
