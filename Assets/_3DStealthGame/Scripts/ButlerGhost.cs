@@ -214,12 +214,6 @@ public class ButlerGhost : GhostAgentBase
     // is computing, skip while still travelling, otherwise advance and head on.
     private void AdvanceWaypointIfArrived()
     {
-        Debug.Log($"{gameObject.name} AdvanceWaypointIfArrived: frameTime: {Time.frameCount} " +
-                  $"stopped:{_navMeshAgent.isStopped} status: {_navMeshAgent.pathStatus} " +
-                  $"hasPath:{_navMeshAgent.hasPath} pending:{_navMeshAgent.pathPending} " +
-                  $"remaining:{_navMeshAgent.remainingDistance} speed:{_navMeshAgent.speed} " +
-                  $"vel:{_navMeshAgent.velocity.magnitude} desired:{_navMeshAgent.desiredVelocity.magnitude}");
-
         if (_navMeshAgent.pathPending)
         {
             Debug.Log($"{gameObject.name} PathPending.");
@@ -236,10 +230,10 @@ public class ButlerGhost : GhostAgentBase
         Vector3 toWaypoint = wp.position - transform.position;
         toWaypoint.y = 0;
         float threshold = _navMeshAgent.stoppingDistance + 0.5f;
-        Debug.Log($"{gameObject.name} ft{Time.frameCount} toWaypoint.sqrMagnitude {toWaypoint.sqrMagnitude} threshold * threshold: {threshold * threshold} ");
+        
         if (toWaypoint.sqrMagnitude  < threshold * threshold)
         {
-            Debug.Log($"{gameObject.name} reached waypoint. Advance.");
+            Debug.Log($"{gameObject.name} reached waypoint. Advance.");    
             _currentWaypointIndex = (_currentWaypointIndex + 1) % WaypointNetwork.WaypointPositions.Length;
             SetDestinationToCurrentWaypoint();
         }
@@ -252,7 +246,6 @@ public class ButlerGhost : GhostAgentBase
 
     private void SetDestinationToCurrentWaypoint()
     {
-        Debug.Log($"{gameObject.name} SetDesitinationToCurrentWaypoint.");
         Transform wp = WaypointNetwork.WaypointPositions[_currentWaypointIndex];
         if (wp == null)
         {
@@ -263,10 +256,6 @@ public class ButlerGhost : GhostAgentBase
         if (!SetDestinationOnNavMesh(wp.position))
         {
             Debug.LogError($"{gameObject.name} frame {Time.frameCount}: waypoint {_currentWaypointIndex} at {wp.position} is not within {NavMeshSampleRadius}m of the NavMesh.");
-        }
-        else
-        {
-            Debug.Log($"{gameObject.name} f: {Time.frameCount} New dest: wp[{_currentWaypointIndex}] at {wp.position} real dist: {Vector3.Distance(gameObject.transform.position, wp.position)} agent.remain: {_navMeshAgent.remainingDistance} pathpending: {_navMeshAgent.pathPending} agent dest: {_navMeshAgent.destination} hasPath: {_navMeshAgent.hasPath}");
         }
     }
 

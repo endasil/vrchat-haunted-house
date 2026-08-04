@@ -21,9 +21,10 @@ public class PlayerUI : Resettable
     public Image[] pillIcons;
 
     // The full-screen caught/end panels on this canvas. On desktop, FitScreenPanels
-    // resizes them every frame to exactly match the camera's view, so they behave
-    // like a screen overlay at any window size or shape. In VR the values saved in
-    // the scene are used as-is (a headset's field of view never changes).
+    // sizes them to exactly match the camera's view whenever the window's shape
+    // changes, so they behave like a screen overlay at any window size or shape. In
+    // VR the values saved in the scene are used as-is (a headset's field of view
+    // never changes).
     public RectTransform caughtScreen;
     public RectTransform endScreen;
     // Where to put the HUD canvas relative to the head (x = right, y = up, z = forward, in
@@ -51,6 +52,11 @@ public class PlayerUI : Resettable
     public float fpsHorizontalFraction = 0.85f;
     private VRCPlayerApi localPlayer;
     private Collider snowballCollider;
+
+    // Field of view and aspect the caught/end panels were last sized for. -1 means
+    // they have never been sized, so the first frame always sizes them.
+    private float _lastFov = -1f;
+    private float _lastAspect = -1f;
 
     public override void Start()
     {
@@ -88,42 +94,74 @@ public class PlayerUI : Resettable
 
         playerInventory = playerObjects[0].GetComponent<PlayerInventory>();
         if (playerInventory == null)
+        {
             Debug.LogError($"PlayerUI ({gameObject.name}): local player object has no PlayerInventory component.");
+            return;
+        }
+
+        // The inventory calls back into ShowPillIcon when a pill is picked up, so
+        // the icons don't have to be polled every frame.
+        playerInventory.SetPlayerUI(this);
+        RefreshPillIcons();
+    }
+
+    // Switches on the icon for one pill color. Called by PlayerInventory.AddPill.
+    public void ShowPillIcon(PillColor pillColor)
+    {
+        Image icon = pillIcons[(int)pillColor];
+        if (icon == null)
+        {
+            Debug.LogError($"PlayerUI ({gameObject.name}): pill icon for {pillColor} is not assigned in the inspector.");
+            return;
+        }
+
+        icon.gameObject.SetActive(true);
+    }
+
+    // Matches every icon to what the inventory already holds. Only needed when the
+    // UI first hooks up to the inventory; after that AddPill keeps them in step.
+    private void RefreshPillIcons()
+    {
+        int typeCount = (int)PillColor.LastEnum;
+        for (int i = 0; i < typeCount; i++)
+        {
+            if (playerInventory.HasPill((PillColor)i))
+                ShowPillIcon((PillColor)i);
+        }
     }
 
     private void LateUpdate()
     {
-        if (playerInventory)
+        if (localPlayer == null || !localPlayer.IsValid()) return;
+
+        VRCPlayerApi.TrackingData headData = localPlayer.GetTrackingData(VRCPlayerApi.TrackingDataType.Head);
+
+        canvas.transform.position = headData.position + headData.rotation * UIOffset;
+        canvas.transform.rotation = headData.rotation;
+
+        // A headset's field of view never changes, so everything below is desktop only.
+        if (localPlayer.IsUserInVR()) return;
+
+        // Read the camera once and share it: all four helpers below need the same
+        // two numbers and the same tan.
+        float fov = VRCCameraSettings.ScreenCamera.FieldOfView;
+        float aspect = VRCCameraSettings.ScreenCamera.Aspect;
+        float tanV = Mathf.Tan(0.5f * fov * Mathf.Deg2Rad);
+
+        // Nudge the pills, timer and FPS text so they hold a fixed screen corner at
+        // any window shape. These follow the head, so they run every frame.
+        PinPillsToCorner(headData, tanV, aspect);
+        PinEscapeTimer(headData, tanV, aspect);
+        PinFps(headData, tanV, aspect);
+
+        // The panels sit dead ahead, so the canvas follow above already carries them
+        // with the head. Their size depends only on the camera's shape, and resizing
+        // them dirties the canvas, so only do it when the window shape actually moves.
+        if (Mathf.Abs(fov - _lastFov) > 0.001f || Mathf.Abs(aspect - _lastAspect) > 0.0001f)
         {
-            int typeCount = (int)PillColor.LastEnum;
-            for (int i = 0; i < typeCount; i++)
-            {
-                Image icon = pillIcons[i];
-                if (!icon) continue; 
-
-                if (playerInventory.HasPill((PillColor)i))
-                {
-                    icon.gameObject.SetActive(true);
-                }
-            }
-        }
-
-        if (localPlayer != null && localPlayer.IsValid())
-        {
-            VRCPlayerApi.TrackingData headData = localPlayer.GetTrackingData(VRCPlayerApi.TrackingDataType.Head);
-
-            canvas.transform.position = headData.position + headData.rotation * UIOffset;
-            canvas.transform.rotation = headData.rotation;
-
-            // On desktop, nudge the pills so they hold a fixed screen corner at any window
-            // shape. The other screens on the canvas are untouched.
-            if (!localPlayer.IsUserInVR())
-            {
-                PinPillsToCorner(headData);
-                PinEscapeTimer(headData);
-                PinFps(headData);
-                FitScreenPanels();
-            }
+            _lastFov = fov;
+            _lastAspect = aspect;
+            FitScreenPanels(tanV, aspect);
         }
     }
 
@@ -152,12 +190,9 @@ public class PlayerUI : Resettable
     // desktopHorizontalFraction and desktopVerticalFraction are those two screen spots. The extra
     // "* aspect" on x cancels out the aspect the camera divides back in, so the pills hold still
     // as the window stretches. Then we just park the pill container on that point directly.
-    private void PinPillsToCorner(VRCPlayerApi.TrackingData headData)
+    private void PinPillsToCorner(VRCPlayerApi.TrackingData headData, float tanV, float aspect)
     {
-        float fov = VRCCameraSettings.ScreenCamera.FieldOfView;
-        float aspect = VRCCameraSettings.ScreenCamera.Aspect;
         float z = UIOffset.z;                                    // distance out in front of the head
-        float tanV = Mathf.Tan(0.5f * fov * Mathf.Deg2Rad);   // tan of half the up-down field of view
 
         // The screen spot we want, turned back into a point in front of the head.
         float x = desktopHorizontalFraction * z * tanV * aspect;
@@ -172,14 +207,11 @@ public class PlayerUI : Resettable
 
     // Pins the escape timer to a fixed screen spot on desktop, same trick as the
     // pills. See the long note in PinPillsToCorner.
-    private void PinEscapeTimer(VRCPlayerApi.TrackingData headData)
+    private void PinEscapeTimer(VRCPlayerApi.TrackingData headData, float tanV, float aspect)
     {
         if (escapeTimerText == null) return;
 
-        float fov = VRCCameraSettings.ScreenCamera.FieldOfView;
-        float aspect = VRCCameraSettings.ScreenCamera.Aspect;
         float z = UIOffset.z;
-        float tanV = Mathf.Tan(0.5f * fov * Mathf.Deg2Rad);
 
         float x = escapeTimerHorizontalFraction * z * tanV * aspect;
         float y = escapeTimerVerticalFraction * z * tanV;
@@ -189,14 +221,11 @@ public class PlayerUI : Resettable
 
     // Pins the FPS counter to a fixed screen spot on desktop, same trick as the
     // pills. See the long note in PinPillsToCorner.
-    private void PinFps(VRCPlayerApi.TrackingData headData)
+    private void PinFps(VRCPlayerApi.TrackingData headData, float tanV, float aspect)
     {
         if (fpsText == null) return;
 
-        float fov = VRCCameraSettings.ScreenCamera.FieldOfView;
-        float aspect = VRCCameraSettings.ScreenCamera.Aspect;
         float z = UIOffset.z;
-        float tanV = Mathf.Tan(0.5f * fov * Mathf.Deg2Rad);
 
         float x = fpsHorizontalFraction * z * tanV * aspect;
         float y = fpsVerticalFraction * z * tanV;
@@ -215,12 +244,8 @@ public class PlayerUI : Resettable
     // depends on the canvas rect's height. The width is matched by widening the
     // rect (sizeDelta) rather than scaling, so the scale stays uniform and text
     // isn't stretched. Children with fractional anchors follow along automatically.
-    private void FitScreenPanels()
+    private void FitScreenPanels(float tanV, float aspect)
     {
-        float fov = VRCCameraSettings.ScreenCamera.FieldOfView;
-        float aspect = VRCCameraSettings.ScreenCamera.Aspect;
-        float tanV = Mathf.Tan(0.5f * fov * Mathf.Deg2Rad);
-
         // 5% extra so the panel's edges never peek into view.
         float worldHeight = 2f * UIOffset.z * tanV * 1.05f;
 
