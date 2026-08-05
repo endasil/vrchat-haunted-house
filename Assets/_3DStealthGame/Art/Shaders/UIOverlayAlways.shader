@@ -1,9 +1,11 @@
-// UI/Default copy that always draws on top (ZTest Always, Overlay queue).
-// Used by the caught/end full-screen panels: they live on a world-space canvas
-// 0.5m in front of the head, so with a normal UI shader anything closer to the
-// camera (walls, the ghost, debug lines) draws over them and punches holes in
-// the "screen". Vertex color carries the Image tint and CanvasGroup alpha, so
-// fading still works.
+// UI/Default copy that always draws on top of other things.
+// ZTest is set to Always, normally before a pixel is drawn the
+// pixels depth s compared with what is already in the depth buffer and
+// only draw if the test goes trough, that it is positioned closer than 
+// the other pixel. Setting it to Always means that what is drawn by this
+// shader is seen as always closest to the camera, whatever depth it is 
+// compared to what else is there.
+
 Shader "StealthGame/UIOverlayAlways"
 {
     Properties
@@ -16,7 +18,7 @@ Shader "StealthGame/UIOverlayAlways"
     {
         Tags
         {
-            "Queue" = "Overlay"
+            "Queue" = "Transparent+500" // Draw closer to the viewer than transparent mats.
             "IgnoreProjector" = "True"
             "RenderType" = "Transparent"
             "PreviewType" = "Plane"

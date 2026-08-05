@@ -5,9 +5,7 @@ using UdonSharp;
 
 using UnityEngine;
 
-using VRC.SDK3.UdonNetworkCalling;
 using VRC.SDKBase;
-using VRC.Udon.Common.Interfaces;
 
 [DisallowMultipleComponent]
 [UdonBehaviourSyncMode(BehaviourSyncMode.Manual)]
@@ -31,19 +29,23 @@ public class GameEndingU : UdonSharpBehaviour
     // None), so this doesn't disturb other players.
     public ResetManager resetManager;
 
-    // Shown on the full-screen caught overlay (the player who died).
+	// Showing the death message consist of two component. A TextMeshProUGUI 
+	// on the DeathMessageBoard canvas in root the world and separate canvas 
+	// with only black. 
+	// The idea is to have the game over text detached from head movement 
+    // so it looks like the player sees a black text on the void instead of 
+	// part of the hud.
+
     public TextMeshProUGUI caughtMessageText;
-    // Kill-feed line on the HUD, shown to everyone else.
-    public TextMeshProUGUI deathFeedText;
-    public float deathFeedDuration = 5f;
+
+    // Offset to adjust the position of the death message relative to the player.
+    private const float DeathMessageDistance = 1.6f;
+    private const float DeathMessageHeight = 0f;
 
     private bool _isPlayerAtExit;
     private bool _isPlayerCaught;
     private bool _endLevelStarted;
     private float _timer;
-
-    // Counts pending hide timers so an old timer doesn't clear a newer message.
-    private int _pendingFeedHides;
 
     private string[] _butlerMessages = new string[]
     {
@@ -86,7 +88,7 @@ public class GameEndingU : UdonSharpBehaviour
         "[Player] was cursecrunched by the Gargoyle like a bag of crisps.",
         "[Player] was tombchomped by the Gargoyle. A classic ending.",
         "[Player] was dreaddevoured by the Gargoyle, who seemed very pleased.",
-        "[Player] was creepchomped from behind by the Gargoyle.",
+        "[Player] was creepchomped by the Gargoyle.",
         "[Player] was ghoulped whole by the Gargoyle.",
         "[Player] was wraithmunched by the Gargoyle like a midnight snack.",
         "[Player] was ghastrivored into the afterlife by the Gargoyle.",
@@ -103,13 +105,28 @@ public class GameEndingU : UdonSharpBehaviour
     private Quaternion _spawnRotation;
     private VRCPlayerApi _localPlayer;
 
+    // The gameObject the canvas the message sits on.
+    private Transform _deathMessageBoard;
+    private CanvasGroup _deathMessageGroup;
+
     void Start()
     {
         _localPlayer = Networking.LocalPlayer;
-
-        // Store the spawn position when the player loads in
         _spawnPosition = _localPlayer.GetPosition();
         _spawnRotation = _localPlayer.GetRotation();
+        SendCustomEventDelayedFrames(nameof(CaptureSpawn), 1);
+
+        if (caughtMessageText == null)
+        {
+            Debug.LogError($"GameEndingU ({gameObject.name}): caughtMessageText need to be set in the inspector.");
+        }
+        else
+        {
+            _deathMessageBoard = caughtMessageText.transform.parent;
+            _deathMessageGroup = _deathMessageBoard.GetComponent<CanvasGroup>();
+            if (_deathMessageGroup == null)
+                Debug.LogError($"GameEndingU ({gameObject.name}): {_deathMessageBoard.name} has no CanvasGroup, so the death message can't fade.");
+        }
 
         if (resetManager == null)
         {
@@ -120,18 +137,66 @@ public class GameEndingU : UdonSharpBehaviour
             Debug.LogError($"GameEndingU ({gameObject.name}): could not find a ResetManager in the scene, so doors and pills won't reset after a catch.");
     }
 
+    // Remembers where the player is standing once they've landed, rather than where
+    // they were the instant the world loaded, which is in the air above the floor.
+	// Placing the player in the air and dropping them causes a ugly effect where
+	// the text message is floating up instead of staying at th center. 
+
+    public void CaptureSpawn()
+    {
+        if (!_localPlayer.IsPlayerGrounded())
+        {
+            SendCustomEventDelayedFrames(nameof(CaptureSpawn), 1);
+            return;
+        }
+
+        _spawnPosition = _localPlayer.GetPosition();
+        _spawnRotation = _localPlayer.GetRotation();
+    }
+
     public void TeleportPlayerToSpawn()
     {
         _localPlayer.TeleportTo(_spawnPosition, _spawnRotation);
     }
 
-    // Called by ExitTriggerU when the local player walks into the exit trigger.
-    public void ReachedExit()
+    // Immobilize only turn off control, it doesn't take away the speed the player
+    // already has, so without clearing the velocity they carry on sliding for a
+    // bit after the screen goes black. 
+    private void FreezePlayer()
     {
-        _isPlayerAtExit = true;
+        _localPlayer.Immobilize(true);
+        _localPlayer.SetVelocity(Vector3.zero);
     }
 
-    // Called by ObserverU when the local player is caught by a ghost.
+
+    public void PlaceDeathMessage()
+    {
+        if (_deathMessageBoard == null || !_isPlayerCaught) return;
+
+        VRCPlayerApi.TrackingData head = _localPlayer.GetTrackingData(VRCPlayerApi.TrackingDataType.Head);
+
+        // Only the direction they're facing, so looking up or down while it's placed
+        // doesn't cause tilt .
+        Quaternion facing = Quaternion.Euler(0f, head.rotation.eulerAngles.y, 0f);
+
+        Vector3 offset = new Vector3(0f, DeathMessageHeight, DeathMessageDistance);
+        _deathMessageBoard.position = head.position + facing * offset;
+        _deathMessageBoard.rotation = facing;
+
+        if (_deathMessageGroup != null)
+            _deathMessageGroup.alpha = 1;
+    }
+
+    // Called by ExitTrigger script when the local player walks into the exit trigger.
+    public void ReachedExit()
+    {
+        if (_isPlayerAtExit) return;
+
+        _isPlayerAtExit = true;
+        FreezePlayer();
+    }
+
+    // Called by ghosts when the local player is caught.
     public void CaughtPlayerBy(int ghostType)
     {
         if (_isPlayerCaught) return;
@@ -143,45 +208,18 @@ public class GameEndingU : UdonSharpBehaviour
         }
 
         _isPlayerCaught = true;
+        FreezePlayer();
 
         string[] messages = GetMessagesFor(ghostType);
         int messageIndex = messages == null ? 0 : Random.Range(0, messages.Length);
-        string myName = _localPlayer.displayName;
 
         if (caughtMessageText == null)
-            Debug.LogError($"GameEndingU ({gameObject.name}): caughtMessageText is not wired up");
-        else
-            caughtMessageText.text = BuildDeathMessage(ghostType, messageIndex, myName);
-
-        // Everyone gets the feed event, including us, since All includes the sender.
-        SendCustomNetworkEvent(NetworkEventTarget.All, nameof(ShowDeathFeed), myName, ghostType, messageIndex);
-    }
-
-    [NetworkCallable]
-    public void ShowDeathFeed(string playerName, int ghostType, int messageIndex)
-    {
-        // The caught player already sees the message on the full-screen overlay.
-        if (playerName == Networking.LocalPlayer.displayName) return;
-
-        if (deathFeedText == null)
         {
-            Debug.LogError($"GameEndingU ({gameObject.name}): deathFeedText is not wired up");
-            return;
+            Debug.LogError($"GameEndingU ({gameObject.name}): caughtMessageText need to be set in the inspector.");
         }
-
-        deathFeedText.text = BuildDeathMessage(ghostType, messageIndex, playerName);
-        _pendingFeedHides++;
-        SendCustomEventDelayedSeconds(nameof(_HideDeathFeed), deathFeedDuration);
-    }
-
-    public void _HideDeathFeed()
-    {
-        _pendingFeedHides--;
-        if (_pendingFeedHides <= 0)
+        else
         {
-            _pendingFeedHides = 0;
-            if (deathFeedText != null)
-                deathFeedText.text = "";
+            caughtMessageText.text = BuildOwnDeathMessage(ghostType, messageIndex);
         }
     }
 
@@ -191,6 +229,14 @@ public class GameEndingU : UdonSharpBehaviour
         if (ghostType == GHOST_SEEKER) return _seekerMessages;
         if (ghostType == GHOST_GARGOYLE) return _gargoyleMessages;
         return null;
+    }
+
+    private string BuildOwnDeathMessage(int ghostType, int messageIndex)
+    {
+        string message = BuildDeathMessage(ghostType, messageIndex, "[Player]");
+        message = message.Replace("[Player] was ", "You were ");
+        message = message.Replace(" them ", " you ");
+        return message.Replace(" they ", " you ");
     }
 
     private string BuildDeathMessage(int ghostType, int messageIndex, string playerName)
@@ -230,11 +276,17 @@ public class GameEndingU : UdonSharpBehaviour
             return;
         }
 
+
+        bool showMessage = _isPlayerCaught && _deathMessageGroup != null;
+
         if (!_endLevelStarted)
         {
             if (_isPlayerCaught)
             {
                 TeleportPlayerToSpawn();
+                // Wait one frame for the tracking data to be updated before using it to place 
+				// the death message.
+                SendCustomEventDelayedFrames(nameof(PlaceDeathMessage), 1);
             }
             audioSource.Play();
             canvasGroup.alpha = 1;
@@ -245,7 +297,9 @@ public class GameEndingU : UdonSharpBehaviour
 
         if (_timer > displayImageDuration)
         {
-            canvasGroup.alpha = 1 - (_timer - displayImageDuration) / fadeDuration;
+            float fade = 1 - (_timer - displayImageDuration) / fadeDuration;
+            canvasGroup.alpha = fade;
+            if (showMessage) _deathMessageGroup.alpha = fade;
         }
 
         if (_timer > displayImageDuration + fadeDuration)
@@ -255,12 +309,18 @@ public class GameEndingU : UdonSharpBehaviour
                 TeleportPlayerToSpawn();
             }
 
-            // The caught fade is over and the player is back at spawn, so reset
-            // their doors, pills and inventory for the next attempt.
-            if (_isPlayerCaught && resetManager != null)
+
+            if (resetManager == null)
+                Debug.LogError($"GameEndingU ({gameObject.name}): no ResetManage, unable to reset scene.");
+            else
                 resetManager.ResetAll();
 
             canvasGroup.alpha = 0;
+            if (_deathMessageGroup != null) _deathMessageGroup.alpha = 0;
+
+
+            _localPlayer.Immobilize(false);
+
             _isPlayerAtExit = false;
             _isPlayerCaught = false;
 

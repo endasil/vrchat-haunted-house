@@ -45,16 +45,3 @@ AI logic runs exclusively on the owner client. Catches are local: each ghost car
 ### Player
 
 `PlayerInventory` (extends `Resettable`) lives on the player avatar's first player object and exposes `AddPill`, `HasPill`, `GetPillCount`. `PlayerUI` owns the head-locked HUD canvas: one icon per pill color (`pillIcons`, indexed by `(int)PillColor`); it polls via `SendCustomEventDelayedFrames` until it locates `PlayerInventory` on the local player object, and on desktop re-fits the pill row and the full-screen caught/end panels to the camera every `LateUpdate`.
-
-### Namespaces
-
-- Most game scripts: global namespace.
-- `LightFlickerU` + `FlickerMode` enum: `StealthGame` namespace (also contains editor code under `#if UNITY_EDITOR`).
-- `DoorU`, `Resettable`, `PillColor`: `Assets._3DStealthGame.Scripts` namespace.
-- `AwarenessIndicator`: `Assets._3DStealthGame.Scripts.Enums` namespace.
-
-### VPM Dependencies
-
-- `com.vrchat.worlds` 3.10.1 (VRChat SDK)
-- `com.mmmaellon.smartobjectsync` 3.10.16
-- `bobystarvrc.opennid` 1.0.0

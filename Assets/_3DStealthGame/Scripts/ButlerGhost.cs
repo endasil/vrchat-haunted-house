@@ -231,6 +231,8 @@ public class ButlerGhost : GhostAgentBase
         toWaypoint.y = 0;
         float threshold = _navMeshAgent.stoppingDistance + 0.5f;
         
+        // Both sides squared so the distance never needs a square root, since it is slow.
+        // Comparing the squares gives the same answer as comparing the distances.
         if (toWaypoint.sqrMagnitude  < threshold * threshold)
         {
             Debug.Log($"{gameObject.name} reached waypoint. Advance.");    
