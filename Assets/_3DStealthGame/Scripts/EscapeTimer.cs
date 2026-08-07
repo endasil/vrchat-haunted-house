@@ -8,6 +8,7 @@ using VRC.SDKBase;
 using VRC.SDK3.Persistence;
 
 using Assets._3DStealthGame.Scripts;
+using _3DStealthGame.Scripts.Constants;
 
 // Starts a run timer the first time the local player walks through
 // the trigger this is attached to. When the player reaches the exit,
@@ -23,10 +24,6 @@ public class EscapeTimer : Resettable
 {
     // Text on the PlayerUI HUD canvas that shows the running time.
     public TextMeshProUGUI display;
-
-    // Name of the key in the player's persisten data where their 
-    // best time is kept when they leave the instance.
-    private const string BestTimeKey = "haunted.bestEscapeTime";
 
     // Finishes faster than this is ignored instead of becoming a best time
 	// to make it slightly harder to cheat.
@@ -46,11 +43,11 @@ public class EscapeTimer : Resettable
         // This method is called once a players permanent data has been loaded,
 		// Check if their fastest run has been recorded. If so fetch it. 
 
-        _hasBestTime = PlayerData.HasKey(player, BestTimeKey);
+        _hasBestTime = PlayerData.HasKey(player, PlayerDataKeys.BestEscapeTime);
         Debug.Log($"OnPlayerRestored: _hasBest:  {_hasBestTime}");
         if (_hasBestTime)
         {
-            _bestTime = PlayerData.GetFloat(player, BestTimeKey);
+            _bestTime = PlayerData.GetFloat(player, PlayerDataKeys.BestEscapeTime);
         }
     }
 
@@ -87,8 +84,8 @@ public class EscapeTimer : Resettable
 
         _bestTime = _elapsed;
         _hasBestTime = true;
-        Debug.Log($"Setting new best time in key {BestTimeKey} to {_bestTime} ");
-        PlayerData.SetFloat(BestTimeKey, _bestTime);
+        Debug.Log($"Setting new best time in key {PlayerDataKeys.BestEscapeTime} to {_bestTime} ");
+        PlayerData.SetFloat(PlayerDataKeys.BestEscapeTime, _bestTime);
     }
 
     public void Update()
@@ -103,13 +100,14 @@ public class EscapeTimer : Resettable
             Debug.LogError($"EscapeTimer ({gameObject.name}): display text is not assigned in the inspector.");
             return;
         }
+
         if (_hasBestTime)
         {
-            display.text = FormatTime(_elapsed) + "\nbest " + FormatTime(_bestTime);
+            display.text = TimeFormatter.Format(_elapsed) + "\nbest " + TimeFormatter.Format(_bestTime);
         }
         else
         {
-            display.text = FormatTime(_elapsed);
+            display.text = TimeFormatter.Format(_elapsed);
         }
     }
 
@@ -120,19 +118,4 @@ public class EscapeTimer : Resettable
         _elapsed = 0f;
     }
 
-    // mm:ss.hh, built manually because Udon doesn't have ToString("D2").
-    private string FormatTime(float seconds)
-    {
-        int totalHundredths = (int)(seconds * 100f);
-        int minutes = totalHundredths / 6000;
-        int secs = (totalHundredths / 100) % 60;
-        int hundredths = totalHundredths % 100;
-        return TwoDigits(minutes) + ":" + TwoDigits(secs) + "." + TwoDigits(hundredths);
-    }
-
-    private string TwoDigits(int value)
-    {
-        if (value < 10) return "0" + value;
-        return "" + value;
-    }
 }

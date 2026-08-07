@@ -12,7 +12,9 @@ There are no CLI build, lint, or test commands — compilation happens inside th
 
 These are hard limitations imposed by the Udon VM — violating them produces compiler errors or silent failures at runtime:
 
-- **No user-defined static classes or static methods.** Use instance methods instead. (A past comment in `LightFlickerU.cs` explicitly notes: "Removed static here since VR Chat does not support it.")
+- **No static fields (including `static readonly`).** A field is storage that has to exist while the world runs, and Udon has no place to put it. Put the value on an instance instead, or make it a `const`.
+- **Static methods in a plain (non-behaviour) helper class do work.** They are only code, so UdonSharp compiles them into the caller and nothing shared has to exist at runtime. See `TimeFormatter.cs`. Such a file is only a `.cs` plus a `.meta`; it needs no UdonSharpProgramAsset.
+- **A `static class` holding only `const` values is fine**, and is how a string or number shared by two behaviours should be written. A `const` is resolved at compile time: the compiler replaces `PlayerDataKeys.BestEscapeTime` with the literal `"haunted.bestEscapeTime"` everywhere it is written, so no reference to the class survives into the code UdonSharp compiles. See `Constants/AwarenessIndicator.cs` and `Constants/PlayerDataKeys.cs`.
 - **No `System.Linq`, `System.Threading.Tasks`, or other unsupported .NET APIs** inside UdonSharp behaviour files. These are fine in editor-only (`#if UNITY_EDITOR`) code.
 - **No generic collections** (`List<T>`, `Dictionary<K,V>`). Use fixed-size arrays.
 - **Deferred calls** use `SendCustomEventDelayedFrames(nameof(MyMethod), n)` — not coroutines.
