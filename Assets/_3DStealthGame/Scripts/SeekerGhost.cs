@@ -193,7 +193,7 @@ public class SeekerGhost : GhostAgentBase
         _isInvestigating = false;
         _currentTargetPlayer = null;
         _navMeshAgent.speed = defaultSpeed;
-        SetIndicatorSymbol(AwarenessIndicator.SearchingForPlayers);
+        SetIndicatorSymbol("");
 
         // If a new patrol destination is needed, start look around logic which
         // will also select a new target.
@@ -296,7 +296,7 @@ public class SeekerGhost : GhostAgentBase
         _idleSweepCompleted = false;
         _idlePausingAtEndpoint = false;
 
-        SetIndicatorSymbol(AwarenessIndicator.SearchingForPlayers);
+        SetIndicatorSymbol("");
     }
 
 
