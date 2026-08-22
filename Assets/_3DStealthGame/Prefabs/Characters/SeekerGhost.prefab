@@ -189,7 +189,6 @@ GameObject:
   - component: {fileID: 5838504322276388236}
   - component: {fileID: 5325553299032489330}
   - component: {fileID: 6789012345678901234}
-  - component: {fileID: 1728358856713280733}
   m_Layer: 0
   m_Name: SeekerGhost
   m_TagString: Untagged
@@ -277,7 +276,7 @@ AudioSource:
   OutputAudioMixerGroup: {fileID: 0}
   m_audioClip: {fileID: 8300000, guid: 98ea14dfdb9dce74a976520f134fd1a2, type: 3}
   m_PlayOnAwake: 1
-  m_Volume: 0.4
+  m_Volume: 1
   m_Pitch: 1
   Loop: 1
   Mute: 0
@@ -373,7 +372,7 @@ MonoBehaviour:
   m_Script: {fileID: -1783056023, guid: 661092b4961be7145bfbe56e1e62337b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  AllowCollisionOwnershipTransfer: 1
+  AllowCollisionOwnershipTransfer: 0
   ForceKinematicOnRemote: 1
 --- !u!195 &1315222199347949874
 NavMeshAgent:
@@ -386,7 +385,7 @@ NavMeshAgent:
   m_AgentTypeID: 0
   m_Radius: 0.5
   m_Speed: 0.5
-  m_Acceleration: 4
+  m_Acceleration: 99
   avoidancePriority: 50
   m_AngularSpeed: 100
   m_StoppingDistance: 0
@@ -437,16 +436,14 @@ MonoBehaviour:
     PrefabModifications: []
     SerializationNodes: []
   _udonSharpBackingUdonBehaviour: {fileID: 5325553299032489330}
+  Indicator: {fileID: 0}
+  visionHalfAngle: 45
+  visionLength: 10
   defaultSpeed: 0.5
   playerFoundSpeed: 1.7
   maxWalkDistance: 10
   minWalkDistance: 2
-  visionHalfAngle: 45
-  visionLength: 10
   hearingRange: 3
-  retargetInterval: 0.2
-  Indicator: {fileID: 0}
-  snowballs: []
   minLookAroundSweepAngle: 20
   lookAroundSweepAngle: 60
   idleTurnSpeed: 120
@@ -497,20 +494,6 @@ MonoBehaviour:
   m_IgnoreFromBuild: 1
   m_ApplyToChildren: 1
   m_AffectedAgents: ffffffff
---- !u!114 &1728358856713280733
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2748437014591206475}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: -1783056023, guid: 661092b4961be7145bfbe56e1e62337b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  AllowCollisionOwnershipTransfer: 1
-  ForceKinematicOnRemote: 0
 --- !u!1001 &1529741753430810760
 PrefabInstance:
   m_ObjectHideFlags: 0
