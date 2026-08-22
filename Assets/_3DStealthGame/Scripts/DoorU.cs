@@ -10,7 +10,7 @@ namespace Assets._3DStealthGame.Scripts
     public class DoorU : Resettable
     {
         public float openDuration = 1f;
-        private bool _opened = false;
+        private bool _opened;
         private bool _opening;
         private float _timer;
         private Quaternion _startRot;
@@ -27,7 +27,7 @@ namespace Assets._3DStealthGame.Scripts
 
         public override void OnPlayerTriggerEnter(VRCPlayerApi player)
         {
-            if (!player.isLocal || _opened) return;
+            if (!player.isLocal || _opened || _opening) return;
 
             GameObject[] playerObjects = player.GetPlayerObjects();
 
