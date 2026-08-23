@@ -23,13 +23,13 @@ public class PlayerUI : Resettable
     public RectTransform endScreen;
     // Where to the HUD canvas relative to the head (x = right, y = up, z = forward, in
     // metres).
-    private readonly Vector3 UIOffset = new Vector3(0.3f, 0.2f, 0.5f);
+    private readonly Vector3 UIOffset = new Vector3(0f, 0f, 0.1f);
 
     // Where the pills are in view. 0 is the middle, +-1 is the edge.
     // Used to keep them at their relative position when the window resizes.
     // In VR the edge these count against is vrHudFieldOfView.
-    private const float pillsVerticalFraction = 0.7f;
-    private const float pillsHorizontalFraction = -0.7f;
+    private const float pillsVerticalFraction = 0.92f;
+    private const float pillsHorizontalFraction = -0.95f;
 
     public RectTransform escapeTimerTextRect;
     private const float escapeTimerVerticalFraction = 0.85f;
