@@ -4,8 +4,6 @@ using UdonSharp;
 
 using UnityEngine;
 
-// Shows frames per second on the HUD, the same way EscapeTimer shows the run
-// time. PlayerUI pins this text to a fixed screen spot on desktop.
 [DisallowMultipleComponent]
 [UdonBehaviourSyncMode(BehaviourSyncMode.None)]
 public class FpsCounter : UdonSharpBehaviour

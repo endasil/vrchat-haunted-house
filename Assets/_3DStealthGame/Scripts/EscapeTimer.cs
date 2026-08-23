@@ -25,6 +25,8 @@ public class EscapeTimer : Resettable
     // Text on the PlayerUI HUD canvas that shows the running time.
     public TextMeshProUGUI display;
 
+    public MusicFader music;
+
     // Finishes faster than this is ignored instead of becoming a best time
 	// to make it slightly harder to cheat.
     private const float MinPlausibleTime = 40f;
@@ -62,6 +64,15 @@ public class EscapeTimer : Resettable
         _started = true;
         _running = true;
         _elapsed = 0.0f;
+
+        if (music == null)
+        {
+            Debug.LogError($"EscapeTimer ({gameObject.name}): music is not assigned in the inspector.");
+        }
+        else
+        {
+            music.FadeToFull();
+        }
     }
 
     // Called by ExitTriggerU when the local player reaches the exit.

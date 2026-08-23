@@ -1,4 +1,4 @@
-
+﻿
 using TMPro;
 
 using UdonSharp;
@@ -29,6 +29,8 @@ public class GameEndingU : UdonSharpBehaviour
     // None), so this doesn't disturb other players.
     public ResetManager resetManager;
 
+    public MusicFader music;
+
 	// Showing the death message consist of two component. A TextMeshProUGUI 
 	// on the DeathMessageBoard canvas in root the world and separate canvas 
 	// with only black. 
@@ -57,7 +59,7 @@ public class GameEndingU : UdonSharpBehaviour
         "[Player] was hauntivored by the Butler, who left no crumbs.",
         "[Player] was ghostguzzled by the Butler before the main course even arrived.",
         "[Player] was phantomchewed by the Butler, who was wholly unimpressed.",
-        "[Player] was eeriaten by the Butler in the dining room, with the candlestick.",
+        "[Player] was eeriaten by the Butler, with the candlestick.",
         "[Player] was moanmunched by the Butler during his evening rounds.",
         "[Player] was boonibled by the Butler, who apologised afterwards.",
         "[Player] was spectreified by the Butler. He has done this before.",
@@ -69,7 +71,7 @@ public class GameEndingU : UdonSharpBehaviour
     {
         "[Player] was phantommed into oblivion by the Seeker.",
         "[Player] was spooknapped by the Seeker and never seen again.",
-        "[Player] was wraithed mid-stride by the Seeker, flashlight still on.",
+        "[Player] was wraithed mid-stride by the Seeker.",
         "[Player] was shimmerslurped through the floorboards by the Seeker.",
         "[Player] was spookswallowed by the Seeker, screaming all the way down.",
         "[Player] was gloomgulped into the shadows by the Seeker.",
@@ -194,6 +196,7 @@ public class GameEndingU : UdonSharpBehaviour
 
         _isPlayerAtExit = true;
         FreezePlayer();
+        DropMusicToQuiet();
     }
 
     // Called by ghosts when the local player is caught.
@@ -209,6 +212,7 @@ public class GameEndingU : UdonSharpBehaviour
 
         _isPlayerCaught = true;
         FreezePlayer();
+        DropMusicToQuiet();
 
         string[] messages = GetMessagesFor(ghostType);
         int messageIndex = messages == null ? 0 : Random.Range(0, messages.Length);
@@ -221,6 +225,17 @@ public class GameEndingU : UdonSharpBehaviour
         {
             caughtMessageText.text = BuildOwnDeathMessage(ghostType, messageIndex);
         }
+    }
+
+    private void DropMusicToQuiet()
+    {
+        if (music == null)
+        {
+            Debug.LogError($"GameEndingU ({gameObject.name}): music is not assigned in the inspector.");
+            return;
+        }
+
+        music.DropToQuiet();
     }
 
     private string[] GetMessagesFor(int ghostType)
