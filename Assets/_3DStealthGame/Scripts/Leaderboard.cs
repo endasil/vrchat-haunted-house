@@ -1,91 +1,214 @@
 using _3DStealthGame.Scripts.Constants;
+
 using TMPro;
+
 using UdonSharp;
+
 using UnityEngine;
+
+using VRC.SDK3.Data;
 using VRC.SDK3.Persistence;
 using VRC.SDKBase;
 
 [DisallowMultipleComponent]
 [UdonBehaviourSyncMode(BehaviourSyncMode.None)]
-public class Leaderboard: UdonSharpBehaviour
+public class Leaderboard : UdonSharpBehaviour
 {
     public TextMeshProUGUI leaderboardText;
 
-    public int maxRecords = 10;
+    private const int MaxRecordsOnLeaderboard = 10;
 
     private const int MaxPlayers = 80;
 
-    // Every player plus the fake entries.
-    private const int MaxRecords = 90;
+
+    // Each player can give 1 best time plus MaxRecordsOnLeaderboard entries from their saved list
+    private const int MaxCandidates = MaxPlayers * (MaxRecordsOnLeaderboard + 1);
+
 
     private VRCPlayerApi[] _vrcPlayer = new VRCPlayerApi[MaxPlayers];
 
-    private string[] _recordNames = new string[MaxRecords];
+    // Holds the best times and saved top list entries of the players in the instance.
+    // Rebuild() sorts them and copies the 10 fastest, one per name, into the top list.
+    private string[] _allRecordNames = new string[MaxCandidates];
 
-    private float[] _recordTimes = new float[MaxRecords];
-
-    private string[] _fakeNames = new string[]
+    private float[] _allRecordTimes = new float[MaxCandidates];
+    private int _candidateCount;
+    private string[] _topNames = new string[MaxRecordsOnLeaderboard];
+    private float[] _topTimes = new float[MaxRecordsOnLeaderboard];
+    private int _topCount;
+    private bool _localRestored;
+    private void AddCandidate(string displayName, float time)
     {
-        "Sephiroth", "Aerith", "Cloud Strife",
-        "Tifa Lockhart", "Yuffie Kisaragi", "Vincent",
-        "Red XIII", "Barret Wallace", "Cid Highwind",
-        "Cait Sith"
-    };
-
-    // Bunch of fake fastest run to fill empty leaderboard, time in seconds.
-    // 
-    private float[] _fakeTimes = new float[]
-    {
-        3972f, 4238f, 4445f, 4671f, 4879f, 5084f, 5307f, 5518f, 5733f, 5949f,
-    };
-
-    public void Start()
-    {
-        //Redraw();
+        if (time <= 0 || float.IsNaN(time))
+        {
+            Debug.LogError($"Tried to add time invalid time {time} player {displayName}");
+            return;
+        }
+        _allRecordNames[_candidateCount] = displayName;
+        _allRecordTimes[_candidateCount] = time;
+        _candidateCount++;
     }
 
+
+    // Reads the players top list and add each entry as a candidate.
+    private void AddPlayersSavedTopList(VRCPlayerApi player)
+    {
+        if (!PlayerData.HasKey(player, PlayerDataKeys.SavedHighScoreList))
+        {
+            return;
+        }
+
+        var topRecordJson = PlayerData.GetString(player, PlayerDataKeys.SavedHighScoreList);
+        if (!VRCJson.TryDeserializeFromJson(topRecordJson, out DataToken deserializedTopRecords))
+        {
+            Debug.LogError($"Failed to deserialize data as json from {player.displayName}. Error: {deserializedTopRecords.Error}. json data: {topRecordJson}");
+            return;
+        }
+
+        if (deserializedTopRecords.TokenType != TokenType.DataList)
+        {
+            Debug.LogError($"Failed to decode {player.displayName}'s HighScore. result.TokenType is {deserializedTopRecords.TokenType}, not {TokenType.DataList}");
+            return;
+        }
+
+        var nrEntries = Mathf.Min(deserializedTopRecords.DataList.Count, MaxRecordsOnLeaderboard);
+        for (int i = 0; i < nrEntries; i++)
+        {
+            if (!deserializedTopRecords.DataList.TryGetValue(i, TokenType.DataDictionary, out DataToken item))
+            {
+                Debug.LogError($"Leaderboard: entry {i} is not a DataDictionary.");
+                continue;
+            }
+
+
+            DataDictionary record = item.DataDictionary;
+            if (!record.TryGetValue("name", TokenType.String, out DataToken displayName))
+            {
+                Debug.LogError($"Failed to fetch name from Leaderboard: entry {i}, from {player.displayName} ");
+                continue;
+            }
+
+            // We use double here 
+            // because when a float is serialized to json, it stores the numbers as
+            // text without information if this is a float or a double.
+            // because of this VRCJson always decode it as double and not float.
+            if (!record.TryGetValue("time", TokenType.Double, out DataToken time))
+            {
+                Debug.LogError($"Failed to fetch time from Leaderboard: entry {i}, from {player.displayName} ");
+                continue;
+            }
+            AddCandidate(displayName.String, (float)time.Double);
+
+
+        }
+    }
+
+    public void Rebuild()
+    {
+        _candidateCount = 0;
+
+        int playerCount = VRCPlayerApi.GetPlayerCount();
+        VRCPlayerApi.GetPlayers(_vrcPlayer);
+
+        // Loop trough each player in the scene
+        for (int i = 0; i < playerCount; i++)
+        {
+            VRCPlayerApi player = _vrcPlayer[i];
+            if (!Utilities.IsValid(player)) continue;
+
+            // Check if player has a personal best time, add their time to the total candidate pool 
+            if (PlayerData.TryGetFloat(player, PlayerDataKeys.SavedPersonalBestEscapeTime, out float playerBestTime))
+            {
+
+                AddCandidate(player.displayName, playerBestTime);
+            }
+
+            // Add each entry of the players on high score list to the global collection of all players
+            // top lists.
+            AddPlayersSavedTopList(player);
+
+        }
+
+        if (_candidateCount == 0) return;
+
+        SortRecordsByTime(_candidateCount);
+
+        int nextPosition = 0;
+        bool changed = false;
+        for (int i = 0; i < _candidateCount && nextPosition < MaxRecordsOnLeaderboard; i++)
+        {
+            // The candidates are sorted, so a name already in the top list has a faster or equal time there.
+            if (IsInTopList(_allRecordNames[i], nextPosition)) continue;
+
+            if (_topNames[nextPosition] != _allRecordNames[i] || !Mathf.Approximately(_topTimes[nextPosition], _allRecordTimes[i]))
+            {
+                changed = true;
+            }
+
+            _topNames[nextPosition] = _allRecordNames[i];
+            _topTimes[nextPosition] = _allRecordTimes[i];
+            nextPosition++;
+        }
+
+        if (nextPosition != _topCount)
+        {
+            changed = true;
+        }
+        _topCount = nextPosition;
+
+        if (changed)
+        {
+            SaveHighScoreList();
+        }
+        Redraw();
+    }
+
+    private bool IsInTopList(string displayName, int count)
+    {
+        for (int i = 0; i < count; i++)
+        {
+            if (_topNames[i] == displayName) return true;
+        }
+        return false;
+    }
+
+
+    private void SaveHighScoreList()
+    {
+
+        var dataList = new DataList();
+
+        for (int i = 0; i < _topCount; i++)
+        {
+            DataDictionary record = new DataDictionary();
+            record["name"] = _topNames[i];
+            record["time"] = _topTimes[i];
+            dataList.Add(record);
+        }
+
+        if (!VRCJson.TrySerializeToJson(dataList, JsonExportType.Minify, out DataToken json))
+        {
+            Debug.LogError($"Leaderboard: could not serialize the top list: {json}");
+            return;
+        }
+
+        PlayerData.SetString(PlayerDataKeys.SavedHighScoreList, json.String);
+
+    }
     public void Redraw()
     {
-        if(leaderboardText == null)
+        if (leaderboardText == null)
         {
             Debug.LogError($"Leaderboard ({gameObject.name}): display text is not assigned in the inspector.");
             return;
         }
 
-        int playerCount = VRCPlayerApi.GetPlayerCount();
-        VRCPlayerApi.GetPlayers(_vrcPlayer);
-
-        int recordCount = 0;
-        for (int i = 0; i < _fakeNames.Length; i++)
-        {
-            _recordNames[recordCount] = _fakeNames[i];
-            _recordTimes[recordCount] = _fakeTimes[i];
-            recordCount++;
-        }
-
-        for (int i = 0; i < playerCount; i++)
-        {
-            VRCPlayerApi player = _vrcPlayer[i];
-            if(!Utilities.IsValid(player)) continue;
-            if (!PlayerData.HasKey(player, PlayerDataKeys.BestEscapeTime)) continue;
-            _recordNames[recordCount] = player.displayName;
-            _recordTimes[recordCount] = PlayerData.GetFloat(player, PlayerDataKeys.BestEscapeTime);
-            recordCount++;
-        }
-
-        SortRecordsByTime(recordCount);
-
-        int rows = maxRecords;
-        if (rows > recordCount)
-        {
-            rows = recordCount;
-        }
 
         string text = "";
-        for (int i = 0; i < rows; i++)
+        for (int i = 0; i < _topCount; i++)
         {
             // Pos is used to alight all times at 72% of the width to get them to display under each other.
-            text += (i + 1) + ". " + ShortName(_recordNames[i]) + "<pos=72%>" + TimeFormatter.FormatCapped(_recordTimes[i]) + "\n";
+            text += (i + 1) + ". " + ShortName(_topNames[i]) + "<pos=72%>" + TimeFormatter.FormatCapped(_topTimes[i]) + "\n";
         }
         leaderboardText.text = text;
     }
@@ -111,20 +234,20 @@ public class Leaderboard: UdonSharpBehaviour
             // third loop 
             // starts [2, 4, 5, 6, 1]  
             // time is assigned 6 from slot 3
-            float recordTime = _recordTimes[currentIndex];
-            string recordName = _recordNames[currentIndex];
+            float recordTime = _allRecordTimes[currentIndex];
+            string recordName = _allRecordNames[currentIndex];
             // first loop comparisonIndex is 0
             // second loop comparisonIndex is 1
             // third loop comparisonIndex is 2
             int comparisonIndex = currentIndex - 1;
-            while (comparisonIndex >= 0 && _recordTimes[comparisonIndex] > recordTime)
+            while (comparisonIndex >= 0 && _allRecordTimes[comparisonIndex] > recordTime)
             {
                 // first loop inner first, slot 1 holding 2 is assigned 5 [5, 2, 4, 6, 1]  -> [5, 5, 4, 6, 1]  
                 // second loop inner first, slot 2 holding 4 is assigned 5  [2, 5, 4, 6, 1]  -> [2, 5, 5, 6, 1]  
                 // third loop inner first, slot 3 holding 6 is assigned 5  [2, 4, 5, 6, 1] -> [2, 4, 5, 5, 1] 
                 // third loop, inner second, slot 2 holding 5 is assigned 6 [2, 4, 5, 5, 1]  -> [2, 4, 6, 5, 1] 
-                _recordTimes[comparisonIndex + 1] = _recordTimes[comparisonIndex];
-                _recordNames[comparisonIndex + 1] = _recordNames[comparisonIndex];
+                _allRecordTimes[comparisonIndex + 1] = _allRecordTimes[comparisonIndex];
+                _allRecordNames[comparisonIndex + 1] = _allRecordNames[comparisonIndex];
                 // first loop comparisonIndex becomes -1 and loop breaks
                 // second loop comparisonIndex becomes 0 and breaks
                 // third loop comparisonIndex becomes 1 and loops again
@@ -135,8 +258,8 @@ public class Leaderboard: UdonSharpBehaviour
             // first loop slot 0 holding  5 is assigned 2 [5, 5, 4, 6, 1]  -> [2, 5, 4, 6, 1]  
             // second loop slot 1 holding 5 is assigned 4 [2, 5, 5, 6, 1]  -> [2, 4, 5, 6, 1]  
             // third loop slot 1 holding 5 is assigned 4 [2, 5, 5, 6, 1]  -> [2, 4, 5, 6, 1]  
-            _recordTimes[comparisonIndex + 1] = recordTime;
-            _recordNames[comparisonIndex + 1] = recordName;
+            _allRecordTimes[comparisonIndex + 1] = recordTime;
+            _allRecordNames[comparisonIndex + 1] = recordName;
         }
     }
 
@@ -145,20 +268,26 @@ public class Leaderboard: UdonSharpBehaviour
     // that joined the instance.
     public override void OnPlayerRestored(VRCPlayerApi player)
     {
-        Redraw();
+        if (player.isLocal)
+        {
+            _localRestored = true;
+
+        }
+
+        if (_localRestored)
+        {
+            Rebuild();
+        }
+
     }
 
     // When the persistent player data changes,for example a player got a new highscore, this class is called. 
     public override void OnPlayerDataUpdated(VRCPlayerApi player, PlayerData.Info[] infos)
     {
-        Redraw();
+        if (_localRestored)
+        {
+            Rebuild();
+        }
     }
-    public override void OnPlayerLeft(VRCPlayerApi player)
-    {
-        Redraw();
-    }
-
-
-
 
 }

@@ -44,13 +44,11 @@ public class EscapeTimer : Resettable
         
         // This method is called once a players permanent data has been loaded,
 		// Check if their fastest run has been recorded. If so fetch it. 
-
-        _hasBestTime = PlayerData.HasKey(player, PlayerDataKeys.BestEscapeTime);
-        Debug.Log($"OnPlayerRestored: _hasBest:  {_hasBestTime}");
-        if (_hasBestTime)
+        if (PlayerData.TryGetFloat(player, PlayerDataKeys.SavedPersonalBestEscapeTime, out _bestTime))
         {
-            _bestTime = PlayerData.GetFloat(player, PlayerDataKeys.BestEscapeTime);
+            _hasBestTime = true;
         }
+        Debug.Log($"OnPlayerRestored: _hasBest:  {_hasBestTime}");
     }
 
     public override void OnPlayerTriggerEnter(VRCPlayerApi player)
@@ -95,8 +93,8 @@ public class EscapeTimer : Resettable
 
         _bestTime = _elapsed;
         _hasBestTime = true;
-        Debug.Log($"Setting new best time in key {PlayerDataKeys.BestEscapeTime} to {_bestTime} ");
-        PlayerData.SetFloat(PlayerDataKeys.BestEscapeTime, _bestTime);
+        Debug.Log($"Setting new best time in key {PlayerDataKeys.SavedPersonalBestEscapeTime} to {_bestTime} ");
+        PlayerData.SetFloat(PlayerDataKeys.SavedPersonalBestEscapeTime, _bestTime);
     }
 
     public void Update()
