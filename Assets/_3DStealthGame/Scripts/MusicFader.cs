@@ -7,9 +7,9 @@ using UnityEngine;
 public class MusicFader : UdonSharpBehaviour
 {
     public float fadeInDuration = 5f;
-    public float quietVolume = 0.5f;
 
     private AudioSource _music;
+    private bool _paused;
 
     private bool _fading;
     private float _fadeFrom;
@@ -37,7 +37,13 @@ public class MusicFader : UdonSharpBehaviour
             return;
         }
 
-        if (!_music.isPlaying)
+        if (_paused)
+        {
+            _music.volume = 0f;
+            _music.UnPause();
+            _paused = false;
+        }
+        else if (!_music.isPlaying)
         {
             _music.volume = 0f;
             _music.Play();
@@ -46,7 +52,7 @@ public class MusicFader : UdonSharpBehaviour
         FadeTo(1f);
     }
 
-    public void DropToQuiet()
+    public void PauseMusic()
     {
         if (_music == null)
         {
@@ -57,7 +63,8 @@ public class MusicFader : UdonSharpBehaviour
         if (!_music.isPlaying) return;
 
         _fading = false;
-        _music.volume = quietVolume;
+        _music.Pause();
+        _paused = true;
     }
 
     private void FadeTo(float target)

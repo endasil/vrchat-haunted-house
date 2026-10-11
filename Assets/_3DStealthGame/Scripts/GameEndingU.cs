@@ -196,7 +196,7 @@ public class GameEndingU : UdonSharpBehaviour
 
         _isPlayerAtExit = true;
         FreezePlayer();
-        DropMusicToQuiet();
+        PauseMusic();
     }
 
     // Called by ghosts when the local player is caught.
@@ -212,7 +212,7 @@ public class GameEndingU : UdonSharpBehaviour
 
         _isPlayerCaught = true;
         FreezePlayer();
-        DropMusicToQuiet();
+        PauseMusic();
 
         string[] messages = GetMessagesFor(ghostType);
         int messageIndex = messages == null ? 0 : Random.Range(0, messages.Length);
@@ -227,7 +227,7 @@ public class GameEndingU : UdonSharpBehaviour
         }
     }
 
-    private void DropMusicToQuiet()
+    private void PauseMusic()
     {
         if (music == null)
         {
@@ -235,7 +235,7 @@ public class GameEndingU : UdonSharpBehaviour
             return;
         }
 
-        music.DropToQuiet();
+        music.PauseMusic();
     }
 
     private string[] GetMessagesFor(int ghostType)
