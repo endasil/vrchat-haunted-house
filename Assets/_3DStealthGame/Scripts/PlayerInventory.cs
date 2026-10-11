@@ -10,6 +10,8 @@ public class PlayerInventory : Resettable
     // The HUD, handed to us by PlayerUI once it finds the local player's inventory.
     private PlayerUI _playerUI;
 
+    private ExitPillSockets _exitPillSockets;
+
     private AudioSource _pickupAudio;
 
     public override void Start()
@@ -25,6 +27,11 @@ public class PlayerInventory : Resettable
     public void SetPlayerUI(PlayerUI playerUI)
     {
         _playerUI = playerUI;
+    }
+
+    public void SetExitPillSockets(ExitPillSockets exitPillSockets)
+    {
+        _exitPillSockets = exitPillSockets;
     }
 
     public bool HasPill(PillColor pillColor)
@@ -53,6 +60,15 @@ public class PlayerInventory : Resettable
         if (_pickupAudio != null)
             _pickupAudio.Play();
 
+        if (_exitPillSockets == null)
+        {
+            Debug.LogError($"PlayerInventory ({gameObject.name}): no ExitPillSockets is hooked up, the exit socket won't show the pill.");
+        }
+        else
+        {
+            _exitPillSockets.ShowPill(pillColor);
+        }
+
         if (_playerUI == null)
         {
             Debug.LogError($"PlayerInventory ({gameObject.name}): no PlayerUI is hooked up, the pill icon won't light up.");
@@ -60,6 +76,20 @@ public class PlayerInventory : Resettable
         }
 
         _playerUI.ShowPillIcon(pillColor);
+    }
+
+    public void AddNextMissingPill()
+    {
+        for (int i = 0; i < (int)PillColor.LastEnum; i++)
+        {
+            if (_pillCounts[i] <= 0)
+            {
+                AddPill((PillColor)i);
+                return;
+            }
+        }
+
+        Debug.Log($"PlayerInventory ({gameObject.name}): the player already holds every pill color.");
     }
 
     public int GetPillCount(PillColor pillColor)
