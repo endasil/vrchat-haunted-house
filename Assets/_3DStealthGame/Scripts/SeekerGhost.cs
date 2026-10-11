@@ -37,6 +37,13 @@ public class SeekerGhost : GhostAgentBase
     // Turn speed (deg/s) used to face the arrival direction when close to a patrol destination.
     private const float ArrivalTurnSpeed = 240f;
 
+    // Angles in degrees between the ghost's forward and a newly detected player.
+    private const float TurnInPlaceStartAngle = 90f;
+    private const float TurnInPlaceEndAngle = 10f;
+
+    // Turn speed (deg/s) of the in-place turn toward a newly detected player.
+    public float turnInPlaceSpeed = 240f;
+
     // ==============================
     // Patrol Settings
     // ==============================
@@ -59,6 +66,8 @@ public class SeekerGhost : GhostAgentBase
 
     private VRCPlayerApi _currentTargetPlayer;      // Currently targeted player
     private bool _isInvestigating;        // True while chasing last known location
+    private bool _detectedPlayerLastFrame;
+    private bool _isTurningInPlace;
 
     // ==============================
     // Runtime State: Idle Look-Around
@@ -123,7 +132,31 @@ public class SeekerGhost : GhostAgentBase
             _currentTargetPlayer = detectedPlayer;
 
             CancelIdleLookAround();
-            EnsureAgentCanMove();
+
+            Vector3 playerPosition = _currentTargetPlayer.GetPosition();
+
+            // Only a new detection starts the turn. Mid-chase the path can bend around a wall,
+            // so the player can be more than 90 degrees off while the ghost follows the path.
+            float angleToPlayer = HorizontalAngleToPosition(playerPosition);
+            if (!_detectedPlayerLastFrame && angleToPlayer > TurnInPlaceStartAngle)
+            {
+                _isTurningInPlace = true;
+            }
+            else if (_isTurningInPlace && angleToPlayer <= TurnInPlaceEndAngle)
+            {
+                _isTurningInPlace = false;
+            }
+            _detectedPlayerLastFrame = true;
+
+            if (_isTurningInPlace)
+            {
+                EnsureAgentIsIdle();
+                TurnTowardsWorldPosition(playerPosition, turnInPlaceSpeed);
+            }
+            else
+            {
+                EnsureAgentCanMove();
+            }
 
             _navMeshAgent.speed = playerFoundSpeed;
 
@@ -132,7 +165,6 @@ public class SeekerGhost : GhostAgentBase
             // computed, so it holds a usable path only ~1 frame in 6 and never moves.
             // Repath when there is no path at all, or when the player has moved away from
             // where the current path leads. Never interrupt a request already in flight.
-            Vector3 playerPosition = _currentTargetPlayer.GetPosition();
             if (!_navMeshAgent.pathPending)
             {
                 bool needNewPath = !_navMeshAgent.hasPath
@@ -155,7 +187,7 @@ public class SeekerGhost : GhostAgentBase
             // so leave updateRotation on (set by EnsureAgentCanMove above). Distance uses head
             // position to match how hearing range is measured in detection.
             float distanceToTarget = Vector3.Distance(transform.position, GetPlayerHeadPosition(_currentTargetPlayer));
-            if (distanceToTarget <= hearingRange)
+            if (!_isTurningInPlace && distanceToTarget <= hearingRange)
             {
                 _navMeshAgent.updateRotation = false;
                 TurnTowardsWorldPosition(playerPosition, _navMeshAgent.angularSpeed);
@@ -169,6 +201,9 @@ public class SeekerGhost : GhostAgentBase
             
             return;
         }
+
+        _detectedPlayerLastFrame = false;
+        _isTurningInPlace = false;
 
         // Only rotate toward arrival direction during patrol, not while chasing.
         if (!_isInvestigating)
@@ -249,6 +284,15 @@ public class SeekerGhost : GhostAgentBase
         if (_navMeshAgent.remainingDistance >= _navMeshAgent.stoppingDistance + 1f) return;
 
         TurnTowardsWorldPosition(_navMeshAgent.steeringTarget, ArrivalTurnSpeed);
+    }
+
+    private float HorizontalAngleToPosition(Vector3 worldPosition)
+    {
+        Vector3 direction = worldPosition - transform.position;
+        direction.y = 0f;
+        Vector3 forward = transform.forward;
+        forward.y = 0f;
+        return Vector3.Angle(forward, direction);
     }
 
 
@@ -476,6 +520,8 @@ public class SeekerGhost : GhostAgentBase
     {
         _currentTargetPlayer = null;
         _isInvestigating = false;
+        _detectedPlayerLastFrame = false;
+        _isTurningInPlace = false;
         CancelIdleLookAround();
     }
 }
