@@ -17,7 +17,7 @@ namespace Assets._3DStealthGame.Scripts
         private Quaternion _targetRot;
 
         public PillColor PillColor;
-        public float FloorAngle = -90;
+        public float FloorAngle = 90;
         public override void Start()
         {
             _startRot = transform.localRotation;
@@ -38,6 +38,22 @@ namespace Assets._3DStealthGame.Scripts
             {
                 if (playerInventory.HasPill(PillColor))
                 {
+                    float fallAngle = Mathf.Abs(FloorAngle);
+
+
+                    // Translate the players position form world space to local space
+                    // for easier comparsion of position.
+                    var playerPosInLocalSpace = transform.InverseTransformPoint(player.GetPosition());
+                    var playerInFrontOfDoor = playerPosInLocalSpace.z >= 0f;
+                    
+                    // Determine fall direction of door depending on which side the player is on 
+                    // some doors can be approached from both sides.
+                    if (playerInFrontOfDoor)
+                    {
+                        fallAngle = -fallAngle;
+                    }
+
+                    _targetRot = Quaternion.Euler(fallAngle, _startRot.eulerAngles.y, _startRot.eulerAngles.z);
                     Debug.Log($"{gameObject.name}: Pill {PillColor} used");
                     _timer = 0f;
                     _opening = true;
