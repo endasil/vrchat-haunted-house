@@ -28,7 +28,7 @@ public class ObserverU : UdonSharpBehaviour
         if (_gameEnding == null)
             Debug.LogError($"ObserverU ({gameObject.name}): GameManager has no GameEndingU component");
 
-        // Walk up the hierarchy and take the NEAREST ghost AI script.
+        // Uses the ghost AI script on this object, or on the closest parent that has one.
         Transform t = transform;
         while (t != null && _ghostType == -1)
         {
@@ -49,10 +49,6 @@ public class ObserverU : UdonSharpBehaviour
         if (player.isLocal)
         {
             _isPlayerInRange = true;
-            // Catch right here too, not only in Update: the trigger can flicker
-            // in/out every physics step (the ghost's rigidbody jitters the
-            // collider), and then the exit clears the flag before Update ever
-            // sees it.
             TryCatch();
         }
     }
@@ -65,10 +61,7 @@ public class ObserverU : UdonSharpBehaviour
         }
     }
 
-    // The trigger capsule on this object is the ghost's vision cone. While the
-    // player is inside it, cast a ray at them and look at what the ray meets
-    // first: the player's own capsule (or nothing solid) means a clear view and
-    // they're caught; anything else is a wall in between and they're safe.
+    // The trigger capsule on this object is the ghost's vision cone.
     private void Update()
     {
         if (_isPlayerInRange)
@@ -95,10 +88,8 @@ public class ObserverU : UdonSharpBehaviour
                 out RaycastHit hit, distToPlayer,
                 allLayers, QueryTriggerInteraction.Ignore))
         {
-            // VRChat hides player colliders from Udon: a ray that hits a player
-            // reports the hit but with collider == null. So null collider means
-            // we hit the player. Only a real (non-null) collider on
-            // a non-player layer is a wall in the way.
+            // A ray that hits a player returns collider == null
+			//  A non-null collider is a wall between the ghost and the player.
             Collider hitCollider = hit.collider;
             if (hitCollider != null)
                 return;
