@@ -167,7 +167,7 @@ public static class FloorUvBaker
     // Switches a floor material to the mobile shader, carrying the albedo into _MainTex.
     static void ConvertMaterial(Material mat, Shader mobile)
     {
-        // _MainTexture (triplanar) -> _MainTex (Standard Lite). Other maps share names and carry over.
+        // _MainTexture (triplanar) -> _MainTex (Standard Lite). The other maps have the same names in both shaders.
         Texture albedo = mat.HasProperty("_MainTexture") ? mat.GetTexture("_MainTexture") : null;
         mat.shader = mobile;
         if (albedo != null)

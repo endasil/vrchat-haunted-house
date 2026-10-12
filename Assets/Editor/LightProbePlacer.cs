@@ -7,7 +7,7 @@ using UnityEngine.AI;
 
 // Builds the scene's light probes from the baked NavMesh.
 //
-// Every light in the house is baked, so probes are the only thing that carries that light onto
+// Every light in the house is baked, so probes are the only source of that light for
 // the players, the ghosts, the pills and the doors. Without them all of those render against the
 // flat ambient colour, which is nearly black.
 //
@@ -25,14 +25,14 @@ public static class LightProbePlacer
     const float Spacing = 2.5f;        // grid step, and the step along the NavMesh outline
     const float BorderInset = 0.15f;   // pull outline points off the exact edge, toward the room
     const float MinDistance = 1.5f;    // columns closer together than this collapse into one
-    const float FeatureOffset = 1.2f;  // how far from a light or door its satellites sit
+    const float FeatureOffset = 1.2f;  // how far from a light or door its satellite probes are placed
     const float SnapDistance = 1.5f;   // how far a satellite may be pulled to reach the NavMesh
     const float ClearRadius = 0.2f;    // a probe this close to a collider is dropped
     const float RoomFillRadius = 5f;   // how far to fill around a light or door that missed the NavMesh
     const float StepTolerance = 0.5f;  // a fill point this much above the room floor is furniture, not floor
 
     // Heights above the walkable surface. The house has no ceilings and the walls are 2.297 m,
-    // so the top layer stays 0.4 m below the wall top and keeps looking at the room, not the sky.
+    // so the top layer is 0.4 m below the wall top, inside the room.
     static readonly float[] Heights = { 0.3f, 1.1f, 1.9f };
 
     const string GroupName = "Light Probes";
@@ -89,7 +89,7 @@ public static class LightProbePlacer
 
         var group = ReplaceGroup(parent);
 
-        // probePositions are local to the group, so convert even though World Holder sits at the origin.
+        // probePositions are local to the group, so convert even though World Holder is at the origin.
         var local = new Vector3[world.Count];
         for (int i = 0; i < world.Count; i++)
             local[i] = group.transform.InverseTransformPoint(world[i]);
@@ -179,7 +179,7 @@ public static class LightProbePlacer
             edges[key] = (a, b, centre, 1);
     }
 
-    // Wall sconces sit inside the wall and doors sit in the doorway, so neither position is on the
+    // Wall sconces are inside the wall and doors are in the doorway, so neither position is on the
     // NavMesh. Offsetting to four sides and snapping each one finds whichever rooms they open onto.
     // A feature where all four miss is in a room the ghosts cannot reach, which still needs probes
     // because players can be there, so it gets filled from the feature instead.
@@ -205,9 +205,9 @@ public static class LightProbePlacer
     }
 
     // The spawn room is walled off from the ghosts, so it is not on the NavMesh even though the
-    // player starts there. Fill outwards from the feature on the same lattice, keeping only what
-    // the room's own floor can see, which is what stops the fill leaking through a wall to the
-    // ground plane outside the house.
+    // player starts there. This method adds lattice points around the feature, and keeps only the
+    // points with a clear Linecast from just above the feature's floor. Without that check, it also
+    // adds points on the ground outside the house, behind a wall.
     static int FillAroundFeature(Vector3 centre, List<Vector3> columns)
     {
         if (!Physics.Raycast(centre + Vector3.up * 0.5f, Vector3.down, out var under,

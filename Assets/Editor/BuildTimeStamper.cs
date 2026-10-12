@@ -13,9 +13,6 @@ using UdonSharpEditor;
 using VRC.SDKBase.Editor.BuildPipeline;
 
 // Runs right before the VRChat SDK builds/uploads the world. It writes the
-// current UTC time into every BuildTimeDisplay in the open scenes, pushes that
-// value into the backing UdonBehaviour, and saves the scene so the build picks
-// it up.
 public class BuildTimeStamper : IVRCSDKBuildRequestedCallback
 {
     // Lower runs earlier. Keep it low so we stamp before UdonSharp serializes.
