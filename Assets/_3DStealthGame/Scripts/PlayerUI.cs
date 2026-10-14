@@ -1,5 +1,6 @@
 #pragma warning disable IDE1006 // Naming Styles
 using Assets._3DStealthGame.Scripts;
+using Assets._3DStealthGame.Scripts.Enums;
 
 using UdonSharp;
 
@@ -60,7 +61,6 @@ public class PlayerUI : Resettable
     private float _fov = -1f;
     private float _aspect = -1f;
 
-    // 
     private float HudFov => _isInVR ? vrHudFieldOfView : _fov;
     
     private float Distance => _isInVR ? vrPanelDistance : UIOffset.z;
@@ -81,7 +81,6 @@ public class PlayerUI : Resettable
         base.Start();
         _localPlayer = Networking.LocalPlayer;
         _hudRectTransform = (RectTransform)transform;
-        _fov = -1;
         
         ValidateInit();
         _pillRow = pillIcons[0].transform.parent;
@@ -112,9 +111,8 @@ public class PlayerUI : Resettable
 
         if (blackDeathBackground == null || endScreen == null)
         {
-            Debug.LogError($"PlayerUI ({gameObject.name}): the caught/end screen panels are not both assigned in the inspector.");
+            Debug.LogError($"PlayerUI ({gameObject.name}): blackDeathBackground and endScreen need to be assigned in the inspector.");
         }
-
     }
     public override void OnPlayerRestored(VRCPlayerApi player)
     {
@@ -192,29 +190,28 @@ public class PlayerUI : Resettable
         float viewHalfHeightPerMetre = Mathf.Tan(0.5f * _fov * Mathf.Deg2Rad);
         float hudHalfHeightPerMetre = Mathf.Tan(0.5f * HudFov * Mathf.Deg2Rad);
 
-        _pillRowOffset = ScreenFractionToWorldOffset(pillsHorizontalFraction, pillsVerticalFraction + PillVertOffset, hudHalfHeightPerMetre: hudHalfHeightPerMetre);
-        _escapeTimerOffset = ScreenFractionToWorldOffset(escapeTimerHorizontalFraction, escapeTimerVerticalFraction + VertOffset, hudHalfHeightPerMetre: hudHalfHeightPerMetre);
+        _pillRowOffset = ScreenFractionToWorldOffset(pillsHorizontalFraction, pillsVerticalFraction + PillVertOffset, hudHalfHeightPerMetre);
+        _escapeTimerOffset = ScreenFractionToWorldOffset(escapeTimerHorizontalFraction, escapeTimerVerticalFraction + VertOffset, hudHalfHeightPerMetre);
 
         float elementScale = Distance / UIOffset.z;
         _pillRow.localScale = _pillsBaseScale * elementScale;
         escapeTimerTextRect.localScale = _escapeTimerBaseScale * elementScale;
 
-        FitScreenPanels(hudHalfHeightPerMetre: hudHalfHeightPerMetre, viewHalfHeightPerMetre: viewHalfHeightPerMetre);
+        FitScreenPanels(hudHalfHeightPerMetre, viewHalfHeightPerMetre);
     }
 
     // Converts a screen-space fraction (0 = centre, ±1 = edge) into a world offset
     // in front of the head.
     //
-    // VRChat has no screen overlays in VR, so the HUD is a 3D canvas tracking the
-    // head. A fixed world position would drift as the window resizes, so we derive
-    // the position from the current FOV and aspect ratio instead:
+    // VRChat has no screen overlays in VR, so the HUD is a 3D canvas in front of the head.
+    // The position comes from the current FOV and aspect ratio:
     //
     //     x = horizFraction * Distance * _hudHalfHeightPerMetre * _aspect
     //     y = vertFraction  * Distance * _hudHalfHeightPerMetre
     //
     // Distance * _hudHalfHeightPerMetre gives half the visible height at that
     // depth. The fraction picks a point within it, and _aspect scales x so elements
-    // stay put when the window stretches. VR substitutes vrHudFieldOfView for the
+    // stay at the same place in view when the window width changes. VR substitutes vrHudFieldOfView for the
     // desktop camera FOV but the maths is the same.
     private Vector3 ScreenFractionToWorldOffset(float horizFraction, float vertFraction, float hudHalfHeightPerMetre)
     {
@@ -235,7 +232,6 @@ public class PlayerUI : Resettable
     // half-height and the rect is then stretched out to the full view half-height.
     //
     // Stretching the rect rather than the scale also keeps the scale uniform.
-
     private void FitScreenPanels(float hudHalfHeightPerMetre, float viewHalfHeightPerMetre)
     {
         Rect hud = _hudRectTransform.rect;
@@ -256,12 +252,12 @@ public class PlayerUI : Resettable
         Vector2 sizeDelta = new Vector2(coverHeight * _aspect - hud.width,
                                         coverHeight - hud.height);
         
-        // localPosition is measured from the canvas, so subtracting UIOffset gives the
+        // localPosition is measured from the canvas, so subtracting UIOffset.z gives the
         // distance from the canvas to where we want the panel, and dividing by the
         // canvas scale turns metres into its local units.
         float vertShift = VertOffset * Distance * hudHalfHeightPerMetre;
-        Vector3 centre = new Vector3(-UIOffset.x / _hudRectTransform.localScale.x,
-                                     (vertShift - UIOffset.y) / _hudRectTransform.localScale.y,
+        Vector3 centre = new Vector3(0f,
+                                     vertShift / _hudRectTransform.localScale.y,
                                      (Distance - UIOffset.z) / _hudRectTransform.localScale.z);
 
         ScaleToFillView(blackDeathBackground, scale, sizeDelta, centre);
@@ -274,7 +270,7 @@ public class PlayerUI : Resettable
         panel.sizeDelta = sizeDelta;
         panel.anchoredPosition = new Vector2(centre.x, centre.y);
 
-        // anchoredPosition only writes x and y, so push it out to its distance here.
+        // anchoredPosition sets only x and y, so z is set to the panel distance here.
         Vector3 local = panel.localPosition;
         local.z = centre.z;
         panel.localPosition = local;

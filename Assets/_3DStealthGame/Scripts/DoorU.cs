@@ -1,5 +1,6 @@
 ﻿#pragma warning disable IDE0044 // Add readonly modifier
 #pragma warning disable UNT0026
+using Assets._3DStealthGame.Scripts.Enums;
 using UdonSharp;
 using UnityEngine;
 using VRC.SDKBase;

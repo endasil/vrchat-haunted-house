@@ -11,7 +11,8 @@ Material:
   m_Shader: {fileID: 211, guid: 0000000000000000f000000000000000, type: 0}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
-  m_ValidKeywords: []
+  m_ValidKeywords:
+  - _REQUIRE_UV2
   m_InvalidKeywords:
   - _ENABLE_GEOMETRIC_SPECULAR_AA
   - _METALLICSPECGLOSSMAP
@@ -113,7 +114,7 @@ Material:
     - _EmissionEnabled: 0
     - _EnableGeometricSpecularAA: 1
     - _EnvironmentReflections: 1
-    - _FlipbookMode: 0
+    - _FlipbookMode: 1
     - _GlossMapScale: 1
     - _Glossiness: 0.5
     - _GlossyReflections: 1

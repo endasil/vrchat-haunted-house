@@ -1,5 +1,6 @@
 using System.IO;
 using Assets._3DStealthGame.Scripts;
+using Assets._3DStealthGame.Scripts.Enums;
 using StealthGame;
 using UnityEditor;
 using UnityEngine;

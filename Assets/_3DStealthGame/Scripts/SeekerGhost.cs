@@ -7,13 +7,11 @@ using VRC.SDK3.UdonNetworkCalling;
 using VRC.SDKBase;
 // ReSharper disable SuggestVarOrType_BuiltInTypes
 
-// The seeker ghost: roams to random NavMesh positions, interrupts patrol to chase
-// when a player is seen or heard, investigates the last known position after
-// losing them, then resumes patrol. Snowball hits send it to investigate the
-// thrower's position. On arrival at a patrol point it does an idle look-around
-// sweep before picking the next destination.
-//
-// Shared vision/navigation/ownership plumbing lives in GhostAgentBase.
+// The seeker ghost: select a random position on the navmesh and walk there.
+// If it sees or hear a player, random patrol will be stopped, and it will 
+// chase the player. when a player is seen or heard, investigates the last known position after
+// losing them, then resumes patrol. 
+
 [DisallowMultipleComponent]
 public class SeekerGhost : GhostAgentBase
 {
@@ -28,21 +26,14 @@ public class SeekerGhost : GhostAgentBase
     public float playerFoundSpeed = 2f;
 
     // Ignore positions where the agent would end up x meter from facing a wall.
-    private readonly float _wallNearDistance = 1f;
+    private const float WallNearDistance = 1f;
 
     // While chasing, only request a new path once the player has moved this far
     // from the current path's destination.
-    private readonly float _chaseRepathDistance = 1f;
+    private const float ChaseRepathDistance = 1f;
 
     // Turn speed (deg/s) used to face the arrival direction when close to a patrol destination.
     private const float ArrivalTurnSpeed = 240f;
-
-    // Angles in degrees between the ghost's forward and a newly detected player.
-    private const float TurnInPlaceStartAngle = 90f;
-    private const float TurnInPlaceEndAngle = 10f;
-
-    // Turn speed (deg/s) of the in-place turn toward a newly detected player.
-    public float turnInPlaceSpeed = 240f;
 
     // ==============================
     // Patrol Settings
@@ -51,8 +42,6 @@ public class SeekerGhost : GhostAgentBase
     // Maximum random patrol distance
     public float maxWalkDistance = 20f;
     public float minWalkDistance = 5f;
-
-    // Vision settings (visionHalfAngle, visionLength) live in GhostAgentBase.
 
     // ==============================
     // Hearing Settings
@@ -73,7 +62,7 @@ public class SeekerGhost : GhostAgentBase
     // Runtime State: Idle Look-Around
     // ==============================
 
-    // True while the idle look-around sweep is running.
+    // True while the idle look-around is running.
     private bool _isLookingAround;
 
     // The direction the NPC tries to face while idling (used as the sweep "center").
@@ -86,7 +75,6 @@ public class SeekerGhost : GhostAgentBase
     private int _idleLookStep;
 
     private bool _idleSweepCompleted;
-
 
     // One-time look-around tuning.
     public float minLookAroundSweepAngle = 20f;        // minimum sweep half-angle
@@ -106,7 +94,7 @@ public class SeekerGhost : GhostAgentBase
 
     private void Start()
     {
-        InitGhostAgent();
+        base.InitGhostAgent();
     }
 
     private void Update()
@@ -127,8 +115,6 @@ public class SeekerGhost : GhostAgentBase
 
         if (didDetectPlayer)
         {
-            // Detection owns the target: always chase the player it just picked
-            // (the closest seen one, or the closest heard one if nobody is seen).
             _currentTargetPlayer = detectedPlayer;
 
             CancelIdleLookAround();
@@ -137,7 +123,7 @@ public class SeekerGhost : GhostAgentBase
 
             // Only a new detection starts the turn. Mid-chase the path can bend around a wall,
             // so the player can be more than 90 degrees off while the ghost follows the path.
-            float angleToPlayer = HorizontalAngleToPosition(playerPosition);
+            float angleToPlayer = base.HorizontalAngleToPosition(playerPosition);
             if (!_detectedPlayerLastFrame && angleToPlayer > TurnInPlaceStartAngle)
             {
                 _isTurningInPlace = true;
@@ -150,29 +136,24 @@ public class SeekerGhost : GhostAgentBase
 
             if (_isTurningInPlace)
             {
-                EnsureAgentIsIdle();
-                TurnTowardsWorldPosition(playerPosition, turnInPlaceSpeed);
+                base.EnsureAgentIsIdle();
+                base.TurnTowardsWorldPosition(playerPosition, turnInPlaceSpeed);
             }
             else
             {
-                EnsureAgentCanMove();
+                base.EnsureAgentCanMove();
             }
 
             _navMeshAgent.speed = playerFoundSpeed;
 
-            // Only ask for a new path when we actually need one. Requesting one every frame
-            // keeps the agent stuck waiting: each request throws away the path it just
-            // computed, so it holds a usable path only ~1 frame in 6 and never moves.
-            // Repath when there is no path at all, or when the player has moved away from
-            // where the current path leads. Never interrupt a request already in flight.
             if (!_navMeshAgent.pathPending)
             {
                 bool needNewPath = !_navMeshAgent.hasPath
-                    || Vector3.Distance(_navMeshAgent.destination, playerPosition) > _chaseRepathDistance;
+                    || Vector3.Distance(_navMeshAgent.destination, playerPosition) > ChaseRepathDistance;
 
                 if (needNewPath)
                 {
-                    bool pathSet = SetDestinationOnNavMesh(playerPosition);
+                    bool pathSet = base.SetDestinationOnNavMesh(playerPosition);
                     if (!pathSet)
                     {
                         Debug.LogError($"{gameObject.name} SetDestination failed to find a path to the player with samplePosition. player pos: {playerPosition} from agent at: agentPos={transform.position}");
@@ -180,64 +161,56 @@ public class SeekerGhost : GhostAgentBase
                 }
             }
 
-            // Within hearing distance the ghost is too close for the agent's velocity-based
-            // rotation to look right (it brakes and stops, so velocity is near zero and the
-            // turn freezes or snaps), so steer the facing ourselves toward the player. Farther
-            // out, the agent moves fast enough that its own rotation looks fine, same as patrol,
-            // so leave updateRotation on (set by EnsureAgentCanMove above). Distance uses head
-            // position to match how hearing range is measured in detection.
-            float distanceToTarget = Vector3.Distance(transform.position, GetPlayerHeadPosition(_currentTargetPlayer));
+            // The rotation looked odd when the player is close, so use manual rotation when within hearing distance.
+            float distanceToTarget = Vector3.Distance(transform.position, base.GetPlayerHeadPosition(_currentTargetPlayer));
             if (!_isTurningInPlace && distanceToTarget <= hearingRange)
             {
                 _navMeshAgent.updateRotation = false;
-                TurnTowardsWorldPosition(playerPosition, _navMeshAgent.angularSpeed);
+                base.TurnTowardsWorldPosition(playerPosition, _navMeshAgent.angularSpeed);
             }
 
             _isInvestigating = true;
-            if (detectedByVision)
-                SetIndicatorSymbol(AwarenessIndicator.SpottedPlayer);
-            else 
-                SetIndicatorSymbol(AwarenessIndicator.HeardSomething);
-            
+            base.SetIndicatorSymbol(detectedByVision ? AwarenessIndicator.SpottedPlayer : AwarenessIndicator.HeardSomething);
             return;
         }
 
         _detectedPlayerLastFrame = false;
         _isTurningInPlace = false;
 
-        // Only rotate toward arrival direction during patrol, not while chasing.
+        // Only rotate toward arrival direction during patrol
         if (!_isInvestigating)
+        {
             RotateTowardsSteeringTargetWhenCloseToArrival();
+        }
 
-        // if idle look around is active, it will handle this frame
         if (UpdateIdleLookAroundIfActive())
         {
             return;
         }
 
-        EnsureAgentCanMove();
+        base.EnsureAgentCanMove();
 
         // If we already started investigating, keep moving until we reach the destination.
-        if (_isInvestigating && _navMeshAgent.hasPath && _navMeshAgent.remainingDistance > _navMeshAgent.stoppingDistance)
+        // While a path is pending, hasPath and remainingDistance still describe the previous path.
+        if (_isInvestigating && 
+            (_navMeshAgent.pathPending || (_navMeshAgent.hasPath && _navMeshAgent.remainingDistance > _navMeshAgent.stoppingDistance)))
         {
             _navMeshAgent.speed = playerFoundSpeed;
-            SetIndicatorSymbol(AwarenessIndicator.InvestigatingLastKnown);
+            base.SetIndicatorSymbol(AwarenessIndicator.InvestigatingLastKnown);
             return;
         }
 
         _isInvestigating = false;
         _currentTargetPlayer = null;
         _navMeshAgent.speed = defaultSpeed;
-        SetIndicatorSymbol("");
+        base.SetIndicatorSymbol("");
 
         // If a new patrol destination is needed, start look around logic which
         // will also select a new target.
-
         if (!_navMeshAgent.hasPath || _navMeshAgent.remainingDistance <= _navMeshAgent.stoppingDistance)
         {
             PickDestinationAndStartLookAround();
         }
-
     }
 
     // ==============================
@@ -245,32 +218,52 @@ public class SeekerGhost : GhostAgentBase
     // ==============================
 
     // Called over the network by a snowball that hit this ghost
-    // (Snowball.NotifyGhostHit targets NetworkEventTarget.Owner, the client
-    // driving the AI).
+    // (Snowball.NotifyGhostHit targets NetworkEventTarget.Owner).
     [NetworkCallable]
     public void OnSnowballHit(Vector3 throwerPosition)
     {
-        if (!Networking.IsOwner(gameObject)) return;
+        if (!_isOwner) return;
         if (_navMeshAgent == null) return;
 
         // Ignore this if already chasing a player or investigating, don't override that.
-        if (IsValidTargetPlayer(_currentTargetPlayer) || _isInvestigating) return;
+        if (_isInvestigating) return;
 
         CancelIdleLookAround();
-        EnsureAgentCanMove();
+        base.EnsureAgentCanMove();
         _navMeshAgent.speed = defaultSpeed;
-        SetDestinationOnNavMesh(throwerPosition);
+        base.SetDestinationOnNavMesh(throwerPosition);
         _isInvestigating = true;
-        SetIndicatorSymbol(AwarenessIndicator.HeardSomething);
+        base.SetIndicatorSymbol(AwarenessIndicator.HeardSomething);
     }
 
-    // ==============================
-    // Player Validation & Targeting
-    // ==============================
-
-    private bool IsValidTargetPlayer(VRCPlayerApi playerCandidate)
+    // Called over the network by a snowball that hit something near this ghost
+    // (Snowball.AlertSeekersNearImpact targets NetworkEventTarget.Owner).
+    [NetworkCallable]
+    public void OnSnowballImpact(Vector3 impactPosition)
     {
-        return playerCandidate != null && playerCandidate.IsValid();
+        if (!_isOwner) return;
+        if (_navMeshAgent == null) return;
+
+        // The ghost ignores impacts while it chases a player it sees or hears.
+        if (_detectedPlayerLastFrame) return;
+
+        if (!CanSeeOrHearPosition(impactPosition)) return;
+
+        // False when no NavMesh point is within NavMeshSampleRadius of the impact, for example a hit high on a wall.
+        if (!base.SetDestinationOnNavMesh(impactPosition)) return;
+
+        CancelIdleLookAround();
+        base.EnsureAgentCanMove();
+        _isInvestigating = true;
+        base.SetIndicatorSymbol(AwarenessIndicator.HeardSomething);
+    }
+
+    private bool CanSeeOrHearPosition(Vector3 worldPosition)
+    {
+        float distance = Vector3.Distance(transform.position, worldPosition);
+        if (distance <= hearingRange) return true;
+
+        return distance <= visionLength && base.IsWithinViewCone(worldPosition, visionHalfAngle);
     }
 
     private void RotateTowardsSteeringTargetWhenCloseToArrival()
@@ -279,22 +272,12 @@ public class SeekerGhost : GhostAgentBase
 
         if (_navMeshAgent.pathPending) return;
 
-        if (_navMeshAgent.hasPath == false) return;
+        if (!_navMeshAgent.hasPath) return;
 
         if (_navMeshAgent.remainingDistance >= _navMeshAgent.stoppingDistance + 1f) return;
 
-        TurnTowardsWorldPosition(_navMeshAgent.steeringTarget, ArrivalTurnSpeed);
+        base.TurnTowardsWorldPosition(_navMeshAgent.steeringTarget, ArrivalTurnSpeed);
     }
-
-    private float HorizontalAngleToPosition(Vector3 worldPosition)
-    {
-        Vector3 direction = worldPosition - transform.position;
-        direction.y = 0f;
-        Vector3 forward = transform.forward;
-        forward.y = 0f;
-        return Vector3.Angle(forward, direction);
-    }
-
 
     // ==============================
     // Detection Logic
@@ -303,14 +286,14 @@ public class SeekerGhost : GhostAgentBase
     // Attempts to detect the best player via vision first, then hearing.
     private bool TryDetectBestPlayer(out VRCPlayerApi bestDetectedPlayer, out bool bestDetectedByVision)
     {
-        bestDetectedPlayer = FindClosestVisiblePlayer(visionHalfAngle, visionLength);
+        bestDetectedPlayer = base.FindClosestVisiblePlayer(visionHalfAngle, visionLength);
         if (bestDetectedPlayer != null)
         {
             bestDetectedByVision = true;
             return true;
         }
 
-        bestDetectedPlayer = FindClosestPlayerWithin(hearingRange);
+        bestDetectedPlayer = base.FindClosestPlayerWithin(hearingRange);
         bestDetectedByVision = false;
         return bestDetectedPlayer != null;
     }
@@ -322,7 +305,6 @@ public class SeekerGhost : GhostAgentBase
     private void PickDestinationAndStartLookAround()
     {
         _navMeshAgent.stoppingDistance = 0.4f;
-        _navMeshAgent.speed = defaultSpeed;
         if (!TryGetRandomNavMeshPosition(out Vector3 nextDestination))
         {
             Debug.Log($"{gameObject.name} StartIdleLookAround: no valid NavMesh position found, skipping sweep, will retry next frame.");
@@ -331,7 +313,7 @@ public class SeekerGhost : GhostAgentBase
 
         _navMeshAgent.SetDestination(nextDestination);
         _targetPathIsPending = true;
-        EnsureAgentIsIdle();
+        base.EnsureAgentIsIdle();
 
         _currentSweepAngle = Random.Range(minLookAroundSweepAngle, lookAroundSweepAngle);
         _idleLookStep = 0;
@@ -339,24 +321,21 @@ public class SeekerGhost : GhostAgentBase
         _isLookingAround = true;
         _idleSweepCompleted = false;
         _idlePausingAtEndpoint = false;
-
-        SetIndicatorSymbol("");
     }
-
 
     // Return true if this logic did the work for this frame.
     private bool UpdateIdleLookAroundIfActive()
     {
         if (!_isLookingAround) return false;
 
-        EnsureAgentIsIdle();
+        base.EnsureAgentIsIdle();
 
         UpdateIdleHoldAndSweep();
 
         if (_idleSweepCompleted && Time.time >= _idleStateEndTime)
         {
             CancelIdleLookAround();
-            EnsureAgentCanMove();
+            base.EnsureAgentCanMove();
         }
 
         return true;
@@ -374,13 +353,9 @@ public class SeekerGhost : GhostAgentBase
     // Flow: current angle → first endpoint (pause) → center → second endpoint (pause) → center (done).
     private void UpdateIdleHoldAndSweep()
     {
-
         if (_targetPathIsPending)
         {
-            // Wait until a path has been calculated before starting lookaround
-            // this is because we want the look around to pass over the direction
-            // it will eventually go.
-
+            // The sweep is centred on steeringTarget, which belongs to the previous path while pathPending is true.
             if (_navMeshAgent.pathPending) return;
 
             _targetPathIsPending = false;
@@ -449,23 +424,18 @@ public class SeekerGhost : GhostAgentBase
     private bool IsFacingWallOnArrival(Vector3 destination)
     {
         NavMeshPath path = new NavMeshPath();
-        if (!NavMesh.CalculatePath(transform.position, destination, NavMesh.AllAreas, path))
-            return false;
+        if (!NavMesh.CalculatePath(transform.position, destination, NavMesh.AllAreas, path)) return false;
 
-        if (path.corners.Length < 2)
-            return false;
+        if (path.corners.Length < 2) return false;
 
         var lastCorner = path.corners[path.corners.Length - 1];
 
         var secondToLastCorner = path.corners[path.corners.Length - 2];
 
         Vector3 arrivalDirection = (lastCorner - secondToLastCorner).normalized;
-        Vector3 raycastOrigin = lastCorner;
 
-        var wallHit = Physics.Raycast(raycastOrigin, arrivalDirection, _wallNearDistance);
-        return wallHit;
+        return Physics.Raycast(lastCorner, arrivalDirection, WallNearDistance);
     }
-
 
     // Returns a random reachable NavMesh position around the NPC,
     // with basic rejection to avoid wall-facing arrivals.
@@ -487,12 +457,9 @@ public class SeekerGhost : GhostAgentBase
 
             if (NavMesh.SamplePosition(desiredWorldPosition, out var navMeshHit, NavMeshSampleRadius, NavMesh.AllAreas))
             {
-                if (!IsFacingWallOnArrival(navMeshHit.position))
-                {
-                    position = navMeshHit.position;
-                    return true; // No wall ahead, return this position
-                }
-                position = navMeshHit.position; // Keep as fallback in case no wall-free spot turns up
+                position = navMeshHit.position;
+                if (!IsFacingWallOnArrival(position)) return true;
+
                 hasFallback = true;
             }
         }
@@ -515,7 +482,6 @@ public class SeekerGhost : GhostAgentBase
         }
     }
 
-    // This client just took over driving the ghost, drop any stale chase state.
     protected override void OnBecameAgentOwner()
     {
         _currentTargetPlayer = null;

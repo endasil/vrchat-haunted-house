@@ -439,8 +439,9 @@ MonoBehaviour:
   Indicator: {fileID: 0}
   visionHalfAngle: 45
   visionLength: 10
-  defaultSpeed: 0.5
-  playerFoundSpeed: 1.7
+  defaultSpeed: 0.7
+  playerFoundSpeed: 2
+  turnInPlaceSpeed: 240
   maxWalkDistance: 10
   minWalkDistance: 2
   hearingRange: 3

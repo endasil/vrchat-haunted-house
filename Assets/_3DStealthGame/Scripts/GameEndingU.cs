@@ -1,4 +1,6 @@
 ﻿
+using Assets._3DStealthGame.Scripts.Enums;
+
 using TMPro;
 
 using UdonSharp;
@@ -8,13 +10,9 @@ using UnityEngine;
 using VRC.SDKBase;
 
 [DisallowMultipleComponent]
-[UdonBehaviourSyncMode(BehaviourSyncMode.Manual)]
+[UdonBehaviourSyncMode(BehaviourSyncMode.None)]
 public class GameEndingU : UdonSharpBehaviour
 {
-    public const int GHOST_BUTLER = 0;
-    public const int GHOST_SEEKER = 1;
-    public const int GHOST_GARGOYLE = 2;
-
     public float fadeDuration = 1f;
     public float displayImageDuration = 1f;
 
@@ -24,29 +22,31 @@ public class GameEndingU : UdonSharpBehaviour
     public AudioSource exitAudio;
     public AudioSource caughtAudio;
 
-    // Resets doors, pills and the inventory for the next attempt after the
-    // caught fade finishes. Everything resettable is local-only (sync mode
-    // None), so this doesn't disturb other players.
+    // Used to resets things like doors, pills, gargoyle and inventory when 
+    // player is caught or win.
     public ResetManager resetManager;
 
     public MusicFader music;
+
+    public FogFader fog;
 
 	// Showing the death message consist of two component. A TextMeshProUGUI 
 	// on the DeathMessageBoard canvas in root the world and separate canvas 
 	// with only black. 
 	// The idea is to have the game over text detached from head movement 
-    // so it looks like the player sees a black text on the void instead of 
-	// part of the hud.
+    // so it looks like the player sees a white text in a black void.
+
 
     public TextMeshProUGUI caughtMessageText;
 
-    // Offset to adjust the position of the death message relative to the player.
-    private const float DeathMessageDistance = 1.6f;
-    private const float DeathMessageHeight = 0f;
+     public TextMeshProUGUI wonMessageText;
 
+    public float wonMessageDuration = 8f;
+
+    private const float EndingCanvasDistance = 1.6f;
+    
     private bool _isPlayerAtExit;
     private bool _isPlayerCaught;
-    private bool _endLevelStarted;
     private float _timer;
 
     private string[] _butlerMessages = new string[]
@@ -107,43 +107,84 @@ public class GameEndingU : UdonSharpBehaviour
     private Quaternion _spawnRotation;
     private VRCPlayerApi _localPlayer;
 
-    // The gameObject the canvas the message sits on.
-    private Transform _deathMessageBoard;
     private CanvasGroup _deathMessageGroup;
+    private CanvasGroup _wonMessageGroup;
+
+    private CanvasGroup _endingScreenGroup;
+    private CanvasGroup _endingMessageGroup;
+    private float _endingDisplayDuration;
 
     void Start()
     {
         _localPlayer = Networking.LocalPlayer;
         _spawnPosition = _localPlayer.GetPosition();
         _spawnRotation = _localPlayer.GetRotation();
-        SendCustomEventDelayedFrames(nameof(CaptureSpawn), 1);
+        CaptureSpawn();
 
         if (caughtMessageText == null)
         {
-            Debug.LogError($"GameEndingU ({gameObject.name}): caughtMessageText need to be set in the inspector.");
+            Debug.LogError($"GameEndingU ({gameObject.name}): caughtMessageText needs to be assigned in the inspector.");
         }
         else
         {
-            _deathMessageBoard = caughtMessageText.transform.parent;
-            _deathMessageGroup = _deathMessageBoard.GetComponent<CanvasGroup>();
-            if (_deathMessageGroup == null)
-                Debug.LogError($"GameEndingU ({gameObject.name}): {_deathMessageBoard.name} has no CanvasGroup, so the death message can't fade.");
+            Transform deathMessageCanvas = caughtMessageText.transform.parent;
+            _deathMessageGroup = deathMessageCanvas.GetComponent<CanvasGroup>();
+            if (_deathMessageGroup == null) 
+                Debug.LogError($"GameEndingU ({gameObject.name}): {deathMessageCanvas.name} has no CanvasGroup, so the death message can't fade.");
+        }
+
+        if (wonMessageText == null)
+        {
+            Debug.LogError($"GameEndingU ({gameObject.name}): wonMessageText needs to be assigned in the inspector.");
+        }
+        else
+        {
+            Transform wonMessageCanvas = wonMessageText.transform.parent;
+            _wonMessageGroup = wonMessageCanvas.GetComponent<CanvasGroup>();
+            if (_wonMessageGroup == null)
+                Debug.LogError($"GameEndingU ({gameObject.name}): {wonMessageCanvas.name} has no CanvasGroup Add one to the component.");
         }
 
         if (resetManager == null)
         {
-            var go = GameObject.Find("ResetManager");
-            if (go != null) resetManager = go.GetComponent<ResetManager>();
+            Debug.LogError($"GameEndingU ({gameObject.name}): resetManager needs to be assigned in the inspector.");
         }
-        if (resetManager == null)
-            Debug.LogError($"GameEndingU ({gameObject.name}): could not find a ResetManager in the scene, so doors and pills won't reset after a catch.");
+
+        if (endScreenCanvasGroup == null)
+        {
+            Debug.LogError($"GameEndingU ({gameObject.name}): endScreenCanvasGroup needs to be assigned in the inspector.");
+        }
+
+        if (caughtScreenCanvasGroup == null)
+        {
+            Debug.LogError($"GameEndingU ({gameObject.name}): caughtScreenCanvasGroup needs to be assigned in the inspector.");
+        }
+
+        if (exitAudio == null)
+        {
+            Debug.LogError($"GameEndingU ({gameObject.name}): exitAudio needs to be assigned in the inspector.");
+        }
+
+        if (caughtAudio == null)
+        {
+            Debug.LogError($"GameEndingU ({gameObject.name}): caughtAudio needs to be assigned in the inspector.");
+        }
+
+        if (music == null)
+        {
+            Debug.LogError($"GameEndingU ({gameObject.name}): music needs to be assigned in the inspector.");
+        }
+
+        if (fog == null)
+        {
+            Debug.LogError($"GameEndingU ({gameObject.name}): fog needs to be assigned in the inspector.");
+        }
     }
 
-    // Remembers where the player is standing once they've landed, rather than where
-    // they were the instant the world loaded, which is in the air above the floor.
-	// Placing the player in the air and dropping them causes a ugly effect where
-	// the text message is floating up instead of staying at th center. 
-
+ 
+    //  Attempt to fix the floating text issue by storing where the player is once they landed in the world.
+	//  does not solve the problem, but leaving it here for now. can't decide if the effect is interesting 
+	//   or uggly.
     public void CaptureSpawn()
     {
         if (!_localPlayer.IsPlayerGrounded())
@@ -156,7 +197,7 @@ public class GameEndingU : UdonSharpBehaviour
         _spawnRotation = _localPlayer.GetRotation();
     }
 
-    public void TeleportPlayerToSpawn()
+    private void TeleportPlayerToSpawn()
     {
         _localPlayer.TeleportTo(_spawnPosition, _spawnRotation);
     }
@@ -171,167 +212,145 @@ public class GameEndingU : UdonSharpBehaviour
     }
 
 
-    public void PlaceDeathMessage()
+    public void PlaceEndingCanvas()
     {
-        if (_deathMessageBoard == null || !_isPlayerCaught) return;
-
+        Transform canvas = _endingMessageGroup.transform;
         VRCPlayerApi.TrackingData head = _localPlayer.GetTrackingData(VRCPlayerApi.TrackingDataType.Head);
 
         // Only the direction they're facing, so looking up or down while it's placed
         // doesn't cause tilt .
         Quaternion facing = Quaternion.Euler(0f, head.rotation.eulerAngles.y, 0f);
 
-        Vector3 offset = new Vector3(0f, DeathMessageHeight, DeathMessageDistance);
-        _deathMessageBoard.position = head.position + facing * offset;
-        _deathMessageBoard.rotation = facing;
-
-        if (_deathMessageGroup != null)
-            _deathMessageGroup.alpha = 1;
+        Vector3 offset = new Vector3(0f, 0, EndingCanvasDistance);
+        canvas.position = head.position + facing * offset;
+        canvas.rotation = facing;
+        _endingMessageGroup.alpha = 1;
     }
 
     // Called by ExitTrigger script when the local player walks into the exit trigger.
-    public void ReachedExit()
+    public void ReachedExit(float runTime, bool hasBestTime, float bestTime, bool isNewBest, int leaderboardPosition)
     {
-        if (_isPlayerAtExit) return;
+        if (_isPlayerAtExit || _isPlayerCaught) return;
 
         _isPlayerAtExit = true;
         FreezePlayer();
-        PauseMusic();
+        music.PauseMusic();
+        fog.Clear();
+
+        wonMessageText.text = BuildWonMessage(runTime, hasBestTime, bestTime, isNewBest, leaderboardPosition);
+
+        ShowEnding(endScreenCanvasGroup, _wonMessageGroup, wonMessageDuration, exitAudio);
+    }
+
+    private string BuildWonMessage(float runTime, bool hasBestTime, float bestTime, bool isNewBest, int leaderboardPosition)
+    {
+        string message = "<size=150%>You escaped the haunted house!</size>\n\n";
+        message += "Your time: " + TimeFormatter.Format(runTime) + "\n";
+
+        if (isNewBest)
+        {
+            message += "That is your new best time!\n";
+        }
+        else if (hasBestTime)
+        {
+            message += "Your best time: " + TimeFormatter.Format(bestTime) + "\n";
+        }
+
+        if (leaderboardPosition > 0)
+        {
+            message += "You are now number " + leaderboardPosition + " on the leaderboard!";
+        }
+
+        return message;
     }
 
     // Called by ghosts when the local player is caught.
-    public void CaughtPlayerBy(int ghostType)
+    public void CaughtPlayerBy(GhostType ghostType)
     {
-        if (_isPlayerCaught) return;
-
-        if (_localPlayer == null)
-        {
-            Debug.LogError($"GameEndingU ({gameObject.name}): _localPlayer is null, Start ran before the local player existed.");
-            return;
-        }
+        if (_isPlayerAtExit || _isPlayerCaught) return;
 
         _isPlayerCaught = true;
         FreezePlayer();
-        PauseMusic();
-
-        string[] messages = GetMessagesFor(ghostType);
-        int messageIndex = messages == null ? 0 : Random.Range(0, messages.Length);
-
-        if (caughtMessageText == null)
-        {
-            Debug.LogError($"GameEndingU ({gameObject.name}): caughtMessageText need to be set in the inspector.");
-        }
-        else
-        {
-            caughtMessageText.text = BuildOwnDeathMessage(ghostType, messageIndex);
-        }
-    }
-
-    private void PauseMusic()
-    {
-        if (music == null)
-        {
-            Debug.LogError($"GameEndingU ({gameObject.name}): music is not assigned in the inspector.");
-            return;
-        }
-
         music.PauseMusic();
+        fog.Clear();
+
+        caughtMessageText.text = BuildOwnDeathMessage(ghostType);
+
+        TeleportPlayerToSpawn();
+        ShowEnding(caughtScreenCanvasGroup, _deathMessageGroup, displayImageDuration, caughtAudio);
     }
 
-    private string[] GetMessagesFor(int ghostType)
+    private void ShowEnding(CanvasGroup screenGroup, CanvasGroup messageGroup, float displayDuration, AudioSource audioSource)
     {
-        if (ghostType == GHOST_BUTLER) return _butlerMessages;
-        if (ghostType == GHOST_SEEKER) return _seekerMessages;
-        if (ghostType == GHOST_GARGOYLE) return _gargoyleMessages;
+        _endingScreenGroup = screenGroup;
+        _endingMessageGroup = messageGroup;
+        _endingDisplayDuration = displayDuration;
+
+        // PlaceEndingCanvas reads the head position, which updates one frame after TeleportPlayerToSpawn.
+        SendCustomEventDelayedFrames(nameof(PlaceEndingCanvas), 1);
+        audioSource.Play();
+        screenGroup.alpha = 1;
+    }
+
+    private string[] GetMessagesFor(GhostType ghostType)
+    {
+        if (ghostType == GhostType.Butler) return _butlerMessages;
+        if (ghostType == GhostType.Seeker) return _seekerMessages;
+        if (ghostType == GhostType.Gargoyle) return _gargoyleMessages;
         return null;
     }
 
-    private string BuildOwnDeathMessage(int ghostType, int messageIndex)
+    private string BuildOwnDeathMessage(GhostType ghostType)
     {
-        string message = BuildDeathMessage(ghostType, messageIndex, "[Player]");
+        string message = BuildDeathMessage(ghostType);
         message = message.Replace("[Player] was ", "You were ");
         message = message.Replace(" them ", " you ");
         return message.Replace(" they ", " you ");
     }
 
-    private string BuildDeathMessage(int ghostType, int messageIndex, string playerName)
+    private string BuildDeathMessage(GhostType ghostType)
     {
         string[] messages = GetMessagesFor(ghostType);
         if (messages == null)
         {
             Debug.LogError($"GameEndingU ({gameObject.name}): unknown ghost type {ghostType}, using fallback death message");
-            return playerName + " was claimed by something nameless in the dark.";
+            return "[Player] was claimed by something nameless in the dark.";
         }
 
-        if (messageIndex < 0 || messageIndex >= messages.Length)
-        {
-            Debug.LogError($"GameEndingU ({gameObject.name}): death message index {messageIndex} out of range, using 0");
-            messageIndex = 0;
-        }
-        return messages[messageIndex].Replace("[Player]", playerName);
+        return messages[Random.Range(0, messages.Length)];
     }
 
     public void Update()
     {
-        if (_isPlayerAtExit)
+        if (_isPlayerAtExit || _isPlayerCaught)
         {
-            EndLevel(endScreenCanvasGroup, exitAudio);
-        }
-        else if (_isPlayerCaught)
-        {
-            EndLevel(caughtScreenCanvasGroup, caughtAudio);
+            EndLevel();
         }
     }
 
-    void EndLevel(CanvasGroup canvasGroup, AudioSource audioSource)
+    void EndLevel()
     {
-        if (canvasGroup == null)
-        {
-            Debug.LogError($"GameEndingU ({gameObject.name}): CanvasGroup is null in EndLevel");
-            return;
-        }
-
-
-        bool showMessage = _isPlayerCaught && _deathMessageGroup != null;
-
-        if (!_endLevelStarted)
-        {
-            if (_isPlayerCaught)
-            {
-                TeleportPlayerToSpawn();
-                // Wait one frame for the tracking data to be updated before using it to place 
-				// the death message.
-                SendCustomEventDelayedFrames(nameof(PlaceDeathMessage), 1);
-            }
-            audioSource.Play();
-            canvasGroup.alpha = 1;
-            _endLevelStarted = true;
-        }
-
         _timer += Time.deltaTime;
 
-        if (_timer > displayImageDuration)
+        if (_timer > _endingDisplayDuration)
         {
-            float fade = 1 - (_timer - displayImageDuration) / fadeDuration;
-            canvasGroup.alpha = fade;
-            if (showMessage) _deathMessageGroup.alpha = fade;
+            float fade = 1 - (_timer - _endingDisplayDuration) / fadeDuration;
+            _endingScreenGroup.alpha = fade;
+            _endingMessageGroup.alpha = fade;
         }
 
-        if (_timer > displayImageDuration + fadeDuration)
+        if (_timer > _endingDisplayDuration + fadeDuration)
         {
             if (_isPlayerAtExit)
             {
                 TeleportPlayerToSpawn();
             }
 
+            resetManager.ResetAll();
 
-            if (resetManager == null)
-                Debug.LogError($"GameEndingU ({gameObject.name}): no ResetManage, unable to reset scene.");
-            else
-                resetManager.ResetAll();
-
-            canvasGroup.alpha = 0;
-            if (_deathMessageGroup != null) _deathMessageGroup.alpha = 0;
+            _endingScreenGroup.alpha = 0;
+            _deathMessageGroup.alpha = 0;
+            _wonMessageGroup.alpha = 0;
 
 
             _localPlayer.Immobilize(false);
@@ -340,7 +359,6 @@ public class GameEndingU : UdonSharpBehaviour
             _isPlayerCaught = false;
 
             _timer = 0;
-            _endLevelStarted = false;
         }
     }
 }

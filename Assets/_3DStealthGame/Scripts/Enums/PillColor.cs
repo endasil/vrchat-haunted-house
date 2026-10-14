@@ -1,4 +1,4 @@
-namespace Assets._3DStealthGame.Scripts
+namespace Assets._3DStealthGame.Scripts.Enums
 {
     public enum PillColor
     {

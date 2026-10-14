@@ -1,5 +1,5 @@
+using Assets._3DStealthGame.Scripts.Enums;
 
-#pragma warning disable IDE0090 // Use 'new(...)'
 using UdonSharp;
 
 using UnityEngine;
@@ -11,9 +11,8 @@ public class ObserverU : UdonSharpBehaviour
     private bool _isPlayerInRange;
     private GameEndingU _gameEnding;
 
-    // Which ghost this trigger belongs to, worked out from the AI script on the
-    // ghost root. Matches the ghost type ints in GameEndingU.
-    private int _ghostType = -1;
+    // Which ghost this trigger belongs to.
+    private GhostType _ghostType = GhostType.None;
 
     void Start()
     {
@@ -30,17 +29,17 @@ public class ObserverU : UdonSharpBehaviour
 
         // Uses the ghost AI script on this object, or on the closest parent that has one.
         Transform t = transform;
-        while (t != null && _ghostType == -1)
+        while (t != null && _ghostType == GhostType.None)
         {
             if (t.GetComponent<ButlerGhost>() != null)
-                _ghostType = GameEndingU.GHOST_BUTLER;
+                _ghostType = GhostType.Butler;
             else if (t.GetComponent<SeekerGhost>() != null)
-                _ghostType = GameEndingU.GHOST_SEEKER;
+                _ghostType = GhostType.Seeker;
             else if (t.GetComponent<GargoyleU>() != null)
-                _ghostType = GameEndingU.GHOST_GARGOYLE;
+                _ghostType = GhostType.Gargoyle;
             t = t.parent;
         }
-        if (_ghostType == -1)
+        if (_ghostType == GhostType.None)
             Debug.LogError($"ObserverU on '{transform.root.name}': no ghost AI script found on any parent, death messages will use the fallback line");
     }
 
@@ -49,7 +48,6 @@ public class ObserverU : UdonSharpBehaviour
         if (player.isLocal)
         {
             _isPlayerInRange = true;
-            TryCatch();
         }
     }
 
@@ -70,13 +68,7 @@ public class ObserverU : UdonSharpBehaviour
 
     private void TryCatch()
     {
-        if (_gameEnding == null)
-            return;
-
         VRCPlayerApi localPlayer = Networking.LocalPlayer;
-        if (localPlayer == null)
-            return;
-
         Vector3 origin = transform.position;
         // Aim at roughly the torso (feet + 1m) so the ray doesn't hit the floor.
         Vector3 offset = localPlayer.GetPosition() + Vector3.up - origin;
@@ -90,9 +82,7 @@ public class ObserverU : UdonSharpBehaviour
         {
             // A ray that hits a player returns collider == null
 			//  A non-null collider is a wall between the ghost and the player.
-            Collider hitCollider = hit.collider;
-            if (hitCollider != null)
-                return;
+            if (hit.collider != null) return;
         }
 
         _gameEnding.CaughtPlayerBy(_ghostType);

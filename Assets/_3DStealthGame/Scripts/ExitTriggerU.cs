@@ -1,30 +1,29 @@
-
 using UdonSharp;
-
 using UnityEngine;
-
 using VRC.SDKBase;
-using VRC.Udon;
 
-// Sits on the exit trigger collider. When the local player walks into it, it
-// tells the GameEndingU manager that the exit was reached. Detection lives here
-// (on the collider) while the outcome handling lives on the manager.
 [UdonBehaviourSyncMode(BehaviourSyncMode.None)]
 public class ExitTriggerU : UdonSharpBehaviour
 {
     public GameEndingU gameEnding;
     public EscapeTimer escapeTimer;
+    public Leaderboard leaderboard;
 
     void Start()
     {
         if (gameEnding == null)
         {
-            Debug.LogError($"ExitTriggerU ({gameObject.name}): gameEnding reference is not set in the inspector");
+            Debug.LogError($"ExitTriggerU ({gameObject.name}): gameEnding needs to be assigned in the inspector");
         }
 
         if (escapeTimer == null)
         {
-            Debug.LogError($"ExitTriggerU ({gameObject.name}): escapeTimer reference is not set in the inspector");
+            Debug.LogError($"ExitTriggerU ({gameObject.name}): escapeTimer needs to be assigned in the inspector");
+        }
+
+        if (leaderboard == null)
+        {
+            Debug.LogError($"ExitTriggerU ({gameObject.name}): leaderboard needs to be assigned in the inspector.");
         }
     }
 
@@ -46,7 +45,12 @@ public class ExitTriggerU : UdonSharpBehaviour
             return;
         }
 
-        gameEnding.ReachedExit();
-        escapeTimer.StopTimer();
+        float runTime = escapeTimer.GetElapsed();
+        bool isNewBest = escapeTimer.StopAndSaveIfBest();
+        int leaderboardPosition;
+        leaderboardPosition = isNewBest ? 
+            leaderboard.GetPositionFor(player.displayName, runTime) : 0;
+
+        gameEnding.ReachedExit(runTime, escapeTimer.HasBestTime(), escapeTimer.GetBestTime(), isNewBest, leaderboardPosition);
     }
 }

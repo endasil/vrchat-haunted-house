@@ -20,7 +20,7 @@ GameObject:
   - component: {fileID: 2531207638709693290}
   - component: {fileID: 1157142914380755637}
   - component: {fileID: 3503811115055692836}
-  m_Layer: 0
+  m_Layer: 23
   m_Name: snowball
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -159,7 +159,7 @@ MonoBehaviour:
   ExactGrip: {fileID: 5985429005084427653}
   allowManipulationWhenEquipped: 1
   orientation: 1
-  AutoHold: 0
+  AutoHold: 2
   InteractionText: 
   UseText: Use
   useEventBroadcastType: 0

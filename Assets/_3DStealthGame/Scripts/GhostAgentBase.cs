@@ -7,11 +7,6 @@ using UnityEngine.AI;
 
 using VRC.SDKBase;
 
-// Shared plumbing for the ghost AIs (seeker and butler): NavMesh agent ownership,
-// player scanning with a vision cone + line-of-sight check, steering helpers and
-// the floating indicator text. Each ghost keeps its own state machine in its own
-// class; this base only holds what used to be duplicated between them.
-//
 // Never attached to a GameObject directly, so it has no UdonSharpProgramAsset
 // (same as Resettable).
 public class GhostAgentBase : UdonSharpBehaviour
@@ -19,11 +14,11 @@ public class GhostAgentBase : UdonSharpBehaviour
     // How far a point may be from the NavMesh and still get snapped onto it.
     protected const float NavMeshSampleRadius = 2f;
 
-    // Height above the ghost's pivot the vision raycast originates from.
+    // The vision raycast starts this far above transform.position.
     protected const float EyeHeight = 0.5f;
 
     // Floating state symbol above the ghost (e.g. "!" when a player is spotted).
-    // Looked up in children if not assigned in the inspector. Null is fine.
+    // Looked up in children if not assigned in the inspector.
     public TextMeshPro Indicator;
 
     // Forward vision cone: half-angle in degrees (so 45 = a 90° cone) and how far
@@ -31,18 +26,23 @@ public class GhostAgentBase : UdonSharpBehaviour
     public float visionHalfAngle = 45f;
     public float visionLength = 10f;
 
+    // Angles in degrees between the ghost's forward and the player it turns toward.
+    protected const float TurnInPlaceStartAngle = 90f;
+    protected const float TurnInPlaceEndAngle = 10f;
+
+    // Turn speed (deg/s) of the in-place turn toward a player.
+    public float turnInPlaceSpeed = 240f;
+
     protected NavMeshAgent _navMeshAgent;
 
     // Preallocated for VRChat's max instance size; can't use lists in U#.
     protected VRCPlayerApi[] _playerCache;
 
-    // Cached so Update doesn't pay for Networking.IsOwner every frame. Kept up to
-    // date by OnOwnershipTransferred.
+    // Kept up to date by OnOwnershipTransferred.
     protected bool _isOwner;
 
-    // Cache components, preallocate the player cache and hand the NavMeshAgent to
-    // the owner only. On everyone else the transform comes from VRCObjectSync, so
-    // a live agent here would just fight the synced position.
+    // VRCObjectSync sets the ghost's transform on clients that don't own the ghost.
+    // An enabled NavMeshAgent would also set it, so only the owner enables the agent.
     protected void InitGhostAgent()
     {
         _navMeshAgent = GetComponent<NavMeshAgent>();
@@ -55,14 +55,11 @@ public class GhostAgentBase : UdonSharpBehaviour
         _playerCache = new VRCPlayerApi[80];
 
         _isOwner = Networking.IsOwner(gameObject);
+        
         if (_navMeshAgent != null)
             _navMeshAgent.enabled = _isOwner;
     }
 
-    // When the previous owner leaves, a new client takes over driving the ghost.
-    // Turn the agent on for the new owner (off for everyone else) and warp it to
-    // where the ghost currently is, since it was disabled and never tracked the
-    // synced position. Subclasses reset their state machine in OnBecameAgentOwner.
     public override void OnOwnershipTransferred(VRCPlayerApi player)
     {
         _isOwner = Networking.IsOwner(gameObject);
@@ -73,13 +70,15 @@ public class GhostAgentBase : UdonSharpBehaviour
 
         if (_isOwner)
         {
+            // The agent was disabled while VRCObjectSync set the transform,
+            // so the agent's own position is out of date. Not having this
+            // sometimes causes npcs to appear on strange positions int
+            // teh world.
             _navMeshAgent.Warp(transform.position);
             OnBecameAgentOwner();
         }
     }
 
-    // Hook for subclasses: this client just took over the AI, reset the state
-    // machine to something sane.
     protected virtual void OnBecameAgentOwner() { }
 
     // ==============================
@@ -111,7 +110,7 @@ public class GhostAgentBase : UdonSharpBehaviour
 
             Vector3 headPosition = GetPlayerHeadPosition(candidate);
             float distanceSquared = (headPosition - agentPosition).sqrMagnitude;
-
+            
             if (distanceSquared > maxDistanceSquared) continue;
             if (distanceSquared >= closestDistanceSquared) continue;
             if (!IsWithinViewCone(headPosition, coneHalfAngleDeg)) continue;
@@ -168,9 +167,7 @@ public class GhostAgentBase : UdonSharpBehaviour
 
         if (Vector3.Angle(transform.forward, directionToTarget) > coneHalfAngleDeg) return false;
 
-        return !Physics.Raycast(
-            raycastOrigin,
-            directionToTarget,
+        return !Physics.Raycast(raycastOrigin,directionToTarget,
             distanceToTarget - 0.2f,
             ~0,
             QueryTriggerInteraction.Ignore);
@@ -180,10 +177,8 @@ public class GhostAgentBase : UdonSharpBehaviour
     // NavMeshAgent helpers
     // ==============================
 
-    // Snap a world point onto the NavMesh before pathing to it. Points off the
-    // mesh (like a player's head 1.5m up) otherwise map onto a nearby wall edge
-    // and produce a useless partial path. Returns false if nothing on the mesh
-    // is within range.
+    // Snap a world point onto the nearest NavMesh before trying to find a path to it.
+    // Returns false if nothing on the mesh is within range.
     protected bool SetDestinationOnNavMesh(Vector3 worldPoint)
     {
         if (NavMesh.SamplePosition(worldPoint, out var navMeshHit, NavMeshSampleRadius, NavMesh.AllAreas))
@@ -220,6 +215,15 @@ public class GhostAgentBase : UdonSharpBehaviour
         Quaternion targetRotation = Quaternion.LookRotation(direction, Vector3.up);
         transform.rotation = Quaternion.RotateTowards(
             transform.rotation, targetRotation, degreesPerSecond * Time.deltaTime);
+    }
+
+    protected float HorizontalAngleToPosition(Vector3 worldPosition)
+    {
+        Vector3 direction = worldPosition - transform.position;
+        direction.y = 0f;
+        Vector3 forward = transform.forward;
+        forward.y = 0f;
+        return Vector3.Angle(forward, direction);
     }
 
     // ==============================

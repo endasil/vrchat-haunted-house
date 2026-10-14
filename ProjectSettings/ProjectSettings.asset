@@ -161,6 +161,7 @@ PlayerSettings:
   androidSupportedAspectRatio: 1
   androidMaxAspectRatio: 2.1
   applicationIdentifier:
+    Android: com.DefaultCompany.Haunted
     Standalone: com.DefaultCompany.Haunted
   buildNumber:
     Standalone: 0
@@ -548,7 +549,7 @@ PlayerSettings:
     - None
     - OpenVR
     - Oculus
-  m_DefaultShaderChunkSizeInMB: 16
+  m_DefaultShaderChunkSizeInMB: 4
   m_DefaultShaderChunkCount: 0
   openGLRequireES31: 0
   openGLRequireES31AEP: 0

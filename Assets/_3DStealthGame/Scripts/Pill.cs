@@ -1,5 +1,6 @@
 #pragma warning disable UNT0026 // GetComponent allocatess even if no component found, no longer true in 2019.3+
 using Assets._3DStealthGame.Scripts;
+using Assets._3DStealthGame.Scripts.Enums;
 
 using UdonSharp;
 
@@ -14,22 +15,18 @@ public class Pill : Resettable
 
     public override void OnPlayerTriggerEnter(VRCPlayerApi player)
     {
-        if (!player.isLocal)
-            return;
+        if (!player.isLocal) return;
 
-        GameObject[] playerObjects = player.GetPlayerObjects();
+        PlayerInventory playerInventory = player.GetPlayerObjects()[0].GetComponent<PlayerInventory>();
 
-        PlayerInventory playerInventory = playerObjects[0].GetComponent<PlayerInventory>();
-
-        if (playerInventory != null)
-        {
-            playerInventory.AddPill(PillColor);
-            gameObject.SetActive(false);
-        }
-        else
+        if (playerInventory == null)
         {
             Debug.LogError($"{gameObject.name}: Unable to find PlayerInventory script on player object");
+            return;
         }
+
+        playerInventory.AddPill(PillColor);
+        gameObject.SetActive(false);
     }
 
     public override void ResetState()

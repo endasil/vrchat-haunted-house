@@ -13,11 +13,6 @@ using _3DStealthGame.Scripts.Constants;
 // Starts a run timer the first time the local player walks through
 // the trigger this is attached to. When the player reaches the exit,
 
-
-
-
-// Inherits Resettable so ResetManager.ResetAll() (called after a catch) 
-// can clear the timer for the next attempt.
 [DisallowMultipleComponent]
 [UdonBehaviourSyncMode(BehaviourSyncMode.None)]
 public class EscapeTimer : Resettable
@@ -26,6 +21,8 @@ public class EscapeTimer : Resettable
     public TextMeshProUGUI display;
 
     public MusicFader music;
+
+    public FogFader fog;
 
     // Finishes faster than this is ignored instead of becoming a best time
 	// to make it slightly harder to cheat.
@@ -42,8 +39,7 @@ public class EscapeTimer : Resettable
     {
         if (!player.isLocal) return;
         
-        // This method is called once a players permanent data has been loaded,
-		// Check if their fastest run has been recorded. If so fetch it. 
+        // Get the players best run if it is saved.
         if (PlayerData.TryGetFloat(player, PlayerDataKeys.SavedPersonalBestEscapeTime, out _bestTime))
         {
             _hasBestTime = true;
@@ -65,36 +61,62 @@ public class EscapeTimer : Resettable
 
         if (music == null)
         {
-            Debug.LogError($"EscapeTimer ({gameObject.name}): music is not assigned in the inspector.");
+            Debug.LogError($"EscapeTimer ({gameObject.name}): music needs to be assigned in the inspector.");
         }
         else
         {
             music.FadeToFull();
         }
+
+        if (fog == null)
+        {
+            Debug.LogError($"EscapeTimer ({gameObject.name}): fog needs to be assigned in the inspector.");
+        }
+        else
+        {
+            fog.FadeIn(music.fadeInDuration);
+        }
     }
 
     // Called by ExitTriggerU when the local player reaches the exit.
-    public void StopTimer()
+    // Returns true when the player beat their old speed record..
+    public bool StopAndSaveIfBest()
     {
-        if (!_running) return;
+        if (!_running) return false;
 
         _running = false;
 
         if (_elapsed < MinPlausibleTime)
         {
-            return;
+            return false;
         }
 
         if (_hasBestTime && _elapsed >= _bestTime)
         {
             Debug.Log("Finish time was worse than best time, doing nothing.");
-            return;
+            return false;
         }
 
         _bestTime = _elapsed;
         _hasBestTime = true;
         Debug.Log($"Setting new best time in key {PlayerDataKeys.SavedPersonalBestEscapeTime} to {_bestTime} ");
         PlayerData.SetFloat(PlayerDataKeys.SavedPersonalBestEscapeTime, _bestTime);
+        return true;
+    }
+
+    public float GetElapsed()
+    {
+        return _elapsed;
+    }
+
+    public bool HasBestTime()
+    {
+        return _hasBestTime;
+    }
+
+    public float GetBestTime()
+    {
+        return _bestTime;
     }
 
     public void Update()

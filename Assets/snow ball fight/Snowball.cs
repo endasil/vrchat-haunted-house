@@ -9,7 +9,6 @@ using UdonSharp;
 using UnityEngine;
 
 using VRC.SDK3.Components;
-using VRC.SDK3.UdonNetworkCalling;
 using VRC.SDKBase;
 using VRC.Udon.Common;
 using VRC.Udon.Common.Interfaces;
@@ -19,7 +18,6 @@ using VRC.Udon.Common.Interfaces;
 // when the snowball is thrown so smart
 public class Snowball : SmartObjectSyncListener
 {
-
     [Header("RespawnAndEnable Settings")]
     public Vector3 respawnPosition;
     public float respawnDelay = 2f;
@@ -28,32 +26,35 @@ public class Snowball : SmartObjectSyncListener
     public GameObject impactParticles;
     public float minImpactVelocity = 1.4f;
 
+    [Header("Ghost Alerts")]
+    // OnSnowballImpact goes only to seekers within this distance of an impact.
+    public float seekerAlertRadius = 20f;
+
+    [Header("Desktop Throw")]
+    // Speed in m/s along the view direction when a desktop player lets go of the snowball.
+    public float desktopThrowSpeed = 12f;
+
     [Header("Collider Setup")]
     public SphereCollider pickupCollider;
     public SphereCollider physicsCollider;
 
-    [Header("Network sync")]
     [UdonSynced] private Vector3 _syncedImpactPosition;
     [UdonSynced] private Vector3 _syncedImpactNormal;
     [UdonSynced] private int _syncedImpactEventId;
     private SmartObjectSync _smartObjectSync;
-    private int _lastHandledImpactEventId = 0;
+    private int _lastHandledImpactEventId;
 
-    [Header("Ghost Interaction")]
-    public SeekerGhost ghostAI;
-
-    private bool _hasImpacted = false;
+    private bool _hasImpacted;
     private VRCPickup _vrcPickup;
     private Rigidbody _rb;
     private MeshRenderer _meshRenderer;
-    private bool _hasInitialized = false;
+    private bool _hasInitialized;
     private TextMeshPro _textMeshPro;
     private Transform _textMeshProTransform;
     private void Start()
     {
         _textMeshPro = GetComponentInChildren<TextMeshPro>();
         _lastHandledImpactEventId = _syncedImpactEventId;
-        //Log($"Startup. LastHandledImpactEventId: {_lastHandledImpactEventId}");
 
         _vrcPickup = GetComponent<VRCPickup>();
         _rb = GetComponent<Rigidbody>();
@@ -69,30 +70,21 @@ public class Snowball : SmartObjectSyncListener
             pickupCollider.isTrigger = true;
         }
 
-        // While the snowball is in idle state, we do not want other snowballs to collide with it.
+        // An idle snowball has its collider off, so other snowballs pass through it.
         if (physicsCollider) physicsCollider.enabled = false;
-
 
         _smartObjectSync = GetComponent<SmartObjectSync>();
 
         if (_smartObjectSync)
         {
-            // We need to listen to state change events from SmartObjectSync and switch kinematic mode
-            // there to have position syncing working correctly for other clients that does not own
-            // the object. 
+            // We need to listen to state change events from SmartObjectSync and switch kinematic mode there.
+            // Without that, position syncing does not work correctly for clients that do not own the object.
             _smartObjectSync.AddListener(this);
-            //Log("Registered listener with SmartObjectSync");
         }
-        else
-        {
-            //Log($"No SmartObjectSync found on {gameObject.name}!", "err");
-        }
-
 
         if (_textMeshPro)
         {
-            _textMeshProTransform = _textMeshPro.gameObject.transform; // Cache it
-
+            _textMeshProTransform = _textMeshPro.transform;
         }
     }
 
@@ -105,8 +97,40 @@ public class Snowball : SmartObjectSyncListener
         // Need to turn off kinematic when picked up so that throwing works correctly.
         if (_rb) _rb.isKinematic = false;
 
-        // Once a snowball is picked up, we want it to be able to collide with stuff again.
         if (physicsCollider != null) physicsCollider.enabled = true;
+    }
+
+    // A desktop hand barely moves, so letting go of the mouse button would only drop the
+    // snowball. On desktop a release throws it along the view. VR players throw with their hand.
+    public override void OnDrop()
+    {
+        if (Networking.LocalPlayer.IsUserInVR()) return;
+
+        // One frame after a drop, VRChat sets the hand's velocity on the pickup and
+        // SmartObjectSync.OnDropDelayed runs. Two frames is after both, so neither replaces the throw velocity.
+        SendCustomEventDelayedFrames(nameof(ThrowAlongView), 2);
+    }
+
+    public void ThrowAlongView()
+    {
+        Quaternion headRotation = Networking.LocalPlayer.GetTrackingData(VRCPlayerApi.TrackingDataType.Head).rotation;
+        ReleaseFromHand(headRotation * Vector3.forward * desktopThrowSpeed);
+    }
+
+    // Serialize runs last, so the other clients get the throw velocity and not a velocity of zero.
+    private void ReleaseFromHand(Vector3 velocity)
+    {
+        if (physicsCollider) physicsCollider.enabled = true;
+
+        _smartObjectSync.state = SmartObjectSync.STATE_INTERPOLATING;
+
+        if (_rb)
+        {
+            _rb.isKinematic = false;
+            _rb.velocity = velocity;
+        }
+
+        _smartObjectSync.Serialize();
     }
 
     public override void OnPlayerCollisionEnter(VRCPlayerApi player)
@@ -119,6 +143,7 @@ public class Snowball : SmartObjectSyncListener
 
         DisableSnowball();
         CreateSnowballParticles();
+        AlertSeekersNearImpact(transform.position);
 
         SendCustomEventDelayedSeconds(nameof(RespawnAndEnable), respawnDelay);
     }
@@ -126,12 +151,10 @@ public class Snowball : SmartObjectSyncListener
     // Called whenever there are network updates for this class.
     public override void OnDeserialization(DeserializationResult result)
     {
-        //Log("OnDeserialization");
         if (!_hasInitialized)
         {
             _hasInitialized = true;
             _lastHandledImpactEventId = _syncedImpactEventId;
-            //Log($"Initialized lastHandledImpactEventId to {_syncedImpactEventId}");
         }
 
         // Since syncing variables across the network is slower
@@ -146,18 +169,19 @@ public class Snowball : SmartObjectSyncListener
         // at yet for this client, and can perform the spawning.
         if (_syncedImpactEventId > _lastHandledImpactEventId)
         {
-            //Log($"OnDeserialization: Got network request to disable snowball. syncedImpactEventId: {_syncedImpactEventId} LastHandledImpactEventId: {_lastHandledImpactEventId} {gameObject.name}");
             DisableSnowball();
             CreateSnowballParticles();
             _lastHandledImpactEventId = _syncedImpactEventId;
         }
-
     }
 
     private bool TryRegisterImpact(Vector3 pos, Vector3 normal)
     {
         if (!Networking.IsOwner(gameObject)) return false;
         if (_vrcPickup && _vrcPickup.IsHeld) return false;
+        // A snowball grabbed over the shoulder is attached to a hand bone without VRCPickup, so IsHeld
+        // is false for it. Without this check, a player who walks into a wall with it makes an impact.
+        if (_smartObjectSync && _smartObjectSync.IsAttachedToPlayer()) return false;
         if (_hasImpacted) return false;
         if (_rb && _rb.velocity.magnitude < minImpactVelocity)
         {
@@ -183,7 +207,9 @@ public class Snowball : SmartObjectSyncListener
 
         var contact = collision.contacts[0];
 
-        bool isGhostHit = ghostAI != null && collision.gameObject == ghostAI.gameObject;
+        SeekerGhost ghost = collision.gameObject.GetComponent<SeekerGhost>();
+        ButlerGhost butler = collision.gameObject.GetComponent<ButlerGhost>();
+        GargoyleU gargoyle = collision.gameObject.GetComponent<GargoyleU>();
 
         if (!TryRegisterImpact(contact.point, contact.normal))
             return;
@@ -192,29 +218,64 @@ public class Snowball : SmartObjectSyncListener
         CreateSnowballParticles();
         SendCustomEventDelayedSeconds(nameof(RespawnAndEnable), respawnDelay);
 
-        if (isGhostHit)
-            NotifyGhostHit();
+        if (ghost != null)
+        {
+            NotifyGhostHit(ghost);
+        }
+        else
+        {
+            AlertSeekersNearImpact(contact.point);
+        }
+
+        if (butler != null)
+            NotifyButlerHit(butler);
+
+        // TryRegisterImpact only passes on the thrower's client, so the gargoyle fades for the thrower alone.
+        if (gargoyle != null)
+        {
+            gargoyle.FadeOut();
+        }
     }
 
-    // Tell the ghost's owner (the client driving the AI) where the thrower stood
-    // so it can investigate, using a network event instead of synced variables
-    // or polling.
-    private void NotifyGhostHit()
+    // Sends the thrower's position to the ghost's owner, so the ghost can investigate it.
+    private void NotifyGhostHit(SeekerGhost ghost)
     {
         VRCPlayerApi thrower = Networking.GetOwner(gameObject);
         if (thrower == null || !thrower.IsValid()) return;
-        ghostAI.SendCustomNetworkEvent(NetworkEventTarget.Owner, nameof(SeekerGhost.OnSnowballHit), thrower.GetPosition());
+        ghost.SendCustomNetworkEvent(NetworkEventTarget.Owner, nameof(SeekerGhost.OnSnowballHit), thrower.GetPosition());
     }
 
-    public void CreateSnowballParticles()
+    // OnSnowballImpact runs on the seeker's owner and checks the impact against the seeker's vision cone and hearing range.
+    private void AlertSeekersNearImpact(Vector3 impactPosition)
+    {
+        Collider[] nearbyColliders = Physics.OverlapSphere(impactPosition, seekerAlertRadius, ~0, QueryTriggerInteraction.Ignore);
+        foreach (Collider nearbyCollider in nearbyColliders)
+        {
+            // VRChat does not give Udon the player colliders, so OverlapSphere returns null for a player inside the sphere.
+            if (nearbyCollider == null) continue;
+
+            SeekerGhost seeker = nearbyCollider.GetComponent<SeekerGhost>();
+            if (seeker == null) continue;
+
+            seeker.SendCustomNetworkEvent(NetworkEventTarget.Owner, nameof(SeekerGhost.OnSnowballImpact), impactPosition);
+        }
+    }
+
+    // The butler chases the thrower while they move, so it needs the player, not
+    // a position. The butler's owner gets the player from the id.
+    private void NotifyButlerHit(ButlerGhost butler)
+    {
+        VRCPlayerApi thrower = Networking.GetOwner(gameObject);
+        if (thrower == null || !thrower.IsValid()) return;
+        butler.SendCustomNetworkEvent(NetworkEventTarget.Owner, nameof(ButlerGhost.OnSnowballHit), thrower.playerId);
+    }
+
+    private void CreateSnowballParticles()
     {
         if (impactParticles != null)
         {
             GameObject particles = Instantiate(impactParticles);
-            if (particles != null)
-            {
-                particles.transform.SetPositionAndRotation(_syncedImpactPosition, Quaternion.LookRotation(_syncedImpactNormal));
-            }
+            particles.transform.SetPositionAndRotation(_syncedImpactPosition, Quaternion.LookRotation(_syncedImpactNormal));
         }
         else
         {
@@ -222,14 +283,9 @@ public class Snowball : SmartObjectSyncListener
         }
     }
 
-    public void DisableSnowball()
+    private void DisableSnowball()
     {
         if (_meshRenderer) _meshRenderer.enabled = false;
-
-        if (_textMeshPro)
-        {
-            _textMeshPro.text = $"{_meshRenderer.enabled}";
-        }
 
         if (physicsCollider) physicsCollider.enabled = false;
 
@@ -240,7 +296,6 @@ public class Snowball : SmartObjectSyncListener
     {
         Log("Got call to to enable snowball.");
         if (_meshRenderer) _meshRenderer.enabled = true;
-        if (_textMeshPro) _textMeshPro.text = $"{_meshRenderer.enabled}";
         if (pickupCollider) pickupCollider.enabled = true;
         if (_vrcPickup) _vrcPickup.pickupable = true;
     }
@@ -262,12 +317,10 @@ public class Snowball : SmartObjectSyncListener
         SendCustomNetworkEvent(NetworkEventTarget.All, nameof(EnableSnowball));
     }
 
-
     // Automatically switch off kinematic when the object is moving and switch to kinematic
     // when it is at rest. SmartObjectSync would not correctly update the position of objects
     // that are kinematic on non owners system. Subscribing to the smartobjectsyncs state change
     // in start and toggling kinematic here makes sure that the toggling is happening for clients too.
-
     public override void OnChangeState(SmartObjectSync sync, int oldState, int newState)
     {
         // Enable physics while flying
@@ -309,20 +362,11 @@ public class Snowball : SmartObjectSyncListener
     }
 
     // Update is currently only used to display debug info.
-    public void Update()
+    private void Update()
     {
         if (_textMeshPro && _textMeshProTransform)
         {
-            string displayText = "";
-
-            if (_rb.velocity.magnitude > 0)
-            {
-                // displayText += $"velocity: {rb.velocity}\n";
-            }
-
-            //displayText += $"kinematic: {rb.isKinematic}";
-            displayText += gameObject.name;
-            _textMeshPro.text = displayText;
+            _textMeshPro.text = gameObject.name;
 
             if (Networking.LocalPlayer != null)
             {
@@ -339,5 +383,4 @@ public class Snowball : SmartObjectSyncListener
     }
 
     public override void OnChangeOwner(SmartObjectSync sync, VRCPlayerApi oldOwner, VRCPlayerApi newOwner) { }
-
 }

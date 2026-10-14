@@ -1,4 +1,5 @@
 using Assets._3DStealthGame.Scripts;
+using Assets._3DStealthGame.Scripts.Enums;
 
 using UnityEngine;
 
@@ -7,7 +8,6 @@ public class PlayerInventory : Resettable
     // One count per PillColor, indexed by (int)PillColor.
     private int[] _pillCounts = new int[(int)PillColor.LastEnum];
 
-    // The HUD, handed to us by PlayerUI once it finds the local player's inventory.
     private PlayerUI _playerUI;
 
     private ExitPillSockets _exitPillSockets;
@@ -36,7 +36,7 @@ public class PlayerInventory : Resettable
 
     public bool HasPill(PillColor pillColor)
     {
-        return GetPillCount(pillColor) > 0;
+        return _pillCounts[(int)pillColor] > 0;
     }
 
 
@@ -90,11 +90,6 @@ public class PlayerInventory : Resettable
         }
 
         Debug.Log($"PlayerInventory ({gameObject.name}): the player already holds every pill color.");
-    }
-
-    public int GetPillCount(PillColor pillColor)
-    {
-        return _pillCounts[(int)pillColor];
     }
 
     public override void ResetState()

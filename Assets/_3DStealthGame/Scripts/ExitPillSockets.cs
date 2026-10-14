@@ -1,4 +1,5 @@
 using Assets._3DStealthGame.Scripts;
+using Assets._3DStealthGame.Scripts.Enums;
 
 using UdonSharp;
 
@@ -6,7 +7,8 @@ using UnityEngine;
 
 using VRC.SDKBase;
 
-// Shows a pill in each socket on the exit door when the local player holds a pill of that color.
+// Shows a pill in each socket on the exit door when the local 
+// player holds a pill of that color.
 [UdonBehaviourSyncMode(BehaviourSyncMode.None)]
 public class ExitPillSockets : Resettable
 {
@@ -18,9 +20,9 @@ public class ExitPillSockets : Resettable
     {
         base.Start();
 
-        if (socketPills == null || socketPills.Length != PillTypeCount)
+        if (socketPills.Length != PillTypeCount)
         {
-            Debug.LogError($"ExitPillSockets ({gameObject.name}): socketPills must have {PillTypeCount} entries (one per PillColor), found {(socketPills == null ? 0 : socketPills.Length)}.");
+            Debug.LogError($"ExitPillSockets ({gameObject.name}): socketPills must have {PillTypeCount} entries (one per PillColor), found {socketPills.Length}.");
             return;
         }
 
@@ -33,8 +35,11 @@ public class ExitPillSockets : Resettable
         }
     }
 
+
     public override void OnPlayerRestored(VRCPlayerApi player)
     {
+        // OnPlayerRestored runs for every player that is restored, 
+        // not just this local client...
         if (!player.isLocal) return;
 
         PlayerInventory playerInventory = player.GetPlayerObjects()[0].GetComponent<PlayerInventory>();
@@ -46,11 +51,6 @@ public class ExitPillSockets : Resettable
 
         playerInventory.SetExitPillSockets(this);
 
-        // The player can hold pills before OnPlayerRestored runs, so show those pills here.
-        for (int i = 0; i < PillTypeCount; i++)
-        {
-            socketPills[i].SetActive(playerInventory.HasPill((PillColor)i));
-        }
     }
 
     public void ShowPill(PillColor pillColor)

@@ -7396,6 +7396,7 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects:
     - {fileID: 6262432763009076709, guid: e8ae0b0b5e66afc4893c2ea5a5d65729, type: 3}
+    - {fileID: 7263703487578703122, guid: e8ae0b0b5e66afc4893c2ea5a5d65729, type: 3}
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: e8ae0b0b5e66afc4893c2ea5a5d65729, type: 3}
@@ -23334,6 +23335,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: Room 1 x 12
+      objectReference: {fileID: 0}
+    - target: {fileID: 4186532834122172003, guid: e8ae0b0b5e66afc4893c2ea5a5d65729,
+        type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -0.35793757
       objectReference: {fileID: 0}
     - target: {fileID: 5366082759902423471, guid: e8ae0b0b5e66afc4893c2ea5a5d65729,
         type: 3}
