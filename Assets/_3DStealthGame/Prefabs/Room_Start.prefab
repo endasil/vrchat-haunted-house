@@ -324,7 +324,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 'Stay out of its sight. Step too close and it will hear you breathe.
+  m_text: 'Stay out of its sight. Step too close and it will sense you.
 
 
     When
