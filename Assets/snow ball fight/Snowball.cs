@@ -9,6 +9,7 @@ using UdonSharp;
 using UnityEngine;
 
 using VRC.SDK3.Components;
+using VRC.SDK3.UdonNetworkCalling;
 using VRC.SDKBase;
 using VRC.Udon.Common;
 using VRC.Udon.Common.Interfaces;
@@ -45,6 +46,8 @@ public class Snowball : SmartObjectSyncListener
     private int _lastHandledImpactEventId;
 
     private bool _hasImpacted;
+    // The hit player shows the burst before the owner syncs the impact, so OnDeserialization skips it.
+    private bool _burstShownLocally;
     private VRCPickup _vrcPickup;
     private Rigidbody _rb;
     private MeshRenderer _meshRenderer;
@@ -84,7 +87,7 @@ public class Snowball : SmartObjectSyncListener
 
         if (_textMeshPro)
         {
-            _textMeshProTransform = _textMeshPro.transform;
+            _textMeshProTransform = _textMeshPro.gameObject.transform;
         }
     }
 
@@ -133,19 +136,55 @@ public class Snowball : SmartObjectSyncListener
         _smartObjectSync.Serialize();
     }
 
+    // A player collision is only reliable for the local player, so the hit player's client
+    // detects the hit and sends it to the owner.
     public override void OnPlayerCollisionEnter(VRCPlayerApi player)
     {
-        // We don't have a collision point or normal when colliding with a player so
-        // just use the center of the snowball and make the particles fly in the opposite
-        // direction the snowball is traveling.
-        if (!TryRegisterImpact(transform.position, -_rb.velocity.normalized))
-            return;
+        if (!player.isLocal) return;
+        // The owner is the thrower, touching their own snowball.
+        if (Networking.IsOwner(gameObject)) return;
+        if (_hasImpacted || !IsFlying()) return;
+
+        _hasImpacted = true;
+        _burstShownLocally = true;
+
+        // A player collision has no contact point or normal, so use the snowball centre
+        // and point the particles opposite to its velocity.
+        Vector3 position = transform.position;
+        Vector3 normal = Vector3.up;
+        if (_rb.velocity.sqrMagnitude > 0.0001f)
+        {
+            normal = -_rb.velocity.normalized;
+        }
 
         DisableSnowball();
-        CreateSnowballParticles();
-        AlertSeekersNearImpact(transform.position);
+        SpawnParticles(position, normal);
+        SendCustomNetworkEvent(NetworkEventTarget.Owner, nameof(OnHitPlayer), position, normal);
+    }
+
+    // The hit player already checked the hit, so the owner skips the speed check. The
+    // snowball has slowed down or bounced on the owner's client by the time this arrives.
+    [NetworkCallable]
+    public void OnHitPlayer(Vector3 position, Vector3 normal)
+    {
+        if (!Networking.IsOwner(gameObject)) return;
+        if (_hasImpacted) return;
+        if (_vrcPickup && _vrcPickup.IsHeld) return;
+
+        RegisterImpact(position, normal);
+        DisableSnowball();
+        SpawnParticles(position, normal);
+        AlertSeekersNearImpact(position);
 
         SendCustomEventDelayedSeconds(nameof(RespawnAndEnable), respawnDelay);
+    }
+
+    private bool IsFlying()
+    {
+        if (!_smartObjectSync) return false;
+
+        int state = _smartObjectSync.state;
+        return state == SmartObjectSync.STATE_INTERPOLATING || state == SmartObjectSync.STATE_FALLING;
     }
 
     // Called whenever there are network updates for this class.
@@ -170,7 +209,11 @@ public class Snowball : SmartObjectSyncListener
         if (_syncedImpactEventId > _lastHandledImpactEventId)
         {
             DisableSnowball();
-            CreateSnowballParticles();
+            if (!_burstShownLocally)
+            {
+                SpawnParticles(_syncedImpactPosition, _syncedImpactNormal);
+            }
+            _burstShownLocally = false;
             _lastHandledImpactEventId = _syncedImpactEventId;
         }
     }
@@ -190,6 +233,12 @@ public class Snowball : SmartObjectSyncListener
         }
         Log($"Impact velocity {_rb.velocity.magnitude} > {minImpactVelocity} ");
 
+        RegisterImpact(pos, normal);
+        return true;
+    }
+
+    private void RegisterImpact(Vector3 pos, Vector3 normal)
+    {
         _hasImpacted = true;
 
         _syncedImpactPosition = pos;
@@ -197,7 +246,6 @@ public class Snowball : SmartObjectSyncListener
         _syncedImpactEventId++;
         _lastHandledImpactEventId = _syncedImpactEventId;
         RequestSerialization();
-        return true;
     }
 
     private void OnCollisionEnter(Collision collision)
@@ -215,7 +263,7 @@ public class Snowball : SmartObjectSyncListener
             return;
 
         DisableSnowball();
-        CreateSnowballParticles();
+        SpawnParticles(contact.point, contact.normal);
         SendCustomEventDelayedSeconds(nameof(RespawnAndEnable), respawnDelay);
 
         if (ghost != null)
@@ -270,12 +318,12 @@ public class Snowball : SmartObjectSyncListener
         butler.SendCustomNetworkEvent(NetworkEventTarget.Owner, nameof(ButlerGhost.OnSnowballHit), thrower.playerId);
     }
 
-    private void CreateSnowballParticles()
+    private void SpawnParticles(Vector3 position, Vector3 normal)
     {
         if (impactParticles != null)
         {
             GameObject particles = Instantiate(impactParticles);
-            particles.transform.SetPositionAndRotation(_syncedImpactPosition, Quaternion.LookRotation(_syncedImpactNormal));
+            particles.transform.SetPositionAndRotation(position, Quaternion.LookRotation(normal));
         }
         else
         {
@@ -295,6 +343,10 @@ public class Snowball : SmartObjectSyncListener
     public void EnableSnowball()
     {
         Log("Got call to to enable snowball.");
+        // A hit player's client sets _hasImpacted without owning the snowball, and nothing
+        // else resets it there.
+        _hasImpacted = false;
+        _burstShownLocally = false;
         if (_meshRenderer) _meshRenderer.enabled = true;
         if (pickupCollider) pickupCollider.enabled = true;
         if (_vrcPickup) _vrcPickup.pickupable = true;
