@@ -239,6 +239,8 @@ public class GameEndingU : UdonSharpBehaviour
 
         wonMessageText.text = BuildWonMessage(runTime, hasBestTime, bestTime, isNewBest, leaderboardPosition);
 
+        // Before ShowEnding, so PlaceEndingCanvas puts the message in front of the player at spawn.
+        TeleportPlayerToSpawn();
         ShowEnding(endScreenCanvasGroup, _wonMessageGroup, wonMessageDuration, exitAudio);
     }
 
@@ -341,11 +343,6 @@ public class GameEndingU : UdonSharpBehaviour
 
         if (_timer > _endingDisplayDuration + fadeDuration)
         {
-            if (_isPlayerAtExit)
-            {
-                TeleportPlayerToSpawn();
-            }
-
             resetManager.ResetAll();
 
             _endingScreenGroup.alpha = 0;
