@@ -72,12 +72,10 @@ public class ObserverU : UdonSharpBehaviour
         Vector3 origin = transform.position;
         // Aim at roughly the torso (feet + 1m) so the ray doesn't hit the floor.
         Vector3 offset = localPlayer.GetPosition() + Vector3.up - origin;
-        float distToPlayer = offset.magnitude;
         const int allLayers = ~0;
-        if (distToPlayer > 0.0001f
-            && Physics.Raycast(origin,
-                offset / distToPlayer,
-                out RaycastHit hit, distToPlayer,
+        if (Physics.Raycast(origin,
+                offset.normalized,
+                out RaycastHit hit, offset.magnitude,
                 allLayers, QueryTriggerInteraction.Ignore))
         {
             // A ray that hits a player returns collider == null
