@@ -222,7 +222,7 @@ public class ButlerGhost : GhostAgentBase
 		// using squareroot, should test and se...
         if (toWaypoint.sqrMagnitude  < threshold * threshold)
         {
-            Debug.Log($"{gameObject.name} reached waypoint. Advance.");
+            // Debug.Log($"{gameObject.name} reached waypoint. Advance.");
             _currentWaypointIndex = (_currentWaypointIndex + 1) % WaypointNetwork.WaypointPositions.Length;
             SetDestinationToCurrentWaypoint();
         }

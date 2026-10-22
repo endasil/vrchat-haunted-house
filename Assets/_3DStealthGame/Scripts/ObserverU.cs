@@ -1,3 +1,4 @@
+using Assets._3DStealthGame.Scripts;
 using Assets._3DStealthGame.Scripts.Enums;
 
 using UdonSharp;
@@ -26,6 +27,16 @@ public class ObserverU : UdonSharpBehaviour
         _gameEnding = gameManagerObj.GetComponent<GameEndingU>();
         if (_gameEnding == null)
             Debug.LogError($"ObserverU ({gameObject.name}): GameManager has no GameEndingU component");
+
+        var adminCheat = gameManagerObj.GetComponent<AdminCheat>();
+        if (adminCheat == null)
+        {
+            Debug.LogError($"ObserverU ({gameObject.name}): GameManager has no AdminCheat component");
+        }
+        else
+        {
+            adminCheat.Register(this);
+        }
 
         // Uses the ghost AI script on this object, or on the closest parent that has one.
         Transform t = transform;
@@ -57,6 +68,13 @@ public class ObserverU : UdonSharpBehaviour
         {
             _isPlayerInRange = false;
         }
+    }
+
+    // Trigger events can be missed while this component is off.
+    // A stale true lets TryCatch end the run when the player is outside the vision cone.
+    private void OnDisable()
+    {
+        _isPlayerInRange = false;
     }
 
     // The trigger capsule on this object is the ghost's vision cone.

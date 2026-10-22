@@ -5,8 +5,8 @@ using UnityEngine;
 
 public class PlayerInventory : Resettable
 {
-    // One count per PillColor, indexed by (int)PillColor.
-    private int[] _pillCounts = new int[(int)PillColor.LastEnum];
+    // One entry per PillColor, indexed by (int)PillColor.
+    private bool[] _hasPill = new bool[(int)PillColor.LastEnum];
 
     private PlayerUI _playerUI;
 
@@ -36,7 +36,7 @@ public class PlayerInventory : Resettable
 
     public bool HasPill(PillColor pillColor)
     {
-        return _pillCounts[(int)pillColor] > 0;
+        return _hasPill[(int)pillColor];
     }
 
 
@@ -44,7 +44,7 @@ public class PlayerInventory : Resettable
     {
         for (int i = 0; i < (int)PillColor.LastEnum; i++)
         {
-            if (_pillCounts[i] <= 0)
+            if (!_hasPill[i])
             {
                 return false;
             }
@@ -55,7 +55,7 @@ public class PlayerInventory : Resettable
 
     public void AddPill(PillColor pillColor)
     {
-        _pillCounts[(int)pillColor]++;
+        _hasPill[(int)pillColor] = true;
 
         if (_pickupAudio != null)
             _pickupAudio.Play();
@@ -82,7 +82,7 @@ public class PlayerInventory : Resettable
     {
         for (int i = 0; i < (int)PillColor.LastEnum; i++)
         {
-            if (_pillCounts[i] <= 0)
+            if (!_hasPill[i])
             {
                 AddPill((PillColor)i);
                 return;
@@ -94,7 +94,9 @@ public class PlayerInventory : Resettable
 
     public override void ResetState()
     {
-        for (int i = 0; i < _pillCounts.Length; i++)
-            _pillCounts[i] = 0;
+        for (int i = 0; i < _hasPill.Length; i++)
+        {
+            _hasPill[i] = false;
+        }
     }
 }

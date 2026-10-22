@@ -154,6 +154,41 @@ public static class ClaudeBridge
             case "view":
                 View(args);
                 break;
+            case "sceneview":
+                MoveSceneView(args);
+                break;
+            case "scenegrab":
+                GrabSceneView(Arg(args, 1));
+                break;
+            case "scenehide":
+                HideInSceneView(Arg(args, 1));
+                break;
+            case "sceneshowall":
+                SceneVisibilityManager.instance.ShowAll();
+                break;
+            case "gizmos":
+                GetSceneView().drawGizmos = Arg(args, 1) == "on";
+                SceneView.RepaintAll();
+                break;
+            case "navmeshview":
+                SetNavMeshView(Arg(args, 1) == "on");
+                break;
+            case "probeview":
+                SetProbeView(Arg(args, 1));
+                break;
+            case "maximize":
+                GetSceneView().maximized = Arg(args, 1) == "on";
+                break;
+            case "scenerender":
+                RenderSceneViewCamera(Arg(args, 1));
+                break;
+            case "probedots":
+                SetProbeDots(Arg(args, 1) == "on", args.Length > 2 ? ParseFloat(args[2]) : 0.06f);
+                break;
+            case "occlusionview":
+                StaticOcclusionCullingVisualization.showOcclusionCulling = Arg(args, 1) == "on";
+                SceneView.RepaintAll();
+                break;
             case "inspect":
                 Inspect(FindObject(Arg(args, 1)));
                 break;
@@ -169,6 +204,28 @@ public static class ClaudeBridge
                 break;
             case "teleport":
                 Teleport(args);
+                break;
+            case "teleportfront":
+                TeleportInFront(FindObject(Arg(args, 1)), ParseFloat(Arg(args, 2)));
+                break;
+            case "gettext":
+                GameObject textObject = FindObject(Arg(args, 1));
+                TMPro.TMP_Text text = textObject.GetComponent<TMPro.TMP_Text>();
+                if (text == null)
+                {
+                    throw new Exception("'" + textObject.name + "' has no TextMeshPro text");
+                }
+                Append("text: " + text.text);
+                break;
+            case "setactive":
+                FindObject(Arg(args, 1)).SetActive(Arg(args, 2) == "on");
+                break;
+            case "eyeheight":
+                RequirePlayMode();
+                GetLocalPlayer().SetAvatarEyeHeightByMeters(ParseFloat(Arg(args, 1)));
+                break;
+            case "headcamera":
+                RenderFromHead(Arg(args, 1), args.Length > 2 ? ParseFloat(args[2]) : 70f);
                 break;
             case "menu":
                 if (!EditorApplication.ExecuteMenuItem(Arg(args, 1)))
@@ -326,6 +383,169 @@ public static class ClaudeBridge
         }
     }
 
+    private static void MoveSceneView(string[] args)
+    {
+        SceneView sceneView = GetSceneView();
+        var pose = new GameObject("ClaudeBridgePose") { hideFlags = HideFlags.HideAndDontSave };
+        try
+        {
+            pose.transform.SetPositionAndRotation(
+                new Vector3(ParseFloat(Arg(args, 1)), ParseFloat(Arg(args, 2)), ParseFloat(Arg(args, 3))),
+                Quaternion.Euler(ParseFloat(Arg(args, 4)), ParseFloat(Arg(args, 5)), 0f));
+            sceneView.cameraSettings.fieldOfView = args.Length > 6 ? ParseFloat(args[6]) : 60f;
+            sceneView.drawGizmos = true;
+            sceneView.AlignViewToObject(pose.transform);
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(pose);
+        }
+        sceneView.Focus();
+        sceneView.Repaint();
+    }
+
+    // Reads the Scene view from the screen, so gizmos and overlays are in the image.
+    // The Scene view must be visible on the screen and not covered by another window.
+    private static void GrabSceneView(string name)
+    {
+        SceneView sceneView = GetSceneView();
+        Rect window = sceneView.position;
+        int width = Mathf.RoundToInt(window.width);
+        int height = Mathf.RoundToInt(window.height);
+        Color[] pixels = UnityEditorInternal.InternalEditorUtility.ReadScreenPixel(window.position, width, height);
+
+        var image = new Texture2D(width, height, TextureFormat.RGB24, false);
+        try
+        {
+            image.SetPixels(pixels);
+            image.Apply();
+            string path = ImagePath(name);
+            File.WriteAllBytes(path, image.EncodeToPNG());
+            Append(path + " " + width + "x" + height);
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(image);
+        }
+    }
+
+    // NavMeshVisualizationSettings is internal, so it is set through reflection.
+    private static void SetNavMeshView(bool on)
+    {
+        Type settings = typeof(Editor).Assembly.GetType("UnityEditor.AI.NavMeshVisualizationSettings");
+        var property = settings?.GetProperty("showNavigation", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic);
+        if (property == null)
+        {
+            throw new Exception("NavMeshVisualizationSettings.showNavigation is not in this Unity version");
+        }
+        property.SetValue(null, on ? 1 : 0);
+        SceneView.RepaintAll();
+    }
+
+    // Renders the Scene view camera offscreen. Gizmos are not in the image.
+    private static void RenderSceneViewCamera(string name)
+    {
+        Camera camera = GetSceneView().camera;
+        RenderTexture previousTarget = camera.targetTexture;
+        var renderTexture = new RenderTexture(ImageWidth, ImageHeight, 24);
+        var image = new Texture2D(ImageWidth, ImageHeight, TextureFormat.RGB24, false);
+        try
+        {
+            camera.targetTexture = renderTexture;
+            camera.Render();
+            RenderTexture.active = renderTexture;
+            image.ReadPixels(new Rect(0, 0, ImageWidth, ImageHeight), 0, 0);
+            image.Apply();
+            string path = ImagePath(name);
+            File.WriteAllBytes(path, image.EncodeToPNG());
+            Append(path);
+        }
+        finally
+        {
+            camera.targetTexture = previousTarget;
+            RenderTexture.active = null;
+            renderTexture.Release();
+            UnityEngine.Object.DestroyImmediate(renderTexture);
+            UnityEngine.Object.DestroyImmediate(image);
+        }
+    }
+
+    private const string ProbeDotsName = "ClaudeBridgeProbeDots";
+
+    // Puts a yellow sphere on each baked light probe. The spheres are not saved with the scene.
+    private static void SetProbeDots(bool on, float radius)
+    {
+        foreach (GameObject old in Resources.FindObjectsOfTypeAll<GameObject>().Where(g => g.name == ProbeDotsName).ToArray())
+        {
+            UnityEngine.Object.DestroyImmediate(old);
+        }
+        if (!on) return;
+
+        LightProbes probes = LightmapSettings.lightProbes;
+        if (probes == null)
+        {
+            throw new Exception("the scene has no baked light probes");
+        }
+
+        var root = new GameObject(ProbeDotsName) { hideFlags = HideFlags.HideAndDontSave };
+        var material = new Material(Shader.Find("Standard")) { color = new Color(1f, 0.85f, 0.2f), hideFlags = HideFlags.HideAndDontSave };
+        material.EnableKeyword("_EMISSION");
+        material.SetColor("_EmissionColor", new Color(0.45f, 0.36f, 0.05f));
+        material.SetFloat("_Glossiness", 0.7f);
+        Mesh sphere = Resources.GetBuiltinResource<Mesh>("New-Sphere.fbx");
+        foreach (Vector3 position in probes.positions)
+        {
+            var dot = new GameObject("dot") { hideFlags = HideFlags.HideAndDontSave };
+            dot.transform.SetParent(root.transform);
+            dot.transform.position = position;
+            dot.transform.localScale = Vector3.one * radius * 2f;
+            dot.AddComponent<MeshFilter>().sharedMesh = sphere;
+            MeshRenderer renderer = dot.AddComponent<MeshRenderer>();
+            renderer.sharedMaterial = material;
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        }
+        Append(probes.positions.Length + " probe dots");
+    }
+
+    // LightProbeVisualization is internal, so it is set through reflection.
+    // Writes the mode it had, so a later probeview can set it back.
+    private static void SetProbeView(string mode)
+    {
+        Type visualization = typeof(Editor).Assembly.GetType("UnityEditor.LightProbeVisualization");
+        var property = visualization?.GetProperty("lightProbeVisualizationMode", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic);
+        if (property == null)
+        {
+            throw new Exception("LightProbeVisualization.lightProbeVisualizationMode is not in this Unity version");
+        }
+        Append("previous mode: " + property.GetValue(null));
+        property.SetValue(null, Enum.Parse(property.PropertyType, mode));
+        SceneView.RepaintAll();
+    }
+
+    private static void HideInSceneView(string name)
+    {
+        var matches = new List<GameObject>();
+        foreach (Transform t in Resources.FindObjectsOfTypeAll<Transform>())
+        {
+            if (EditorUtility.IsPersistent(t) || !t.gameObject.scene.IsValid()) continue;
+            if (t.name.IndexOf(name, StringComparison.OrdinalIgnoreCase) < 0) continue;
+
+            matches.Add(t.gameObject);
+        }
+        SceneVisibilityManager.instance.Hide(matches.ToArray(), true);
+        Append("hid " + matches.Count + " objects in the Scene view");
+    }
+
+    private static SceneView GetSceneView()
+    {
+        SceneView sceneView = SceneView.lastActiveSceneView;
+        if (sceneView == null)
+        {
+            throw new Exception("no Scene view is open");
+        }
+        return sceneView;
+    }
+
     private static void Inspect(GameObject target)
     {
         Transform t = target.transform;
@@ -438,6 +658,34 @@ public static class ClaudeBridge
         var position = new Vector3(ParseFloat(Arg(args, 1)), ParseFloat(Arg(args, 2)), ParseFloat(Arg(args, 3)));
         float yaw = args.Length > 4 ? ParseFloat(args[4]) : player.GetRotation().eulerAngles.y;
         player.TeleportTo(position, Quaternion.Euler(0f, yaw, 0f));
+    }
+
+    // Puts the local player that many metres in front of the object, facing it.
+    private static void TeleportInFront(GameObject target, float distance)
+    {
+        RequirePlayMode();
+        VRCPlayerApi player = GetLocalPlayer();
+        Vector3 forward = Vector3.ProjectOnPlane(target.transform.forward, Vector3.up).normalized;
+        Vector3 position = target.transform.position + forward * distance;
+        player.TeleportTo(position, Quaternion.LookRotation(-forward));
+        Append("teleported to " + Format(position));
+    }
+
+    private static void RenderFromHead(string name, float fieldOfView)
+    {
+        RequirePlayMode();
+        VRCPlayerApi.TrackingData head = GetLocalPlayer().GetTrackingData(VRCPlayerApi.TrackingDataType.Head);
+        RenderCamera(head.position, head.rotation, fieldOfView, name);
+    }
+
+    private static VRCPlayerApi GetLocalPlayer()
+    {
+        VRCPlayerApi player = Networking.LocalPlayer;
+        if (player == null)
+        {
+            throw new Exception("there is no local player yet");
+        }
+        return player;
     }
 
     private static void WriteProbeLight(GameObject target)

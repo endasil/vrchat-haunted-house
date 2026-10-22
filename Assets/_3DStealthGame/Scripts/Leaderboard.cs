@@ -24,8 +24,24 @@ public class Leaderboard : UdonSharpBehaviour
 
     private const string Ellipsis = "...";
 
+    private const int DummyCount = 10;
+
+    private const float SlowestDummyTime = 99f * 60f;
+
+    private const float DummyTimeStep = 5f * 60f;
+
+    // Made-up players with slow times, for new players to beat. Sorted fastest first.
+    private string[] _dummyNames =
+    {
+        "Casper the Slow", "Mr. Boo", "Ghostly Gus", "Sir Spooksalot", "Lady Cobweb",
+        "Butler's Cousin", "Headless Harold", "Gargoyle Fan", "Spectral Steve", "Not A Ghost"
+    };
+
+    // Seconds added to each dummy time. All under 60, so the order stays the same.
+    private float[] _dummyExtraSeconds = { 12.37f, 48.05f, 3.91f, 27.64f, 55.18f, 9.42f, 36.83f, 21.06f, 44.59f, 31.72f };
+
     // Each player can give 1 best time plus MaxRecordsOnLeaderboard entries from their saved list
-    private const int MaxCandidates = MaxPlayers * (MaxRecordsOnLeaderboard + 1);
+    private const int MaxCandidates = MaxPlayers * (MaxRecordsOnLeaderboard + 1) + DummyCount;
 
     private VRCPlayerApi[] _vrcPlayers = new VRCPlayerApi[MaxPlayers];
 
@@ -102,9 +118,19 @@ public class Leaderboard : UdonSharpBehaviour
         }
     }
 
+    private void AddDummyRecords()
+    {
+        for (int i = 0; i < DummyCount; i++)
+        {
+            float stepsFromSlowest = DummyCount - 1 - i;
+            AddCandidate(_dummyNames[i], SlowestDummyTime - stepsFromSlowest * DummyTimeStep + _dummyExtraSeconds[i]);
+        }
+    }
+
     private void Rebuild()
     {
         _candidateCount = 0;
+        AddDummyRecords();
 
         int playerCount = VRCPlayerApi.GetPlayerCount();
         VRCPlayerApi.GetPlayers(_vrcPlayers);

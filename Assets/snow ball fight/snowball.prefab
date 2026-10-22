@@ -296,8 +296,8 @@ MonoBehaviour:
   respawnDelay: 2
   impactParticles: {fileID: 0}
   minImpactVelocity: 2
-  pickupCollider: {fileID: 0}
-  physicsCollider: {fileID: 0}
+  pickupCollider: {fileID: 2531207638709693290}
+  physicsCollider: {fileID: 2645299638927291325}
 --- !u!114 &5274068113408490785
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -7,7 +7,7 @@ using UnityEngine;
 public class MusicFader : UdonSharpBehaviour
 {
     public float fadeInDuration = 5f;
-    public float maxVolume = 0.9f;
+    public float maxVolume = 0.7f;
 
     private AudioSource _music;
     private bool _paused;

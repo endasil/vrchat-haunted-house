@@ -408,7 +408,7 @@ MonoBehaviour:
   m_Script: {fileID: -617992517, guid: 661092b4961be7145bfbe56e1e62337b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Gain: 16
+  Gain: 20
   Far: 80
   Near: 0
   VolumetricRadius: 0
@@ -439,9 +439,9 @@ MonoBehaviour:
   Indicator: {fileID: 0}
   visionHalfAngle: 45
   visionLength: 10
+  turnInPlaceSpeed: 240
   defaultSpeed: 0.7
   playerFoundSpeed: 2
-  turnInPlaceSpeed: 240
   maxWalkDistance: 10
   minWalkDistance: 2
   hearingRange: 3
@@ -590,12 +590,12 @@ PrefabInstance:
     - target: {fileID: 892696572507115011, guid: f2cae6e4d4716174b871aa1eef66e635,
         type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.75
+      value: 0.79
       objectReference: {fileID: 0}
     - target: {fileID: 892696572507115011, guid: f2cae6e4d4716174b871aa1eef66e635,
         type: 3}
       propertyPath: m_LocalPosition.z
-      value: 0.4
+      value: 0.31
       objectReference: {fileID: 0}
     - target: {fileID: 892696572507115011, guid: f2cae6e4d4716174b871aa1eef66e635,
         type: 3}
@@ -646,7 +646,7 @@ PrefabInstance:
     - target: {fileID: 2267701452001014329, guid: f2cae6e4d4716174b871aa1eef66e635,
         type: 3}
       propertyPath: m_Radius
-      value: 0.6
+      value: 0.5
       objectReference: {fileID: 0}
     - target: {fileID: 2267701452001014329, guid: f2cae6e4d4716174b871aa1eef66e635,
         type: 3}

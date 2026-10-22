@@ -28,6 +28,11 @@ public class EscapeTimer : Resettable
 	// to make it slightly harder to cheat.
     private const float MinPlausibleTime = 40f;
 
+    // Added to the run time while an admin has the cheat on.
+    private const float CheatPenaltySeconds = 99f * 60f;
+
+    private bool _isCheatActive;
+    private bool _hasUsedPillCheat;
     private bool _started;
     private bool _running;
     private float _elapsed;
@@ -57,7 +62,11 @@ public class EscapeTimer : Resettable
 
         _started = true;
         _running = true;
-        _elapsed = 0.0f;
+        _elapsed = 0f;
+        if (_isCheatActive || _hasUsedPillCheat)
+        {
+            _elapsed = CheatPenaltySeconds;
+        }
 
         if (music == null)
         {
@@ -104,6 +113,28 @@ public class EscapeTimer : Resettable
         return true;
     }
 
+    // Switching the cheat off keeps the penalty in a running time.
+    public void SetCheatActive(bool isActive)
+    {
+        _isCheatActive = isActive;
+        if (_isCheatActive && _running)
+        {
+            _elapsed += CheatPenaltySeconds;
+        }
+    }
+
+    // Adds the penalty once per run, at the start of the run if the timer is not running yet.
+    public void MarkPillCheatUsed()
+    {
+        if (_hasUsedPillCheat) return;
+
+        _hasUsedPillCheat = true;
+        if (_running)
+        {
+            _elapsed += CheatPenaltySeconds;
+        }
+    }
+
     public float GetElapsed()
     {
         return _elapsed;
@@ -147,6 +178,7 @@ public class EscapeTimer : Resettable
         _started = false;
         _running = false;
         _elapsed = 0f;
+        _hasUsedPillCheat = false;
     }
 
 }

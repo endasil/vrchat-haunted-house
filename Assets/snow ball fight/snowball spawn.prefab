@@ -197,20 +197,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
-      propertyPath: pickupCollider
-      value: 
-      objectReference: {fileID: 4300243271977503679}
-    - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
-        type: 3}
       propertyPath: impactParticles
       value: 
       objectReference: {fileID: 4728672387657560562, guid: 2aee69056c9e23841b690bcd7bdf0dc0,
         type: 3}
-    - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
-        type: 3}
-      propertyPath: physicsCollider
-      value: 
-      objectReference: {fileID: 5408544846974270171}
     - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       propertyPath: serializationData.Prefab
@@ -451,20 +441,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
-      propertyPath: pickupCollider
-      value: 
-      objectReference: {fileID: 4300243271977503679}
-    - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
-        type: 3}
       propertyPath: impactParticles
       value: 
       objectReference: {fileID: 4728672387657560562, guid: 2aee69056c9e23841b690bcd7bdf0dc0,
         type: 3}
-    - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
-        type: 3}
-      propertyPath: physicsCollider
-      value: 
-      objectReference: {fileID: 5408544846974270171}
     - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       propertyPath: serializationData.Prefab
@@ -700,20 +680,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
-      propertyPath: pickupCollider
-      value: 
-      objectReference: {fileID: 4300243271977503679}
-    - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
-        type: 3}
       propertyPath: impactParticles
       value: 
       objectReference: {fileID: 4728672387657560562, guid: 2aee69056c9e23841b690bcd7bdf0dc0,
         type: 3}
-    - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
-        type: 3}
-      propertyPath: physicsCollider
-      value: 
-      objectReference: {fileID: 5408544846974270171}
     - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       propertyPath: serializationData.Prefab
@@ -812,10 +782,6 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 7112718882337918310}
-    - targetCorrespondingSourceObject: {fileID: 4536512299179196994, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
-        type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 5408544846974270171}
   m_SourcePrefab: {fileID: 100100000, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0, type: 3}
 --- !u!1 &2444499809126922816 stripped
 GameObject:
@@ -841,27 +807,6 @@ MonoBehaviour:
   VolumetricRadius: 0
   EnableSpatialization: 0
   UseAudioSourceVolumeCurve: 0
---- !u!135 &5408544846974270171
-SphereCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2444499809126922816}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Radius: 0.15
-  m_Center: {x: 0, y: 0, z: 0}
 --- !u!135 &4300243271977503679 stripped
 SphereCollider:
   m_CorrespondingSourceObject: {fileID: 2645299638927291325, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
@@ -955,20 +900,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
-      propertyPath: pickupCollider
-      value: 
-      objectReference: {fileID: 4300243271977503679}
-    - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
-        type: 3}
       propertyPath: impactParticles
       value: 
       objectReference: {fileID: 4728672387657560562, guid: 2aee69056c9e23841b690bcd7bdf0dc0,
         type: 3}
-    - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
-        type: 3}
-      propertyPath: physicsCollider
-      value: 
-      objectReference: {fileID: 5408544846974270171}
     - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       propertyPath: serializationData.Prefab
@@ -1204,20 +1139,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
-      propertyPath: pickupCollider
-      value: 
-      objectReference: {fileID: 4300243271977503679}
-    - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
-        type: 3}
       propertyPath: impactParticles
       value: 
       objectReference: {fileID: 4728672387657560562, guid: 2aee69056c9e23841b690bcd7bdf0dc0,
         type: 3}
-    - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
-        type: 3}
-      propertyPath: physicsCollider
-      value: 
-      objectReference: {fileID: 5408544846974270171}
     - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       propertyPath: serializationData.Prefab
@@ -1584,20 +1509,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
-      propertyPath: pickupCollider
-      value: 
-      objectReference: {fileID: 4300243271977503679}
-    - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
-        type: 3}
       propertyPath: impactParticles
       value: 
       objectReference: {fileID: 4728672387657560562, guid: 2aee69056c9e23841b690bcd7bdf0dc0,
         type: 3}
-    - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
-        type: 3}
-      propertyPath: physicsCollider
-      value: 
-      objectReference: {fileID: 5408544846974270171}
     - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       propertyPath: serializationData.Prefab
@@ -1838,20 +1753,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
-      propertyPath: pickupCollider
-      value: 
-      objectReference: {fileID: 4300243271977503679}
-    - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
-        type: 3}
       propertyPath: impactParticles
       value: 
       objectReference: {fileID: 4728672387657560562, guid: 2aee69056c9e23841b690bcd7bdf0dc0,
         type: 3}
-    - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
-        type: 3}
-      propertyPath: physicsCollider
-      value: 
-      objectReference: {fileID: 5408544846974270171}
     - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       propertyPath: serializationData.Prefab
@@ -2092,20 +1997,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
-      propertyPath: pickupCollider
-      value: 
-      objectReference: {fileID: 4300243271977503679}
-    - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
-        type: 3}
       propertyPath: impactParticles
       value: 
       objectReference: {fileID: 4728672387657560562, guid: 2aee69056c9e23841b690bcd7bdf0dc0,
         type: 3}
-    - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
-        type: 3}
-      propertyPath: physicsCollider
-      value: 
-      objectReference: {fileID: 5408544846974270171}
     - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       propertyPath: serializationData.Prefab
@@ -2346,20 +2241,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
-      propertyPath: pickupCollider
-      value: 
-      objectReference: {fileID: 4300243271977503679}
-    - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
-        type: 3}
       propertyPath: impactParticles
       value: 
       objectReference: {fileID: 4728672387657560562, guid: 2aee69056c9e23841b690bcd7bdf0dc0,
         type: 3}
-    - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
-        type: 3}
-      propertyPath: physicsCollider
-      value: 
-      objectReference: {fileID: 5408544846974270171}
     - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       propertyPath: serializationData.Prefab
@@ -2605,20 +2490,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
-      propertyPath: pickupCollider
-      value: 
-      objectReference: {fileID: 4300243271977503679}
-    - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
-        type: 3}
       propertyPath: impactParticles
       value: 
       objectReference: {fileID: 4728672387657560562, guid: 2aee69056c9e23841b690bcd7bdf0dc0,
         type: 3}
-    - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
-        type: 3}
-      propertyPath: physicsCollider
-      value: 
-      objectReference: {fileID: 5408544846974270171}
     - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       propertyPath: serializationData.Prefab
@@ -2859,20 +2734,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
-      propertyPath: pickupCollider
-      value: 
-      objectReference: {fileID: 4300243271977503679}
-    - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
-        type: 3}
       propertyPath: impactParticles
       value: 
       objectReference: {fileID: 4728672387657560562, guid: 2aee69056c9e23841b690bcd7bdf0dc0,
         type: 3}
-    - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
-        type: 3}
-      propertyPath: physicsCollider
-      value: 
-      objectReference: {fileID: 5408544846974270171}
     - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       propertyPath: serializationData.Prefab
@@ -3113,20 +2978,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
-      propertyPath: pickupCollider
-      value: 
-      objectReference: {fileID: 4300243271977503679}
-    - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
-        type: 3}
       propertyPath: impactParticles
       value: 
       objectReference: {fileID: 4728672387657560562, guid: 2aee69056c9e23841b690bcd7bdf0dc0,
         type: 3}
-    - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
-        type: 3}
-      propertyPath: physicsCollider
-      value: 
-      objectReference: {fileID: 5408544846974270171}
     - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       propertyPath: serializationData.Prefab
@@ -3367,20 +3222,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
-      propertyPath: pickupCollider
-      value: 
-      objectReference: {fileID: 4300243271977503679}
-    - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
-        type: 3}
       propertyPath: impactParticles
       value: 
       objectReference: {fileID: 4728672387657560562, guid: 2aee69056c9e23841b690bcd7bdf0dc0,
         type: 3}
-    - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
-        type: 3}
-      propertyPath: physicsCollider
-      value: 
-      objectReference: {fileID: 5408544846974270171}
     - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       propertyPath: serializationData.Prefab
@@ -3626,20 +3471,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
-      propertyPath: pickupCollider
-      value: 
-      objectReference: {fileID: 4300243271977503679}
-    - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
-        type: 3}
       propertyPath: impactParticles
       value: 
       objectReference: {fileID: 4728672387657560562, guid: 2aee69056c9e23841b690bcd7bdf0dc0,
         type: 3}
-    - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
-        type: 3}
-      propertyPath: physicsCollider
-      value: 
-      objectReference: {fileID: 5408544846974270171}
     - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       propertyPath: serializationData.Prefab
@@ -3880,20 +3715,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
-      propertyPath: pickupCollider
-      value: 
-      objectReference: {fileID: 4300243271977503679}
-    - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
-        type: 3}
       propertyPath: impactParticles
       value: 
       objectReference: {fileID: 4728672387657560562, guid: 2aee69056c9e23841b690bcd7bdf0dc0,
         type: 3}
-    - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
-        type: 3}
-      propertyPath: physicsCollider
-      value: 
-      objectReference: {fileID: 5408544846974270171}
     - target: {fileID: 5970084198532610228, guid: 5bbdeb380655d334d9e8ff79dd5bd2b0,
         type: 3}
       propertyPath: serializationData.Prefab
