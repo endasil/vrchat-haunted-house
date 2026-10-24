@@ -30,11 +30,7 @@ public class WaypointNetwork : UdonSharpBehaviour
 
             NavMeshPath path = new NavMeshPath();
 
-            bool success = NavMesh.CalculatePath(start, end, NavMesh.AllAreas, path);
-            if (!success)
-            {
-                Debug.LogWarning($"Path calculation failed from {start} to {end}");
-            }
+            NavMesh.CalculatePath(start, end, NavMesh.AllAreas, path);
 
             // Draw lines between path corners
             {

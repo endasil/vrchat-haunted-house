@@ -2,7 +2,6 @@
 using MMMaellon;
 
 using System;
-using TMPro;
 
 using UdonSharp;
 
@@ -52,8 +51,6 @@ public class Snowball : SmartObjectSyncListener
     private Rigidbody _rb;
     private MeshRenderer _meshRenderer;
     private bool _hasInitialized;
-    private TextMeshPro _textMeshPro;
-    private Transform _textMeshProTransform;
     private int _ownerLayer;
     private int _remoteLayer;
     private void Start()
@@ -62,11 +59,10 @@ public class Snowball : SmartObjectSyncListener
         _remoteLayer = LayerMask.NameToLayer("SnowballRemote");
         if (_ownerLayer == -1 || _remoteLayer == -1)
         {
-            Log("The physics layers Snowball and SnowballRemote need to exist in the project settings.", "error");
+            LogError("The physics layers Snowball and SnowballRemote need to exist in the project settings.");
         }
         UpdateLayerForOwner();
 
-        _textMeshPro = GetComponentInChildren<TextMeshPro>();
         _lastHandledImpactEventId = _syncedImpactEventId;
 
         _vrcPickup = GetComponent<VRCPickup>();
@@ -94,17 +90,10 @@ public class Snowball : SmartObjectSyncListener
             // Without that, position syncing does not work correctly for clients that do not own the object.
             _smartObjectSync.AddListener(this);
         }
-
-        if (_textMeshPro)
-        {
-            _textMeshProTransform = _textMeshPro.gameObject.transform;
-        }
     }
 
     public override void OnPickup()
     {
-        Log($"OnPicking");
-
         _hasImpacted = false;
         // The ownership transfer can come after OnPickup.
         gameObject.layer = _ownerLayer;
@@ -152,8 +141,6 @@ public class Snowball : SmartObjectSyncListener
     // detects the hit and sends it to the owner.
     public override void OnPlayerCollisionEnter(VRCPlayerApi player)
     {
-        Log($"OnPlayerCollisionEnter: player {player.displayName}, isLocal {player.isLocal}, isOwner {Networking.IsOwner(gameObject)}, hasImpacted {_hasImpacted}, state {CurrentStateName()}, velocity {_rb.velocity.magnitude}");
-
         if (!player.isLocal) return;
         // The owner is the thrower, touching their own snowball.
         if (Networking.IsOwner(gameObject)) return;
@@ -173,7 +160,6 @@ public class Snowball : SmartObjectSyncListener
 
         DisableSnowball();
         SpawnParticles(position, normal);
-        Log($"OnPlayerCollisionEnter: sending OnHitPlayer to the owner, position {position}");
         SendCustomNetworkEvent(NetworkEventTarget.Owner, nameof(OnHitPlayer), position, normal);
     }
 
@@ -182,8 +168,6 @@ public class Snowball : SmartObjectSyncListener
     [NetworkCallable]
     public void OnHitPlayer(Vector3 position, Vector3 normal)
     {
-        Log($"OnHitPlayer: received, isOwner {Networking.IsOwner(gameObject)}, hasImpacted {_hasImpacted}, isHeld {_vrcPickup && _vrcPickup.IsHeld}");
-
         if (!Networking.IsOwner(gameObject)) return;
         if (_hasImpacted) return;
         if (_vrcPickup && _vrcPickup.IsHeld) return;
@@ -215,12 +199,6 @@ public class Snowball : SmartObjectSyncListener
         }
     }
 
-    private string CurrentStateName()
-    {
-        if (!_smartObjectSync) return "no SmartObjectSync";
-        return _smartObjectSync.StateToString(_smartObjectSync.state);
-    }
-
     private bool IsFlying()
     {
         if (!_smartObjectSync) return false;
@@ -250,7 +228,6 @@ public class Snowball : SmartObjectSyncListener
         // at yet for this client, and can perform the spawning.
         if (_syncedImpactEventId > _lastHandledImpactEventId)
         {
-            Log($"OnDeserialization: new impact {_syncedImpactEventId} at {_syncedImpactPosition}, burstShownLocally {_burstShownLocally}");
             // Stops OnChangeState from turning the collider on again for a hidden snowball.
             _hasImpacted = true;
             DisableSnowball();
@@ -271,12 +248,7 @@ public class Snowball : SmartObjectSyncListener
         // is false for it. Without this check, a player who walks into a wall with it makes an impact.
         if (_smartObjectSync && _smartObjectSync.IsAttachedToPlayer()) return false;
         if (_hasImpacted) return false;
-        if (_rb && _rb.velocity.magnitude < minImpactVelocity)
-        {
-            Log($"Impact velocity too low for collision {_rb.velocity.magnitude} < {minImpactVelocity} ");
-            return false;
-        }
-        Log($"Impact velocity {_rb.velocity.magnitude} > {minImpactVelocity} ");
+        if (_rb && _rb.velocity.magnitude < minImpactVelocity) return false;
 
         RegisterImpact(pos, normal);
         return true;
@@ -295,14 +267,6 @@ public class Snowball : SmartObjectSyncListener
 
     private void OnCollisionEnter(Collision collision)
     {
-        // A player collider is hidden from Udon, so collision.collider is null for a player.
-        string hitName = "null collider (player?)";
-        if (collision.collider != null)
-        {
-            hitName = collision.collider.gameObject.name;
-        }
-        Log($"OnCollisionEnter: hit {hitName}, isOwner {Networking.IsOwner(gameObject)}, hasImpacted {_hasImpacted}, state {CurrentStateName()}, velocity {_rb.velocity.magnitude}");
-
         if (collision.contacts.Length == 0)
             return;
 
@@ -380,7 +344,7 @@ public class Snowball : SmartObjectSyncListener
         }
         else
         {
-            Log("No impact particles assigned!", "error");
+            LogError("No impact particles assigned!");
         }
     }
 
@@ -395,7 +359,6 @@ public class Snowball : SmartObjectSyncListener
 
     public void EnableSnowball()
     {
-        Log("Got call to to enable snowball.");
         // A hit player's client sets _hasImpacted without owning the snowball, and nothing
         // else resets it there.
         _hasImpacted = false;
@@ -410,15 +373,13 @@ public class Snowball : SmartObjectSyncListener
 
         if (_smartObjectSync)
         {
-            Log("TeleportToWorldSpace");
             _smartObjectSync.TeleportToWorldSpace(respawnPosition, Quaternion.identity, Vector3.zero, Vector3.zero);
         }
         else
         {
-            Log("No SmartObjectSync on snowball.", "Error");
+            LogError("No SmartObjectSync on snowball.");
         }
 
-        Log("RespawnAndEnable");
         SendCustomNetworkEvent(NetworkEventTarget.All, nameof(EnableSnowball));
     }
 
@@ -432,7 +393,6 @@ public class Snowball : SmartObjectSyncListener
         if (newState == SmartObjectSync.STATE_INTERPOLATING ||
             newState == SmartObjectSync.STATE_FALLING)
         {
-            Log($"OnChangeState: {sync.StateToString(newState)} Removing kinematic, isOwner {Networking.IsOwner(gameObject)}, hasImpacted {_hasImpacted}", "warn");
             _rb.isKinematic = false;
             // Only the owner turns the collider on in OnPickup. The hit player's client needs it for OnPlayerCollisionEnter.
             if (!_hasImpacted)
@@ -446,51 +406,17 @@ public class Snowball : SmartObjectSyncListener
         if (newState == SmartObjectSync.STATE_TELEPORTING ||
             newState == SmartObjectSync.STATE_SLEEPING)
         {
-            Log($"OnChangeState: {sync.StateToString(newState)} Setting to kinematic", "warn");
-
             _rb.isKinematic = true;
             physicsCollider.enabled = false;
         }
     }
 
-    private void Log(string message, string level = "Log")
+    private void LogError(string message)
     {
         VRCPlayerApi owner = Networking.GetOwner(gameObject);
         string ownerName = owner != null ? owner.displayName : "None";
         string timestamp = DateTime.Now.ToString("HH:mm:ss.fff");
-        string formattedMessage = $"<color=cyan>[{timestamp}]</color>[{gameObject.name}][Owner: {ownerName}] {message}";
-
-        string levelLower = level.ToLower();
-
-        if (levelLower == "warning" || levelLower == "warn")
-            Debug.LogWarning(formattedMessage);
-        else if (levelLower == "error" || levelLower == "err")
-            Debug.LogError(formattedMessage);
-        else if (levelLower == "log")
-            Debug.Log(formattedMessage);
-        else
-            Debug.LogError($"{levelLower} is an unknown log level! " + formattedMessage);
-    }
-
-    // Update is currently only used to display debug info.
-    private void Update()
-    {
-        if (_textMeshPro && _textMeshProTransform)
-        {
-            _textMeshPro.text = gameObject.name;
-
-            if (Networking.LocalPlayer != null)
-            {
-                Vector3 headPos = Networking.LocalPlayer.GetTrackingData(VRCPlayerApi.TrackingDataType.Head).position;
-                Vector3 direction = headPos - _textMeshProTransform.position;
-                direction.y = 0;
-                _textMeshProTransform.rotation = Quaternion.LookRotation(-direction);
-                // Position text offset from camera, with minimum height
-                Vector3 targetPos = transform.position - direction.normalized * 0.8f;
-                targetPos.y = Mathf.Max(targetPos.y, transform.position.y + 0.4f);
-                _textMeshProTransform.position = targetPos;
-            }
-        }
+        Debug.LogError($"<color=cyan>[{timestamp}]</color>[{gameObject.name}][Owner: {ownerName}] {message}");
     }
 
     public override void OnChangeOwner(SmartObjectSync sync, VRCPlayerApi oldOwner, VRCPlayerApi newOwner) { }

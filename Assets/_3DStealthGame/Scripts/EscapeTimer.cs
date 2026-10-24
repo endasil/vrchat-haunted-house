@@ -49,7 +49,6 @@ public class EscapeTimer : Resettable
         {
             _hasBestTime = true;
         }
-        Debug.Log($"OnPlayerRestored: _hasBest:  {_hasBestTime}");
     }
 
     public override void OnPlayerTriggerEnter(VRCPlayerApi player)
@@ -102,13 +101,11 @@ public class EscapeTimer : Resettable
 
         if (_hasBestTime && _elapsed >= _bestTime)
         {
-            Debug.Log("Finish time was worse than best time, doing nothing.");
             return false;
         }
 
         _bestTime = _elapsed;
         _hasBestTime = true;
-        Debug.Log($"Setting new best time in key {PlayerDataKeys.SavedPersonalBestEscapeTime} to {_bestTime} ");
         PlayerData.SetFloat(PlayerDataKeys.SavedPersonalBestEscapeTime, _bestTime);
         return true;
     }

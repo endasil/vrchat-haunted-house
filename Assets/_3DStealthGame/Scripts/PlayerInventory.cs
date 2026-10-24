@@ -88,8 +88,6 @@ public class PlayerInventory : Resettable
                 return;
             }
         }
-
-        Debug.Log($"PlayerInventory ({gameObject.name}): the player already holds every pill color.");
     }
 
     public override void ResetState()

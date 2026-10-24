@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c333ccfdd0cbdbc4ca30cef2dd6e6b9b, type: 3}
   m_Name: EscapeTimer
   m_EditorClassIdentifier: 
-  serializedUdonProgramAsset: {fileID: 11400000, guid: f694f7b4532eeb74cb17fe30f26e5495,
+  serializedUdonProgramAsset: {fileID: 11400000, guid: 9fd163568bbbaf34e83ba8d36aad9569,
     type: 2}
   udonAssembly: 
   assemblyError: 

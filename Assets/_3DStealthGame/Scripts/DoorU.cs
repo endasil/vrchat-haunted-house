@@ -55,13 +55,11 @@ namespace Assets._3DStealthGame.Scripts
                     }
 
                     _targetRot = Quaternion.Euler(fallAngle, _startRot.eulerAngles.y, _startRot.eulerAngles.z);
-                    Debug.Log($"{gameObject.name}: Pill {PillColor} used");
                     _timer = 0f;
                     _opening = true;
                 }
                 else
                 {
-                    Debug.Log($"{gameObject.name}: No {PillColor} pill in player inventory.");
                     return;
                 }
             }

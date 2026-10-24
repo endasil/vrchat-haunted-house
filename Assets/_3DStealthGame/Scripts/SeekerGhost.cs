@@ -307,7 +307,6 @@ public class SeekerGhost : GhostAgentBase
         _navMeshAgent.stoppingDistance = 0.4f;
         if (!TryGetRandomNavMeshPosition(out Vector3 nextDestination))
         {
-            Debug.Log($"{gameObject.name} StartIdleLookAround: no valid NavMesh position found, skipping sweep, will retry next frame.");
             return;
         }
 

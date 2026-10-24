@@ -200,11 +200,7 @@ public class ButlerGhost : GhostAgentBase
 
     private void SetNextWaypointIfArrived()
     {
-        if (_navMeshAgent.pathPending)
-        {
-            Debug.Log($"{gameObject.name} PathPending.");
-            return;
-        }
+        if (_navMeshAgent.pathPending) return;
         Transform wp = WaypointNetwork.WaypointPositions[_currentWaypointIndex];
         if (wp == null)
         {
@@ -222,13 +218,11 @@ public class ButlerGhost : GhostAgentBase
 		// using squareroot, should test and se...
         if (toWaypoint.sqrMagnitude  < threshold * threshold)
         {
-            // Debug.Log($"{gameObject.name} reached waypoint. Advance.");
             _currentWaypointIndex = (_currentWaypointIndex + 1) % WaypointNetwork.WaypointPositions.Length;
             SetDestinationToCurrentWaypoint();
         }
         else if (_navMeshAgent.pathStatus == NavMeshPathStatus.PathInvalid)
         {
-            Debug.LogWarning($"{gameObject.name} path invalid, requesting new waypoint {_currentWaypointIndex}.");
             SetDestinationToCurrentWaypoint();
         }
     }

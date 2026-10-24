@@ -41,7 +41,6 @@ public class ExitTriggerU : UdonSharpBehaviour
 
         if (!playerInventory.HasAllPills())
         {
-            Debug.Log($"ExitTriggerU ({gameObject.name}): player is missing pills, the exit stays shut.");
             return;
         }
 

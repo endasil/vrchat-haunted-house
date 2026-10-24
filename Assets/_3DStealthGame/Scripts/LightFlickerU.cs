@@ -135,14 +135,12 @@ namespace StealthGame
             {
                 EditorGUILayout.PropertyField(m_IntensityCurveProp);
                 AnimationCurve curve = m_IntensityCurveProp.animationCurveValue;
-                Debug.Log("AnimationCurve");
 
                 if (curve != null && curve.length > 0)
                 {
 
                     m_CurveStartTimeProp.floatValue = curve.keys[0].time;
                     m_CurveDurationProp.floatValue = curve.keys[curve.length - 1].time;
-                    Debug.Log($"curve len = {curve.length} start: {m_CurveStartTimeProp.floatValue} end: {m_CurveDurationProp.floatValue}");
 
                 }
             }

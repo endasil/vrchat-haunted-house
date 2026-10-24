@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c333ccfdd0cbdbc4ca30cef2dd6e6b9b, type: 3}
   m_Name: ExitTriggerU
   m_EditorClassIdentifier: 
-  serializedUdonProgramAsset: {fileID: 11400000, guid: 5a26611b7256b084aa6e0356875204ff,
+  serializedUdonProgramAsset: {fileID: 11400000, guid: aa92623b8bb8815459f587f6fcd76675,
     type: 2}
   udonAssembly: 
   assemblyError: 
