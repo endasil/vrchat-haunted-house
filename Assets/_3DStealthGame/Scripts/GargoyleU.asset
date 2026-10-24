@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c333ccfdd0cbdbc4ca30cef2dd6e6b9b, type: 3}
   m_Name: GargoyleU
   m_EditorClassIdentifier: 
-  serializedUdonProgramAsset: {fileID: 11400000, guid: f4dc5059dfac640428ad32c367542a4d,
+  serializedUdonProgramAsset: {fileID: 11400000, guid: b8b9318f1357b6549bfc618046fd13b6,
     type: 2}
   udonAssembly: 
   assemblyError: 

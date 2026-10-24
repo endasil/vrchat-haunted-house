@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c333ccfdd0cbdbc4ca30cef2dd6e6b9b, type: 3}
   m_Name: BuildTimeDisplay
   m_EditorClassIdentifier: 
-  serializedUdonProgramAsset: {fileID: 11400000, guid: 057f291bda950b347a581b3ef81b6098,
+  serializedUdonProgramAsset: {fileID: 11400000, guid: 28b36aecf0b9b104d96f014520de00bb,
     type: 2}
   udonAssembly: 
   assemblyError: 

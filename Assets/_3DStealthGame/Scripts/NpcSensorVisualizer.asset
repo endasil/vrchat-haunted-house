@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c333ccfdd0cbdbc4ca30cef2dd6e6b9b, type: 3}
   m_Name: NpcSensorVisualizer
   m_EditorClassIdentifier: 
-  serializedUdonProgramAsset: {fileID: 11400000, guid: 012a0bd6ea5c400448ee1f65a8078d3c,
+  serializedUdonProgramAsset: {fileID: 11400000, guid: 97c49665fbfe89646a16b37ac8c6a4d0,
     type: 2}
   udonAssembly: 
   assemblyError: 

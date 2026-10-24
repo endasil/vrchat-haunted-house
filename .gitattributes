@@ -1,1 +1,4 @@
 *.asset text eol=lf
+
+# Compiled Udon programs: tracked so GUIDs match across machines, but hidden from diffs
+Assets/SerializedUdonPrograms/** -diff linguist-generated
