@@ -1,8 +1,12 @@
 using Assets._3DStealthGame.Scripts;
 using Assets._3DStealthGame.Scripts.Enums;
 
+using UdonSharp;
+
 using UnityEngine;
 
+// Sync mode None, so other clients can't call AddNextMissingPill or ResetState with a network event.
+[UdonBehaviourSyncMode(BehaviourSyncMode.None)]
 public class PlayerInventory : Resettable
 {
     // One entry per PillColor, indexed by (int)PillColor.

@@ -2,6 +2,8 @@ using Assets._3DStealthGame.Scripts;
 
 using UdonSharp;
 
+// Sync mode None, so other clients can't call ResetAll with a network event.
+[UdonBehaviourSyncMode(BehaviourSyncMode.None)]
 public class ResetManager : UdonSharpBehaviour
 {
     public Resettable[] resettables = new Resettable[0];

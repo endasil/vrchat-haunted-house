@@ -112,10 +112,10 @@ public class Snowball : SmartObjectSyncListener
 
         // One frame after a drop, VRChat sets the hand's velocity on the pickup and
         // SmartObjectSync.OnDropDelayed runs. Two frames is after both, so neither replaces the throw velocity.
-        SendCustomEventDelayedFrames(nameof(ThrowAlongView), 2);
+        SendCustomEventDelayedFrames(nameof(_ThrowAlongView), 2);
     }
 
-    public void ThrowAlongView()
+    public void _ThrowAlongView()
     {
         Quaternion headRotation = Networking.LocalPlayer.GetTrackingData(VRCPlayerApi.TrackingDataType.Head).rotation;
         ReleaseFromHand(headRotation * Vector3.forward * desktopThrowSpeed);
@@ -177,7 +177,7 @@ public class Snowball : SmartObjectSyncListener
         SpawnParticles(position, normal);
         AlertSeekersNearImpact(position);
 
-        SendCustomEventDelayedSeconds(nameof(RespawnAndEnable), respawnDelay);
+        SendCustomEventDelayedSeconds(nameof(_RespawnAndEnable), respawnDelay);
     }
 
     public override void OnOwnershipTransferred(VRCPlayerApi player)
@@ -281,7 +281,7 @@ public class Snowball : SmartObjectSyncListener
 
         DisableSnowball();
         SpawnParticles(contact.point, contact.normal);
-        SendCustomEventDelayedSeconds(nameof(RespawnAndEnable), respawnDelay);
+        SendCustomEventDelayedSeconds(nameof(_RespawnAndEnable), respawnDelay);
 
         if (ghost != null)
         {
@@ -367,7 +367,7 @@ public class Snowball : SmartObjectSyncListener
         if (pickupCollider) pickupCollider.enabled = true;
         if (_vrcPickup) _vrcPickup.pickupable = true;
     }
-    public void RespawnAndEnable()
+    public void _RespawnAndEnable()
     {
         if (!Networking.IsOwner(gameObject)) return;
 
