@@ -102,7 +102,7 @@ public class SlidePlayer : UdonSharpBehaviour
         // Wait one frame, because Unity does not guarantee that each
         // SlideButton.Start runs before this Start method.
 
-        SendCustomEventDelayedFrames(nameof(TryLoadImage), 1);
+        SendCustomEventDelayedFrames(nameof(_TryLoadImage), 1);
 
         RefreshSlideNumberDisplay();
     }
@@ -112,22 +112,22 @@ public class SlidePlayer : UdonSharpBehaviour
         return !_onCooldown && !_loading;
     }
 
-    public void Next()
+    public void _Next()
     {
         GoToSlide(NextIndex());
     }
 
-    public void Prev()
+    public void _Prev()
     {
         GoToSlide(PrevIndex());
     }
 
-    public void First()
+    public void _First()
     {
         GoToSlide(0);
     }
 
-    public void Refresh()
+    public void _Refresh()
     {
         SendCustomNetworkEvent(NetworkEventTarget.All, nameof(DoRefresh));
     }
@@ -151,7 +151,7 @@ public class SlidePlayer : UdonSharpBehaviour
 
         screen.material.SetTexture("_MainTex", null);
 
-        TryLoadImage();
+        _TryLoadImage();
         RefreshButtons();
     }
 
@@ -209,7 +209,7 @@ public class SlidePlayer : UdonSharpBehaviour
 
         if (_pendingLoad)
         {
-            TryLoadImage();
+            _TryLoadImage();
         }
         else
         {
@@ -306,7 +306,7 @@ public class SlidePlayer : UdonSharpBehaviour
             return;
         }
 
-        TryLoadImage();
+        _TryLoadImage();
     }
 
     private bool IsMissingSlide(IVRCImageDownload download)
@@ -344,14 +344,14 @@ public class SlidePlayer : UdonSharpBehaviour
         }
     }
 
-    public void EndCooldown()
+    public void _EndCooldown()
     {
         _onCooldown = false;
         RefreshButtons();
 
         if (_pendingLoad)
         {
-            TryLoadImage();
+            _TryLoadImage();
             return;
         }
 
@@ -431,7 +431,7 @@ public class SlidePlayer : UdonSharpBehaviour
         ShowOrLoad();
     }
 
-    public void TryLoadImage()
+    public void _TryLoadImage()
     {
         // A remote client can ask for a load during the cooldown, so queue it instead.
         if (_loading || _onCooldown)
@@ -457,7 +457,7 @@ public class SlidePlayer : UdonSharpBehaviour
     {
         _onCooldown = true;
         RefreshButtons();
-        SendCustomEventDelayedSeconds(nameof(EndCooldown), SecondsBetweenLoads);
+        SendCustomEventDelayedSeconds(nameof(_EndCooldown), SecondsBetweenLoads);
     }
 
     public void LogButtonError(string message)
@@ -473,7 +473,6 @@ public class SlidePlayer : UdonSharpBehaviour
 
     private void LogInfo(string message)
     {
-        Debug.Log("[SlidePlayer] " + message);
         ShowLogLine(message);
     }
 

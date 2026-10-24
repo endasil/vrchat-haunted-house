@@ -68,19 +68,19 @@ public class SlideButton : UdonSharpBehaviour
 
         if (action == SlideButtonAction.Next)
         {
-            player.Next();
+            player._Next();
         }
         else if (action == SlideButtonAction.First)
         {
-            player.First();
+            player._First();
         }
         else if (action == SlideButtonAction.Refresh)
         {
-            player.Refresh();
+            player._Refresh();
         }
         else
         {
-            player.Prev();
+            player._Prev();
         }
     }
 
