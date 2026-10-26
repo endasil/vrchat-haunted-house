@@ -5,20 +5,29 @@ using VRC.Udon.Common;
 
 namespace Assets._3DStealthGame.Scripts
 {
-    // An admin presses left trigger, right trigger, right trigger to switch the cheat on or off for everyone.
-    // The cheat makes the fog blue, stops the ghosts from catching players and adds 99 minutes to each run time.
-    // Right trigger, left trigger, left trigger, or Ctrl+Alt+Shift+P, gives the local admin the next missing pill.
-    [UdonBehaviourSyncMode(BehaviourSyncMode.Manual)]
+    // Any player presses the triggers left, right, right, left, left to switch the cheat on or off for themselves.
+    // The cheat makes their fog blue, stops the ghosts from catching them and adds 99 minutes to their run time.
+    // Right, left, left, right, right, or Ctrl+Alt+Shift+P, gives the local admin the next missing pill.
+    [UdonBehaviourSyncMode(BehaviourSyncMode.None)]
     public class AdminCheat : UdonSharpBehaviour
     {
         public AdminList adminList;
         public EscapeTimer escapeTimer;
-        public Color cheatFogColor = new Color(0.03f, 0.08f, 0.25f, 1f);
+        public Color cheatFogColor = new Color(0.05f, 0.2f, 0.6f, 1f);
         public float maxSecondsBetweenPresses = 0.5f;
 
-        private const int ComboLength = 3;
+        // Played for the local player when they toggle the cheat.
+        public AudioSource toggleAudio;
+        public AudioClip cheatOnSound;
+        public AudioClip cheatOffSound;
+
+        private const int ComboLength = 5;
         private const bool Left = true;
         private const bool Right = false;
+
+        // Five presses so the combos don't go off by accident while playing.
+        private bool[] _toggleCheatCombo = { Left, Right, Right, Left, Left };
+        private bool[] _nextPillCombo = { Right, Left, Left, Right, Right };
 
         // The last trigger presses, oldest first. true is a left hand press.
         private bool[] _recentPresses = new bool[ComboLength];
@@ -26,8 +35,7 @@ namespace Assets._3DStealthGame.Scripts
         private float _lastPressTime;
 
         private bool _isAdmin;
-        [UdonSynced] private bool _isCheatActive;
-        private bool _isCheatApplied;
+        private bool _isCheatActive;
         private Color _normalFogColor;
         private ObserverU[] _observers = new ObserverU[0];
 
@@ -41,6 +49,11 @@ namespace Assets._3DStealthGame.Scripts
 
             _isAdmin = adminList.IsAdmin(Networking.LocalPlayer);
             _normalFogColor = RenderSettings.fogColor;
+
+            if (toggleAudio == null || cheatOnSound == null || cheatOffSound == null)
+            {
+                Debug.LogError($"AdminCheat ({gameObject.name}): toggleAudio, cheatOnSound and cheatOffSound need to be assigned in the inspector.");
+            }
         }
 
         private void Update()
@@ -79,13 +92,12 @@ namespace Assets._3DStealthGame.Scripts
             next[count] = observer;
             _observers = next;
 
-            // A player who joins while the cheat is on can get the synced value before every observer has registered.
-            observer.enabled = !_isCheatApplied;
+            observer.enabled = !_isCheatActive;
         }
 
         public override void InputUse(bool value, UdonInputEventArgs args)
         {
-            if (!value || !_isAdmin) return;
+            if (!value) return;
 
             if (Time.time - _lastPressTime > maxSecondsBetweenPresses)
             {
@@ -96,12 +108,12 @@ namespace Assets._3DStealthGame.Scripts
             RecordPress(args.handType == HandType.LEFT);
             if (_recentPressCount < ComboLength) return;
 
-            if (IsCombo(Left, Right, Right))
+            if (IsCombo(_toggleCheatCombo))
             {
                 _recentPressCount = 0;
-                ToggleCheat();
+                _ToggleCheat();
             }
-            else if (IsCombo(Right, Left, Left))
+            else if (_isAdmin && IsCombo(_nextPillCombo))
             {
                 _recentPressCount = 0;
                 GiveNextMissingPill();
@@ -123,29 +135,39 @@ namespace Assets._3DStealthGame.Scripts
             _recentPressCount++;
         }
 
-        private bool IsCombo(bool first, bool second, bool third)
+        private bool IsCombo(bool[] combo)
         {
-            return _recentPresses[0] == first && _recentPresses[1] == second && _recentPresses[2] == third;
+            for (int i = 0; i < ComboLength; i++)
+            {
+                if (_recentPresses[i] != combo[i]) return false;
+            }
+            return true;
         }
 
-        private void ToggleCheat()
+        // Public so the editor cheat menu can call it. The underscore stops other clients from calling it with a network event.
+        public void _ToggleCheat()
         {
-            Networking.SetOwner(Networking.LocalPlayer, gameObject);
             _isCheatActive = !_isCheatActive;
-            RequestSerialization();
             ApplyCheatState();
+
+            if (_isCheatActive)
+            {
+                PlayToggleSound(cheatOnSound);
+            }
+            else
+            {
+                PlayToggleSound(cheatOffSound);
+            }
         }
 
-        public override void OnDeserialization()
+        private void PlayToggleSound(AudioClip clip)
         {
-            ApplyCheatState();
+            if (toggleAudio == null || clip == null) return;
+            toggleAudio.PlayOneShot(clip);
         }
 
         private void ApplyCheatState()
         {
-            if (_isCheatActive == _isCheatApplied) return;
-            _isCheatApplied = _isCheatActive;
-
             if (_isCheatActive)
             {
                 RenderSettings.fogColor = cheatFogColor;
