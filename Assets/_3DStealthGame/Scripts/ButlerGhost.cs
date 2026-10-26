@@ -60,6 +60,15 @@ public class ButlerGhost : GhostAgentBase
             return;
         }
 
+        for (int i = 0; i < WaypointNetwork.WaypointPositions.Length; i++)
+        {
+            if (WaypointNetwork.WaypointPositions[i] == null)
+            {
+                Debug.LogError($"{gameObject.name}: waypoint {i} in '{WaypointNetwork.gameObject.name}' needs to be assigned in the inspector.", gameObject);
+                return;
+            }
+        }
+
         base.InitGhostAgent();
         if (_navMeshAgent == null) return;
         _navMeshAgent.speed = moveSpeed;
@@ -202,11 +211,6 @@ public class ButlerGhost : GhostAgentBase
     {
         if (_navMeshAgent.pathPending) return;
         Transform wp = WaypointNetwork.WaypointPositions[_currentWaypointIndex];
-        if (wp == null)
-        {
-            Debug.LogError($"{gameObject.name} Waypoint is null!");
-            return;
-        }
 
         // Real distance to waypoint, _navMeshAgent.remainingDistance is 0 while calculating waypoint.
         Vector3 toWaypoint = wp.position - transform.position;
@@ -230,11 +234,6 @@ public class ButlerGhost : GhostAgentBase
     private void SetDestinationToCurrentWaypoint()
     {
         Transform wp = WaypointNetwork.WaypointPositions[_currentWaypointIndex];
-        if (wp == null)
-        {
-            Debug.LogError($"{gameObject.name}: waypoint {_currentWaypointIndex} in '{WaypointNetwork.gameObject.name}' is null.");
-            return;
-        }
 
         if (!base.SetDestinationOnNavMesh(wp.position))
         {

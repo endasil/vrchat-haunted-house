@@ -9,15 +9,17 @@ namespace Assets._3DStealthGame.Scripts
     {
         public Transform destination;
 
+        void Start()
+        {
+            if (destination == null)
+            {
+                Debug.LogError($"TeleportTrigger ({gameObject.name}): destination needs to be assigned in the inspector.", gameObject);
+            }
+        }
+
         public override void OnPlayerTriggerEnter(VRCPlayerApi player)
         {
             if (!player.isLocal) return;
-
-            if (destination == null)
-            {
-                Debug.LogError($"TeleportTrigger ({gameObject.name}): destination needs to be assigned in the inspector.");
-                return;
-            }
 
             player.TeleportTo(destination.position, destination.rotation);
         }

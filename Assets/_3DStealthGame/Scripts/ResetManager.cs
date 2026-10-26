@@ -26,8 +26,7 @@ public class ResetManager : UdonSharpBehaviour
     {
         for (int i = 0; i < resettables.Length; i++)
         {
-            var resettable = resettables[i];
-            if (resettable != null) resettable.ResetState();
+            resettables[i].ResetState();
         }
     }
 }

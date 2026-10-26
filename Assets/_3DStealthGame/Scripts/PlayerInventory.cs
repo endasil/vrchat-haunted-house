@@ -61,8 +61,7 @@ public class PlayerInventory : Resettable
     {
         _hasPill[(int)pillColor] = true;
 
-        if (_pickupAudio != null)
-            _pickupAudio.Play();
+        _pickupAudio.Play();
 
         if (_exitPillSockets == null)
         {

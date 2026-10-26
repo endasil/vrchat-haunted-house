@@ -162,7 +162,6 @@ namespace Assets._3DStealthGame.Scripts
 
         private void PlayToggleSound(AudioClip clip)
         {
-            if (toggleAudio == null || clip == null) return;
             toggleAudio.PlayOneShot(clip);
         }
 

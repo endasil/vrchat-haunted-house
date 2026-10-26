@@ -18,18 +18,20 @@ public class FpsCounter : UdonSharpBehaviour
     private int _frames;
     private float _elapsed;
 
+    void Start()
+    {
+        if (display == null)
+        {
+            Debug.LogError($"FpsCounter ({gameObject.name}): display needs to be assigned in the inspector.", gameObject);
+        }
+    }
+
     public void Update()
     {
         _frames++;
         _elapsed += Time.unscaledDeltaTime;
 
         if (_elapsed < refreshInterval) return;
-
-        if (display == null)
-        {
-            Debug.LogError($"FpsCounter ({gameObject.name}): display text is not assigned in the inspector.");
-            return;
-        }
 
         int fps = (int)(_frames / _elapsed + 0.5f);
         display.text = fps + " FPS";
