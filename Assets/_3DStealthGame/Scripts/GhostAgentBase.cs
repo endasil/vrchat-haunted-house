@@ -17,6 +17,9 @@ public class GhostAgentBase : UdonSharpBehaviour
     // The vision raycast starts this far above transform.position.
     protected const float EyeHeight = 0.5f;
 
+    // Speed in m/s below which hearing treats a player as standing still.
+    private const float StandingStillSpeed = 0.1f;
+
     // Floating state symbol above the ghost (e.g. "!" when a player is spotted).
     // Looked up in children if not assigned in the inspector.
     public TextMeshPro Indicator;
@@ -51,6 +54,11 @@ public class GhostAgentBase : UdonSharpBehaviour
 
         if (Indicator == null)
             Indicator = GetComponentInChildren<TextMeshPro>();
+
+        if (Indicator == null)
+        {
+            Debug.LogError($"{gameObject.name}: Indicator needs to be assigned in the inspector.", gameObject);
+        }
 
         _playerCache = new VRCPlayerApi[80];
 
@@ -123,7 +131,8 @@ public class GhostAgentBase : UdonSharpBehaviour
     }
 
     // Returns the closest player whose head is within maxDistance, regardless of
-    // facing or walls (used for hearing); null if nobody is in range.
+    // facing (used for hearing); null if nobody is in range. A moving player is heard
+    // through walls, a player standing still only with a clear line of sight.
     protected VRCPlayerApi FindClosestPlayerWithin(float maxDistance)
     {
         int totalPlayerCount = VRCPlayerApi.GetPlayerCount();
@@ -139,10 +148,14 @@ public class GhostAgentBase : UdonSharpBehaviour
             VRCPlayerApi candidate = _playerCache[i];
             if (candidate == null || !candidate.IsValid()) continue;
 
-            float distanceSquared = (GetPlayerHeadPosition(candidate) - agentPosition).sqrMagnitude;
+            Vector3 headPosition = GetPlayerHeadPosition(candidate);
+            float distanceSquared = (headPosition - agentPosition).sqrMagnitude;
 
             if (distanceSquared > maxDistanceSquared) continue;
             if (distanceSquared >= closestDistanceSquared) continue;
+
+            bool isStandingStill = candidate.GetVelocity().magnitude < StandingStillSpeed;
+            if (isStandingStill && !HasLineOfSight(headPosition)) continue;
 
             closestDistanceSquared = distanceSquared;
             closest = candidate;
@@ -151,10 +164,7 @@ public class GhostAgentBase : UdonSharpBehaviour
         return closest;
     }
 
-    // Inside the cone angle and nothing blocking the view. The ray is cast only
-    // up to just short of the target, so any hit means something is in the way.
-    // NOTE: ~0 includes the ghost's own layer; a solid (non-trigger) collider on
-    // the ghost itself can block its own view.
+    // Inside the cone angle and nothing blocking the view.
     protected bool IsWithinViewCone(Vector3 targetWorldPosition, float coneHalfAngleDeg)
     {
         Vector3 raycastOrigin = transform.position + new Vector3(0f, EyeHeight, 0f);
@@ -167,7 +177,22 @@ public class GhostAgentBase : UdonSharpBehaviour
 
         if (Vector3.Angle(transform.forward, directionToTarget) > coneHalfAngleDeg) return false;
 
-        return !Physics.Raycast(raycastOrigin,directionToTarget,
+        return HasLineOfSight(targetWorldPosition);
+    }
+
+    // The ray is cast only up to just short of the target, so any hit means
+    // something is in the way.
+    // NOTE: ~0 includes the ghost's own layer; a solid (non-trigger) collider on
+    // the ghost itself can block its own view.
+    private bool HasLineOfSight(Vector3 targetWorldPosition)
+    {
+        Vector3 raycastOrigin = transform.position + new Vector3(0f, EyeHeight, 0f);
+        Vector3 offsetToTarget = targetWorldPosition - raycastOrigin;
+
+        float distanceToTarget = offsetToTarget.magnitude;
+        if (distanceToTarget <= 0.0001f) return true;
+
+        return !Physics.Raycast(raycastOrigin, offsetToTarget / distanceToTarget,
             distanceToTarget - 0.2f,
             ~0,
             QueryTriggerInteraction.Ignore);
@@ -232,7 +257,6 @@ public class GhostAgentBase : UdonSharpBehaviour
 
     protected void SetIndicatorSymbol(string symbol)
     {
-        if (Indicator == null) return;
         Indicator.text = symbol;
     }
 }
