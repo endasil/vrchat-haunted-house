@@ -43,7 +43,7 @@ A path is the full hierarchy path, for example `Level A/Room Finish/Room Finsh/D
 | `getvar \| path \| variable` | Writes an Udon program variable from every UdonBehaviour on the object that has it. Play mode only. |
 | `event \| path \| eventName` | Calls `SendCustomEvent` on every UdonBehaviour on the object. Play mode only. |
 | `teleport \| x \| y \| z [\| yaw]` | Teleports the local player. Play mode only. |
-| `teleportfront \| path \| distance` | Teleports the local player that many metres in front of the object, facing it. Play mode only. |
+| `teleportfront \| path \| distance` | Teleports the local player that many metres in front of the object, facing it. Play mode only. "In front" is along the object's forward axis. A world-space canvas on a wall has its forward axis pointing into the wall, so the player lands behind the wall. Use `teleport` for wall signs. |
 | `gettext \| path` | Writes the text of the TextMeshPro component on the object. |
 | `setactive \| path \| on/off` | Turns the object on or off. In edit mode the scene changes, so use it in play mode. |
 | `eyeheight \| metres` | Sets the local player's eye height. Play mode only. |
