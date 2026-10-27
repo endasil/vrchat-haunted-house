@@ -7,17 +7,25 @@
 - Every `Debug.Log` message, with stack traces for errors, and every C# compile error goes to `console.log`.
 - Images go to `<name>.png` in the same folder.
 
+## Running commands from the shell
+
+`tools/bridge.sh` writes `run.txt`, waits for `== DONE ==` and prints `output.txt`. After the output it prints the errors and exceptions that Unity logged during the run. It exits with 2 when a command wrote `ERROR`.
+
+```
+tools/bridge.sh 'play' 'teleport | -7.6 | 0.3 | -11.03 | 270' 'headcamera | bath' 'stop'
+```
+
 ## Format
 
 One command per line. Arguments are separated by `|`, so object paths can contain spaces. Lines that start with `#` are skipped.
 
-A path is the full hierarchy path, for example `Level A/Room Finish/Room Finsh/Door Exit`. A path without `/` matches any object with that name. When more than one object matches, the bridge uses the first and writes a note.
+A path is the full hierarchy path, for example `Level A/Room Finish/Room Finsh/Door Exit`. A path without `/` matches any object with that name. When more than one object matches, the bridge uses the first and writes a note. Add `#n` to the end of the path to use the n-th match, for example `Props/Mirror#2`.
 
 ## Commands
 
 | Command | What it does |
 |---|---|
-| `play` | Enters play mode and waits until it runs. |
+| `play` | Enters play mode, waits until `Networking.IsNetworkSettled` is true and 1 s more (ClientSim has spawned the local player and started Udon), then hides the ClientSim menu. |
 | `stop` | Leaves play mode and waits until edit mode is back. |
 | `refresh` | Runs `AssetDatabase.Refresh` and waits for the script compile. |
 | `wait \| seconds` | Waits that many seconds. |
@@ -37,6 +45,12 @@ A path is the full hierarchy path, for example `Level A/Room Finish/Room Finsh/D
 | `occlusionview \| on/off` | Turns the occlusion culling visualization in the Scene view on or off. |
 | `inspect \| path` | Writes active state, layer, world and local transform, bounds and components. |
 | `find \| text` | Writes the path of every scene object whose name contains the text (case is ignored). |
+| `withcomponent \| TypeName` | Writes the path of every scene object with a component of that type, for example `VRCMirrorReflection`. |
+| `fields \| path \| TypeName` | Writes every serialized field of the component, for example `fields \| Mirror \| MeshRenderer`. |
+| `setfield \| path \| TypeName \| field \| value` | Sets one serialized field, as one Undo step. Colours and vectors are comma-separated numbers. A rotation takes Euler angles, for example `setfield \| Mirror \| Transform \| m_LocalRotation \| 0,180,0`. A reference takes an asset path (`Assets/...`), a shader name or `null`. Example: `setfield \| Mirror \| MeshRenderer \| m_Materials.Array.data[0] \| Assets/.../Dirty Mirror.mat`. |
+| `call \| path \| TypeName \| method [\| arg ...]` | Calls a method on the component, also a private one, and writes the return value. An argument can be a number, `true`/`false`, comma-separated numbers for a vector or colour, an enum name, an object path, an asset path, or `maincamera`. |
+| `material \| assetPath` | Writes the material's shader and every shader property value. |
+| `setmaterial \| assetPath \| property \| value` | Sets one material property and saves the material to disk. The property `shader` takes a shader name. |
 | `lights \| path` | Writes every light whose range reaches the object's renderer bounds, and the ambient light settings. |
 | `probe \| path` | Writes the baked light probe light at the renderer's bounds centre, for 6 surface normal directions. |
 | `tree \| path [\| depth]` | Writes the child hierarchy. Default depth 2. |
@@ -57,5 +71,5 @@ A path is the full hierarchy path, for example `Level A/Room Finish/Room Finsh/D
 
 - `refresh` compiles scripts that changed on disk, so the Editor does not need focus for that.
 - Play mode keeps running while the Editor is in the background because `Run In Background` is on in Player Settings.
-- `play` returns when the scene runs, but ClientSim starts the Udon behaviours about 10 s later. Put `wait | 12` after `play` before `event` or `getvar`.
+- `play` returns when ClientSim has spawned the local player and started Udon, so `teleport`, `headcamera`, `event` and `getvar` work right after it.
 - `screenshot` needs an open Game view. `camera` and `view` work in edit mode and play mode.

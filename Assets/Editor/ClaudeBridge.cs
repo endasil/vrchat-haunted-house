@@ -32,6 +32,9 @@ public static class ClaudeBridge
     private const string WaitStop = "stop";
     private const string WaitCompile = "compile";
     private const string WaitFile = "file";
+    private const string WaitClientSimStart = "clientsimstart";
+
+    private const double ClientSimStartSeconds = 1.0;
 
     private const double StateChangeTimeout = 120.0;
     private const double ScreenshotTimeout = 10.0;
@@ -236,6 +239,24 @@ public static class ClaudeBridge
             case "find":
                 FindAll(Arg(args, 1));
                 break;
+            case "withcomponent":
+                FindWithComponent(Arg(args, 1));
+                break;
+            case "fields":
+                WriteFields(FindComponent(FindObject(Arg(args, 1)), Arg(args, 2)));
+                break;
+            case "setfield":
+                SetField(FindComponent(FindObject(Arg(args, 1)), Arg(args, 2)), Arg(args, 3), Arg(args, 4));
+                break;
+            case "call":
+                CallMethod(FindComponent(FindObject(Arg(args, 1)), Arg(args, 2)), Arg(args, 3), args.Skip(4).ToArray());
+                break;
+            case "material":
+                WriteMaterial(LoadMaterial(Arg(args, 1)));
+                break;
+            case "setmaterial":
+                SetMaterialValue(LoadMaterial(Arg(args, 1)), Arg(args, 2), Arg(args, 3));
+                break;
             case "probe":
                 WriteProbeLight(FindObject(Arg(args, 1)));
                 break;
@@ -285,10 +306,14 @@ public static class ClaudeBridge
         double until = double.Parse(SessionState.GetString(WaitUntilKey, "0"), CultureInfo.InvariantCulture);
         double notBefore = double.Parse(SessionState.GetString(NotBeforeKey, "0"), CultureInfo.InvariantCulture);
 
-        if (kind == WaitTime)
+        if (kind == WaitTime || kind == WaitClientSimStart)
         {
             if (now < until) return false;
             ClearWait();
+            if (kind == WaitClientSimStart)
+            {
+                HideClientSimMenu();
+            }
             return true;
         }
 
@@ -296,6 +321,13 @@ public static class ClaudeBridge
         if (done)
         {
             ClearWait();
+            if (kind == WaitPlay)
+            {
+                // IsNetworkSettled is true one frame before ClientSim spawns the player and starts Udon,
+                // and the ClientSim menu shows its first page after that.
+                StartWait(WaitClientSimStart, ClientSimStartSeconds);
+                return false;
+            }
             return true;
         }
 
@@ -312,7 +344,7 @@ public static class ClaudeBridge
         {
             case WaitPlay:
                 // EditorApplication.isPlaying is true as soon as play is requested, before the scene starts.
-                return Application.isPlaying && !EditorApplication.isCompiling;
+                return Application.isPlaying && !EditorApplication.isCompiling && Networking.IsNetworkSettled;
             case WaitStop:
                 return !EditorApplication.isPlaying && !EditorApplication.isPlayingOrWillChangePlaymode;
             case WaitCompile:
@@ -322,6 +354,21 @@ public static class ClaudeBridge
             default:
                 throw new Exception("unknown wait kind '" + kind + "'");
         }
+    }
+
+    private const string ClientSimMenuPath = "__ClientSimSystem/Menu/MenuCanvas";
+
+    // The ClientSim menu opens when play mode starts and covers the head camera images.
+    private static void HideClientSimMenu()
+    {
+        GameObject menu = GameObject.Find(ClientSimMenuPath);
+        if (menu == null)
+        {
+            Append("note: no ClientSim menu at '" + ClientSimMenuPath + "'");
+            return;
+        }
+        menu.SetActive(false);
+        Append("ClientSim started, ClientSim menu hidden");
     }
 
     private static void TakeScreenshot(string name)
@@ -738,8 +785,322 @@ public static class ClaudeBridge
         Append(count + " objects");
     }
 
+    private static void FindWithComponent(string typeName)
+    {
+        int count = 0;
+        foreach (Component component in Resources.FindObjectsOfTypeAll<Component>())
+        {
+            if (component == null || EditorUtility.IsPersistent(component) || !component.gameObject.scene.IsValid()) continue;
+            if (component.GetType().Name != typeName) continue;
+
+            Append(GetPath(component.transform));
+            count++;
+        }
+        Append(count + " objects");
+    }
+
+    private static Component FindComponent(GameObject target, string typeName)
+    {
+        Component component = target.GetComponents<Component>().FirstOrDefault(c => c != null && c.GetType().Name == typeName);
+        if (component == null)
+        {
+            throw new Exception("'" + target.name + "' has no " + typeName);
+        }
+        return component;
+    }
+
+    private static void WriteFields(UnityEngine.Object target)
+    {
+        SerializedProperty property = new SerializedObject(target).GetIterator();
+        bool enterChildren = true;
+        while (property.NextVisible(enterChildren))
+        {
+            enterChildren = property.propertyType == SerializedPropertyType.Generic;
+            Append(property.propertyPath + " = " + FormatProperty(property));
+        }
+    }
+
+    // Applied through SerializedObject, so the change is one Undo step.
+    private static void SetField(UnityEngine.Object target, string propertyPath, string value)
+    {
+        var serialized = new SerializedObject(target);
+        SerializedProperty property = serialized.FindProperty(propertyPath);
+        if (property == null)
+        {
+            throw new Exception("'" + target.name + "' has no property '" + propertyPath + "'");
+        }
+
+        string before = FormatProperty(property);
+        switch (property.propertyType)
+        {
+            case SerializedPropertyType.Integer:
+            case SerializedPropertyType.LayerMask:
+                property.intValue = int.Parse(value, CultureInfo.InvariantCulture);
+                break;
+            case SerializedPropertyType.Float:
+                property.floatValue = ParseFloat(value);
+                break;
+            case SerializedPropertyType.Boolean:
+                property.boolValue = bool.Parse(value);
+                break;
+            case SerializedPropertyType.String:
+                property.stringValue = value;
+                break;
+            case SerializedPropertyType.Enum:
+                int index = Array.IndexOf(property.enumNames, value);
+                if (index < 0)
+                {
+                    throw new Exception("'" + value + "' is not one of " + string.Join(", ", property.enumNames));
+                }
+                property.enumValueIndex = index;
+                break;
+            case SerializedPropertyType.Color:
+                property.colorValue = ParseColor(value);
+                break;
+            case SerializedPropertyType.Vector3:
+                property.vector3Value = ParseVector3(value);
+                break;
+            case SerializedPropertyType.Quaternion:
+                property.quaternionValue = Quaternion.Euler(ParseVector3(value));
+                break;
+            case SerializedPropertyType.ObjectReference:
+                property.objectReferenceValue = LoadReference(value);
+                break;
+            default:
+                throw new Exception("setting a " + property.propertyType + " property is not supported");
+        }
+        serialized.ApplyModifiedProperties();
+        Append(propertyPath + ": " + before + " -> " + FormatProperty(property));
+    }
+
+    // Finds the method by name and argument count, also private methods and methods of base classes.
+    private static void CallMethod(Component target, string methodName, string[] values)
+    {
+        const System.Reflection.BindingFlags flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic;
+        System.Reflection.MethodInfo method = null;
+        for (Type type = target.GetType(); type != null && method == null; type = type.BaseType)
+        {
+            method = type.GetMethods(flags | System.Reflection.BindingFlags.DeclaredOnly)
+                .FirstOrDefault(m => m.Name == methodName && m.GetParameters().Length == values.Length);
+        }
+        if (method == null)
+        {
+            throw new Exception(target.GetType().Name + " has no method '" + methodName + "' with " + values.Length + " arguments");
+        }
+
+        System.Reflection.ParameterInfo[] parameters = method.GetParameters();
+        var arguments = new object[parameters.Length];
+        for (int i = 0; i < parameters.Length; i++)
+        {
+            arguments[i] = ParseArgument(values[i], parameters[i].ParameterType);
+        }
+
+        object result;
+        try
+        {
+            result = method.Invoke(target, arguments);
+        }
+        catch (System.Reflection.TargetInvocationException e)
+        {
+            throw new Exception(methodName + " threw " + e.InnerException);
+        }
+        Append(method.ReturnType == typeof(void) ? methodName + " done" : methodName + " -> " + FormatValue(result));
+    }
+
+    // The value "maincamera" gives the camera that renders the Game view.
+    private static object ParseArgument(string value, Type type)
+    {
+        if (type == typeof(string)) return value;
+        if (type == typeof(float)) return ParseFloat(value);
+        if (type == typeof(int)) return int.Parse(value, CultureInfo.InvariantCulture);
+        if (type == typeof(bool)) return bool.Parse(value);
+        if (type == typeof(Vector3)) return ParseVector3(value);
+        if (type == typeof(Color)) return ParseColor(value);
+        if (type.IsEnum) return Enum.Parse(type, value);
+        if (type == typeof(Camera))
+        {
+            if (value != "maincamera")
+            {
+                throw new Exception("a Camera argument takes 'maincamera'");
+            }
+            return Camera.main;
+        }
+        if (typeof(GameObject).IsAssignableFrom(type)) return FindObject(value);
+        if (typeof(Component).IsAssignableFrom(type)) return FindObject(value).GetComponent(type);
+        if (typeof(UnityEngine.Object).IsAssignableFrom(type)) return LoadReference(value);
+        throw new Exception("an argument of type " + type.Name + " is not supported");
+    }
+
+    // A value that starts with Assets/ or Packages/ is an asset path. Any other value is a shader name.
+    private static UnityEngine.Object LoadReference(string value)
+    {
+        if (value == "null") return null;
+
+        UnityEngine.Object reference = value.StartsWith("Assets/") || value.StartsWith("Packages/")
+            ? AssetDatabase.LoadMainAssetAtPath(value)
+            : Shader.Find(value);
+        if (reference == null)
+        {
+            throw new Exception("no asset or shader '" + value + "'");
+        }
+        return reference;
+    }
+
+    private static Material LoadMaterial(string assetPath)
+    {
+        Material material = AssetDatabase.LoadAssetAtPath<Material>(assetPath);
+        if (material == null)
+        {
+            throw new Exception("no material at '" + assetPath + "'");
+        }
+        return material;
+    }
+
+    private static void WriteMaterial(Material material)
+    {
+        Shader shader = material.shader;
+        Append("shader: " + shader.name + (EditorUtility.IsDirty(material) ? " [unsaved changes]" : ""));
+        for (int i = 0; i < shader.GetPropertyCount(); i++)
+        {
+            string name = shader.GetPropertyName(i);
+            Append(name + " = " + FormatMaterialValue(material, name, shader.GetPropertyType(i)));
+        }
+    }
+
+    // The property "shader" takes a shader name. The material is saved to disk afterwards.
+    private static void SetMaterialValue(Material material, string property, string value)
+    {
+        Undo.RecordObject(material, "ClaudeBridge setmaterial");
+        if (property == "shader")
+        {
+            Shader shader = Shader.Find(value);
+            if (shader == null)
+            {
+                throw new Exception("no shader '" + value + "'");
+            }
+            Append("shader: " + material.shader.name + " -> " + shader.name);
+            material.shader = shader;
+        }
+        else
+        {
+            if (!material.HasProperty(property))
+            {
+                throw new Exception(material.shader.name + " has no property '" + property + "'");
+            }
+            int index = material.shader.FindPropertyIndex(property);
+            UnityEngine.Rendering.ShaderPropertyType type = material.shader.GetPropertyType(index);
+            string before = FormatMaterialValue(material, property, type);
+            switch (type)
+            {
+                case UnityEngine.Rendering.ShaderPropertyType.Color:
+                    material.SetColor(property, ParseColor(value));
+                    break;
+                case UnityEngine.Rendering.ShaderPropertyType.Texture:
+                    material.SetTexture(property, (Texture)LoadReference(value));
+                    break;
+                case UnityEngine.Rendering.ShaderPropertyType.Vector:
+                    material.SetVector(property, ParseVector4(value));
+                    break;
+                default:
+                    material.SetFloat(property, ParseFloat(value));
+                    break;
+            }
+            Append(property + ": " + before + " -> " + FormatMaterialValue(material, property, type));
+        }
+        EditorUtility.SetDirty(material);
+        AssetDatabase.SaveAssetIfDirty(material);
+    }
+
+    private static string FormatMaterialValue(Material material, string name, UnityEngine.Rendering.ShaderPropertyType type)
+    {
+        switch (type)
+        {
+            case UnityEngine.Rendering.ShaderPropertyType.Color:
+                return material.GetColor(name).ToString();
+            case UnityEngine.Rendering.ShaderPropertyType.Vector:
+                return material.GetVector(name).ToString();
+            case UnityEngine.Rendering.ShaderPropertyType.Texture:
+                Texture texture = material.GetTexture(name);
+                return texture == null ? "null" : AssetDatabase.GetAssetPath(texture);
+            default:
+                return material.GetFloat(name).ToString(CultureInfo.InvariantCulture);
+        }
+    }
+
+    private static string FormatProperty(SerializedProperty property)
+    {
+        switch (property.propertyType)
+        {
+            case SerializedPropertyType.Integer:
+            case SerializedPropertyType.LayerMask:
+                return property.intValue.ToString(CultureInfo.InvariantCulture);
+            case SerializedPropertyType.Float:
+                return property.floatValue.ToString(CultureInfo.InvariantCulture);
+            case SerializedPropertyType.Boolean:
+                return property.boolValue.ToString();
+            case SerializedPropertyType.String:
+                return property.stringValue;
+            case SerializedPropertyType.Enum:
+                return property.enumValueIndex >= 0 && property.enumValueIndex < property.enumNames.Length
+                    ? property.enumNames[property.enumValueIndex]
+                    : property.intValue.ToString(CultureInfo.InvariantCulture);
+            case SerializedPropertyType.Color:
+                return property.colorValue.ToString();
+            case SerializedPropertyType.Vector3:
+                return Format(property.vector3Value);
+            case SerializedPropertyType.Quaternion:
+                return Format(property.quaternionValue.eulerAngles);
+            case SerializedPropertyType.ObjectReference:
+                UnityEngine.Object reference = property.objectReferenceValue;
+                if (reference == null) return "null";
+                string assetPath = AssetDatabase.GetAssetPath(reference);
+                return reference.name + (assetPath == "" ? "" : " (" + assetPath + ")");
+            case SerializedPropertyType.ArraySize:
+                return property.intValue.ToString(CultureInfo.InvariantCulture);
+            default:
+                return "(" + property.propertyType + ")";
+        }
+    }
+
+    private static float[] ParseFloats(string text, int count)
+    {
+        float[] values = text.Split(',').Select(part => ParseFloat(part.Trim())).ToArray();
+        if (values.Length != count)
+        {
+            throw new Exception("'" + text + "' needs " + count + " comma-separated numbers");
+        }
+        return values;
+    }
+
+    private static Color ParseColor(string text)
+    {
+        float[] v = ParseFloats(text, 4);
+        return new Color(v[0], v[1], v[2], v[3]);
+    }
+
+    private static Vector3 ParseVector3(string text)
+    {
+        float[] v = ParseFloats(text, 3);
+        return new Vector3(v[0], v[1], v[2]);
+    }
+
+    private static Vector4 ParseVector4(string text)
+    {
+        float[] v = ParseFloats(text, 4);
+        return new Vector4(v[0], v[1], v[2], v[3]);
+    }
+
+    // A path that ends with #n uses the n-th object with that path, counted from 1.
     private static GameObject FindObject(string path)
     {
+        int matchNumber = 1;
+        int hash = path.LastIndexOf('#');
+        if (hash >= 0 && int.TryParse(path.Substring(hash + 1), NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsed))
+        {
+            matchNumber = parsed;
+            path = path.Substring(0, hash);
+        }
+
         bool byName = path.IndexOf('/') < 0;
         var matches = new List<GameObject>();
         foreach (Transform t in Resources.FindObjectsOfTypeAll<Transform>())
@@ -756,11 +1117,15 @@ public static class ClaudeBridge
         {
             throw new Exception("no object at '" + path + "'");
         }
+        if (matchNumber > matches.Count)
+        {
+            throw new Exception("only " + matches.Count + " objects match '" + path + "'");
+        }
         if (matches.Count > 1)
         {
-            Append("note: " + matches.Count + " objects match '" + path + "', using " + GetPath(matches[0].transform));
+            Append("note: " + matches.Count + " objects match '" + path + "', using number " + matchNumber + " (add #n to choose)");
         }
-        return matches[0];
+        return matches[matchNumber - 1];
     }
 
     private static Bounds GetBounds(GameObject target, out bool hasRenderers)
