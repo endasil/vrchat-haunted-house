@@ -56,6 +56,14 @@ public class Leaderboard : UdonSharpBehaviour
     private int _topCount;
     private bool _localRestored;
 
+    void Start()
+    {
+        if (leaderboardText == null)
+        {
+            Debug.LogError($"Leaderboard ({gameObject.name}): leaderboardText needs to be assigned in the inspector.", gameObject);
+        }
+    }
+
     private void AddCandidate(string displayName, float time)
     {
         if (time <= 0 || float.IsNaN(time))
@@ -105,7 +113,7 @@ public class Leaderboard : UdonSharpBehaviour
                 continue;
             }
 
-            // We use double here 
+            // We use double here
             // because when a float is serialized to json, it stores the numbers as
             // text without information if this is a float or a double.
             // because of this VRCJson always decode it as double and not float.
@@ -236,12 +244,6 @@ public class Leaderboard : UdonSharpBehaviour
 
     private void Redraw()
     {
-        if (leaderboardText == null)
-        {
-            Debug.LogError($"Leaderboard ({gameObject.name}): leaderboardText needs to be assigned in the inspector.");
-            return;
-        }
-
         string text = "";
         for (int i = 0; i < _topCount; i++)
         {
@@ -310,7 +312,7 @@ public class Leaderboard : UdonSharpBehaviour
         }
     }
 
-    // When the persistent player data changes,for example a player got a new highscore, this class is called. 
+    // When the persistent player data changes, for example a player got a new highscore, this class is called.
     public override void OnPlayerDataUpdated(VRCPlayerApi player, PlayerData.Info[] infos)
     {
         if (_localRestored)
