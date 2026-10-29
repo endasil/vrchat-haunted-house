@@ -26,19 +26,28 @@ public class Leaderboard : UdonSharpBehaviour
 
     private const int DummyCount = 10;
 
-    private const float SlowestDummyTime = 99f * 60f;
+    private const float SecondsPerMinute = 60f;
 
-    private const float DummyTimeStep = 5f * 60f;
-
-    // Made-up players with slow times, for new players to beat. Sorted fastest first.
+    // Records that are always on the top list, for new players to beat. Sorted fastest first.
     private string[] _dummyNames =
     {
-        "Casper the Slow", "Mr. Boo", "Ghostly Gus", "Sir Spooksalot", "Lady Cobweb",
-        "Butler's Cousin", "Headless Harold", "Gargoyle Fan", "Spectral Steve", "Not A Ghost"
+        "lancewusky", "Penguin_Fish27", "Endasil", "DiegoNC", "Psychowench",
+        "Casper the Slow", "Mr. Boo", "Ghostly Gus", "Sir Spooksalot", "Lady Cobweb"
     };
 
-    // Seconds added to each dummy time. All under 60, so the order stays the same.
-    private float[] _dummyExtraSeconds = { 12.37f, 48.05f, 3.91f, 27.64f, 55.18f, 9.42f, 36.83f, 21.06f, 44.59f, 31.72f };
+    private float[] _dummyTimes =
+    {
+        1f * SecondsPerMinute + 15.19f,
+        1f * SecondsPerMinute + 15.62f,
+        1f * SecondsPerMinute + 35.05f,
+        1f * SecondsPerMinute + 55.73f,
+        2f * SecondsPerMinute + 55.61f,
+        54f * SecondsPerMinute + 12.37f,
+        59f * SecondsPerMinute + 48.05f,
+        64f * SecondsPerMinute + 3.91f,
+        69f * SecondsPerMinute + 27.64f,
+        74f * SecondsPerMinute + 55.18f
+    };
 
     // Each player can give 1 best time plus MaxRecordsOnLeaderboard entries from their saved list
     private const int MaxCandidates = MaxPlayers * (MaxRecordsOnLeaderboard + 1) + DummyCount;
@@ -130,8 +139,7 @@ public class Leaderboard : UdonSharpBehaviour
     {
         for (int i = 0; i < DummyCount; i++)
         {
-            float stepsFromSlowest = DummyCount - 1 - i;
-            AddCandidate(_dummyNames[i], SlowestDummyTime - stepsFromSlowest * DummyTimeStep + _dummyExtraSeconds[i]);
+            AddCandidate(_dummyNames[i], _dummyTimes[i]);
         }
     }
 
