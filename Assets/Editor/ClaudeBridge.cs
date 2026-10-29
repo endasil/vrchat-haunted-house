@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 
 using UnityEditor;
@@ -33,10 +34,18 @@ public static class ClaudeBridge
     private const string WaitCompile = "compile";
     private const string WaitFile = "file";
     private const string WaitClientSimStart = "clientsimstart";
+    private const string WaitMenuClose = "menuclose";
+    private const string WaitClick = "click";
 
     private const double ClientSimStartSeconds = 1.0;
+    private const double MenuCloseTimeout = 30.0;
+    private const double ClickDelaySeconds = 0.2;
 
     private const double StateChangeTimeout = 120.0;
+    private const double CompileTimeout = 600.0;
+    private const float MaxRayDistance = 100f;
+    private const int MaxHitsWritten = 20;
+    private const BindingFlags AnyInstance = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
     private const double ScreenshotTimeout = 10.0;
     private const int ImageWidth = 1280;
     private const int ImageHeight = 720;
@@ -73,11 +82,22 @@ public static class ClaudeBridge
 
     private static void StartRun()
     {
-        string[] commands = File.ReadAllLines(RunFile)
+        string[] lines;
+        try
+        {
+            lines = File.ReadAllLines(RunFile);
+            File.Delete(RunFile);
+        }
+        catch (IOException)
+        {
+            // The shell is still writing run.txt. The next Tick reads it again.
+            return;
+        }
+
+        string[] commands = lines
             .Select(line => line.Trim())
             .Where(line => line.Length > 0 && !line.StartsWith("#"))
             .ToArray();
-        File.Delete(RunFile);
         File.WriteAllText(OutputFile, "== START " + DateTime.Now.ToString("HH:mm:ss", CultureInfo.InvariantCulture) + " ==\n");
 
         if (commands.Length == 0)
@@ -137,7 +157,7 @@ public static class ClaudeBridge
                 break;
             case "refresh":
                 AssetDatabase.Refresh();
-                StartWait(WaitCompile, StateChangeTimeout);
+                StartWait(WaitCompile, CompileTimeout);
                 // isCompiling can still be false in the frame after Refresh, so the wait checks it from 1 s on.
                 SessionState.SetString(NotBeforeKey, Now(1.0));
                 break;
@@ -223,6 +243,12 @@ public static class ClaudeBridge
             case "setactive":
                 FindObject(Arg(args, 1)).SetActive(Arg(args, 2) == "on");
                 break;
+            case "delete":
+                GameObject deleted = FindObject(Arg(args, 1));
+                string deletedPath = GetPath(deleted.transform);
+                Undo.DestroyObjectImmediate(deleted);
+                Append("deleted " + deletedPath);
+                break;
             case "eyeheight":
                 RequirePlayMode();
                 GetLocalPlayer().SetAvatarEyeHeightByMeters(ParseFloat(Arg(args, 1)));
@@ -277,6 +303,22 @@ public static class ClaudeBridge
             case "log":
                 WriteConsoleLine("[bridge] " + Arg(args, 1));
                 break;
+            case "click":
+                StartClick();
+                break;
+            case "trigger":
+                PressTrigger(Arg(args, 1), args.Length > 2 ? int.Parse(args[2], CultureInfo.InvariantCulture) : 1);
+                break;
+            case "raycast":
+                WriteRaycast(
+                    new Vector3(ParseFloat(Arg(args, 1)), ParseFloat(Arg(args, 2)), ParseFloat(Arg(args, 3))),
+                    new Vector3(ParseFloat(Arg(args, 4)), ParseFloat(Arg(args, 5)), ParseFloat(Arg(args, 6))));
+                break;
+            case "near":
+                WriteNear(
+                    new Vector3(ParseFloat(Arg(args, 1)), ParseFloat(Arg(args, 2)), ParseFloat(Arg(args, 3))),
+                    ParseFloat(Arg(args, 4)));
+                break;
             default:
                 throw new Exception("unknown command '" + args[0] + "'");
         }
@@ -306,18 +348,34 @@ public static class ClaudeBridge
         double until = double.Parse(SessionState.GetString(WaitUntilKey, "0"), CultureInfo.InvariantCulture);
         double notBefore = double.Parse(SessionState.GetString(NotBeforeKey, "0"), CultureInfo.InvariantCulture);
 
-        if (kind == WaitTime || kind == WaitClientSimStart)
+        if (kind == WaitTime || kind == WaitClientSimStart || kind == WaitClick)
         {
             if (now < until) return false;
             ClearWait();
             if (kind == WaitClientSimStart)
             {
-                HideClientSimMenu();
+                StartWait(WaitMenuClose, MenuCloseTimeout);
+                return false;
+            }
+            if (kind == WaitClick)
+            {
+                FinishClick();
             }
             return true;
         }
 
-        bool done = now >= notBefore && IsWaitConditionMet(kind);
+        bool done;
+        try
+        {
+            done = now >= notBefore && IsWaitConditionMet(kind);
+        }
+        catch (Exception e)
+        {
+            Append("ERROR " + e.Message);
+            ClearWait();
+            return true;
+        }
+
         if (done)
         {
             ClearWait();
@@ -327,6 +385,10 @@ public static class ClaudeBridge
                 // and the ClientSim menu shows its first page after that.
                 StartWait(WaitClientSimStart, ClientSimStartSeconds);
                 return false;
+            }
+            if (kind == WaitMenuClose)
+            {
+                Append("ClientSim started, ClientSim menu closed");
             }
             return true;
         }
@@ -348,27 +410,199 @@ public static class ClaudeBridge
             case WaitStop:
                 return !EditorApplication.isPlaying && !EditorApplication.isPlayingOrWillChangePlaymode;
             case WaitCompile:
-                return !EditorApplication.isCompiling && !EditorApplication.isUpdating;
+                return !EditorApplication.isCompiling && !EditorApplication.isUpdating && !IsUdonSharpCompiling();
             case WaitFile:
                 return File.Exists(SessionState.GetString(WaitFileKey, ""));
+            case WaitMenuClose:
+                return TryCloseClientSimMenu();
             default:
                 throw new Exception("unknown wait kind '" + kind + "'");
         }
     }
 
-    private const string ClientSimMenuPath = "__ClientSimSystem/Menu/MenuCanvas";
-
     // The ClientSim menu opens when play mode starts and covers the head camera images.
-    private static void HideClientSimMenu()
+    // While it is open, ClientSim raycasts clicks only against the UI layers.
+    // CloseMenu does nothing until the ClientSim camera stack is ready, so the wait calls it every frame.
+    private static bool TryCloseClientSimMenu()
     {
-        GameObject menu = GameObject.Find(ClientSimMenuPath);
-        if (menu == null)
+        Component menu = FindSceneComponentOrNull("ClientSimMenu");
+        if (menu == null) return false;
+
+        InvokeMethod(menu, "CloseMenu");
+        return !(bool)GetFieldValue(menu, "_menuIsActive");
+    }
+
+    // UdonSharp compiles the program assets after the C# compile, and U# components cannot be added before it is done.
+    private static bool IsUdonSharpCompiling()
+    {
+        Type compiler = FindType("UdonSharp.Compiler.UdonSharpCompilerV1");
+        const BindingFlags anyStatic = BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
+        PropertyInfo currentJob = compiler.GetProperty("CurrentJob", anyStatic);
+        FieldInfo compileQueued = compiler.GetField("_compileQueued", anyStatic);
+        if (currentJob == null || compileQueued == null)
         {
-            Append("note: no ClientSim menu at '" + ClientSimMenuPath + "'");
+            throw new Exception("UdonSharpCompilerV1 has no CurrentJob or _compileQueued in this UdonSharp version");
+        }
+        return currentJob.GetValue(null) != null || (bool)compileQueued.GetValue(null);
+    }
+
+    // Writes what ClientSim's click ray hits, nearest first, then clicks after ClickDelaySeconds.
+    // The delay lets ClientSim update its hover target after a teleport.
+    private static void StartClick()
+    {
+        RequirePlayMode();
+        Component playerRaycaster = FindSceneComponent("ClientSimPlayerRaycaster");
+        object handRaycaster = GetFieldValue(playerRaycaster, "_rightHandRaycaster");
+        Ray ray = (Ray)InvokeMethod(GetFieldValue(handRaycaster, "_rayProvider"), "GetRay");
+        LayerMask layers = (LayerMask)InvokeMethod(GetFieldValue(handRaycaster, "_interactiveLayerProvider"), "GetInteractiveLayers");
+
+        Append("ray from " + Format(ray.origin) + " direction " + Format(ray.direction));
+        WriteHits(Physics.RaycastAll(ray, MaxRayDistance, layers));
+        StartWait(WaitClick, ClickDelaySeconds);
+    }
+
+    private static void FinishClick()
+    {
+        try
+        {
+            Component playerRaycaster = FindSceneComponent("ClientSimPlayerRaycaster");
+            object hover = GetFieldValue(playerRaycaster, "_hoverRight");
+            if (hover == null || GetFieldValue(hover, "interactable") == null)
+            {
+                Append("ClientSim has no interactable under the ray, so the click does nothing");
+                return;
+            }
+
+            Append("ClientSim clicks " + GetPath(((GameObject)GetFieldValue(hover, "hitObject")).transform));
+            MethodInfo useInput = FindMethod(playerRaycaster, "UseInput", 2);
+            Type handType = useInput.GetParameters()[1].ParameterType;
+            useInput.Invoke(playerRaycaster, new[] { true, Enum.Parse(handType, "RIGHT") });
+        }
+        catch (Exception e)
+        {
+            Append("ERROR " + e.Message);
+        }
+    }
+
+    // Sends press and release through ClientSim's input, so Udon gets InputUse as from a real trigger.
+    // ClientSim also turns a right press into a click on the collider that the player camera ray hits.
+    private static void PressTrigger(string hand, int count)
+    {
+        RequirePlayMode();
+        Component playerRaycaster = FindSceneComponent("ClientSimPlayerRaycaster");
+        object input = GetFieldValue(playerRaycaster, "_input");
+        MethodInfo sendUse = FindMethod(input, "SendUseEvent", 2);
+        object handType = Enum.Parse(sendUse.GetParameters()[1].ParameterType, hand.ToUpperInvariant());
+        for (int i = 0; i < count; i++)
+        {
+            sendUse.Invoke(input, new[] { true, handType });
+            sendUse.Invoke(input, new[] { false, handType });
+        }
+        Append("pressed the " + hand + " trigger " + count + " times");
+    }
+
+    private static void WriteRaycast(Vector3 origin, Vector3 direction)
+    {
+        Physics.SyncTransforms();
+        WriteHits(Physics.RaycastAll(origin, direction.normalized, MaxRayDistance, Physics.AllLayers, QueryTriggerInteraction.Collide));
+    }
+
+    private static void WriteHits(RaycastHit[] hits)
+    {
+        if (hits.Length == 0)
+        {
+            Append("the ray hits nothing");
             return;
         }
-        menu.SetActive(false);
-        Append("ClientSim started, ClientSim menu hidden");
+
+        foreach (RaycastHit hit in hits.OrderBy(h => h.distance).Take(MaxHitsWritten))
+        {
+            Collider collider = hit.collider;
+            Append(hit.distance.ToString("0.000", CultureInfo.InvariantCulture) + " m at " + Format(hit.point) + ": "
+                + GetPath(collider.transform) + " (" + collider.GetType().Name
+                + (collider.isTrigger ? ", trigger" : "")
+                + ", layer " + LayerMask.LayerToName(collider.gameObject.layer)
+                + (collider.GetComponent<UdonBehaviour>() != null ? ", UdonBehaviour" : "") + ")");
+        }
+        if (hits.Length > MaxHitsWritten)
+        {
+            Append((hits.Length - MaxHitsWritten) + " more hits");
+        }
+    }
+
+    // Renderer and collider bounds within radius of the point. Bounds are boxes around the whole mesh,
+    // so for a wall they include the trim in front of the wall face. Use raycast to find a visible surface.
+    private static void WriteNear(Vector3 point, float radius)
+    {
+        Physics.SyncTransforms();
+        float radiusSquared = radius * radius;
+        int count = 0;
+        foreach (Component component in Resources.FindObjectsOfTypeAll<Component>())
+        {
+            if (!(component is Renderer) && !(component is Collider)) continue;
+            if (EditorUtility.IsPersistent(component) || !component.gameObject.scene.IsValid()) continue;
+
+            Bounds bounds = component is Renderer renderer ? renderer.bounds : ((Collider)component).bounds;
+            if (bounds.SqrDistance(point) > radiusSquared) continue;
+
+            Append(GetPath(component.transform) + " " + component.GetType().Name
+                + ": centre " + Format(bounds.center) + ", size " + Format(bounds.size)
+                + (component.gameObject.activeInHierarchy ? "" : " [inactive]"));
+            count++;
+        }
+        Append(count + " renderers and colliders");
+    }
+
+    private static Component FindSceneComponent(string typeName)
+    {
+        Component component = FindSceneComponentOrNull(typeName);
+        if (component == null)
+        {
+            throw new Exception("no " + typeName + " in the scene");
+        }
+        return component;
+    }
+
+    private static Component FindSceneComponentOrNull(string typeName)
+    {
+        return Resources.FindObjectsOfTypeAll<Component>().FirstOrDefault(c =>
+            c != null && !EditorUtility.IsPersistent(c) && c.gameObject.scene.IsValid() && c.GetType().Name == typeName);
+    }
+
+    private static Type FindType(string fullName)
+    {
+        foreach (System.Reflection.Assembly assembly in AppDomain.CurrentDomain.GetAssemblies())
+        {
+            Type type = assembly.GetType(fullName);
+            if (type != null) return type;
+        }
+        throw new Exception("no type " + fullName);
+    }
+
+    private static object GetFieldValue(object target, string fieldName)
+    {
+        for (Type type = target.GetType(); type != null; type = type.BaseType)
+        {
+            FieldInfo field = type.GetField(fieldName, AnyInstance | BindingFlags.DeclaredOnly);
+            if (field != null) return field.GetValue(target);
+        }
+        throw new Exception(target.GetType().Name + " has no field '" + fieldName + "'");
+    }
+
+    private static MethodInfo FindMethod(object target, string methodName, int parameterCount)
+    {
+        for (Type type = target.GetType(); type != null; type = type.BaseType)
+        {
+            MethodInfo method = type.GetMethods(AnyInstance | BindingFlags.DeclaredOnly)
+                .FirstOrDefault(m => m.Name == methodName && m.GetParameters().Length == parameterCount);
+            if (method != null) return method;
+        }
+        throw new Exception(target.GetType().Name + " has no method '" + methodName + "' with " + parameterCount + " arguments");
+    }
+
+    private static object InvokeMethod(object target, string methodName)
+    {
+        return FindMethod(target, methodName, 0).Invoke(target, null);
     }
 
     private static void TakeScreenshot(string name)
