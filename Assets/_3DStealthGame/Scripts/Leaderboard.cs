@@ -38,7 +38,7 @@ public class Leaderboard : UdonSharpBehaviour
     private string[] _dummyNames =
     {
         "lancewusky", "Penguin_Fish27", "Endasil", "DiegoNC", "Psychowench",
-        "Casper the Slow", "Mr. Boo", "Ghostly Gus", "Sir Spooksalot", "Lady Cobweb"
+        "Zeladi", "Casper the Slow", "Mr. Boo", "Ghostly Gus", "Sir Spooksalot"
     };
 
     private float[] _dummyTimes =
@@ -48,11 +48,11 @@ public class Leaderboard : UdonSharpBehaviour
         1f * SecondsPerMinute + 35.05f,
         1f * SecondsPerMinute + 55.73f,
         2f * SecondsPerMinute + 55.61f,
+        24f * SecondsPerMinute + 48.79f,
         54f * SecondsPerMinute + 12.37f,
         59f * SecondsPerMinute + 48.05f,
         64f * SecondsPerMinute + 3.91f,
-        69f * SecondsPerMinute + 27.64f,
-        74f * SecondsPerMinute + 55.18f
+        69f * SecondsPerMinute + 27.64f
     };
 
     private VRCPlayerApi[] _vrcPlayers = new VRCPlayerApi[MaxPlayers];
