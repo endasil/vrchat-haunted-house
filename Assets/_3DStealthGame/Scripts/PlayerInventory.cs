@@ -5,6 +5,8 @@ using UdonSharp;
 
 using UnityEngine;
 
+using VRC.SDKBase;
+
 // Sync mode None, so other clients can't call AddNextMissingPill or ResetState with a network event.
 [UdonBehaviourSyncMode(BehaviourSyncMode.None)]
 public class PlayerInventory : Resettable
@@ -20,7 +22,10 @@ public class PlayerInventory : Resettable
 
     public override void Start()
     {
-        base.Start();
+        if (Networking.IsOwner(gameObject))
+        {
+            base.Start();
+        }
 
         _pickupAudio = GetComponent<AudioSource>();
 
