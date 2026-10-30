@@ -1,5 +1,6 @@
 #pragma warning disable IDE0056
 using _3DStealthGame.Scripts.Constants;
+using Assets._3DStealthGame.Scripts.Enums;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -34,6 +35,8 @@ public class SeekerGhost : GhostAgentBase
 
     // Turn speed (deg/s) used to face the arrival direction when close to a patrol destination.
     private const float ArrivalTurnSpeed = 240f;
+
+    private const float IdleLookArrivalAngle = 0.5f;
 
     // ==============================
     // Patrol Settings
@@ -72,14 +75,15 @@ public class SeekerGhost : GhostAgentBase
     private float _idleStateEndTime;
 
     // Tracks which step of the look-around sequence we are in.
-    private int _idleLookStep;
+    private IdleLookStep _idleLookStep;
 
     private bool _idleSweepCompleted;
 
     // One-time look-around tuning.
     public float minLookAroundSweepAngle = 20f;        // minimum sweep half-angle
     public float lookAroundSweepAngle = 60f;          // maximum sweep half-angle
-    public float idleTurnSpeed = 120f;
+    public float maxIdleTurnSpeed = 50f;
+    public float idleTurnAcceleration = 240f;
     public float lookAroundEndpointPauseTime = 1.5f;  // seconds to hold at each sweep endpoint before continuing
     public float postSweepPauseDuration = 0.3f;       // seconds to hold at center after sweep completes, before walking
 
@@ -88,6 +92,7 @@ public class SeekerGhost : GhostAgentBase
     private bool _targetPathIsPending;
     private float _currentSweepAngle;
     private float _idleLookTargetAngle;
+    private float _currentIdleTurnSpeed;
     // +1 = sweep right first, -1 = sweep left first. Set when _idleBaseDirection is resolved
     // so the sweep continues in the same direction the ghost was already rotating.
     private float _firstSweepSign = 1f;
@@ -101,8 +106,6 @@ public class SeekerGhost : GhostAgentBase
     {
         // Only run AI logic on one client to make sure the ai behavior is the same for all players.
         if (!_isOwner) return;
-
-        if (_navMeshAgent == null) return;
 
         WalkAndChaseBehavior();
     }
@@ -223,7 +226,6 @@ public class SeekerGhost : GhostAgentBase
     public void OnSnowballHit(Vector3 throwerPosition)
     {
         if (!_isOwner) return;
-        if (_navMeshAgent == null) return;
 
         // Ignore this if already chasing a player or investigating, don't override that.
         if (_isInvestigating) return;
@@ -242,7 +244,6 @@ public class SeekerGhost : GhostAgentBase
     public void OnSnowballImpact(Vector3 impactPosition)
     {
         if (!_isOwner) return;
-        if (_navMeshAgent == null) return;
 
         // The ghost ignores impacts while it chases a player it sees or hears.
         if (_detectedPlayerLastFrame) return;
@@ -315,8 +316,9 @@ public class SeekerGhost : GhostAgentBase
         base.EnsureAgentIsIdle();
 
         _currentSweepAngle = Random.Range(minLookAroundSweepAngle, lookAroundSweepAngle);
-        _idleLookStep = 0;
+        _idleLookStep = IdleLookStep.TurnToCenter;
         _idleLookTargetAngle = 0f; // first target is center (base direction)
+        _currentIdleTurnSpeed = 0f;
         _isLookingAround = true;
         _idleSweepCompleted = false;
         _idlePausingAtEndpoint = false;
@@ -378,13 +380,24 @@ public class SeekerGhost : GhostAgentBase
         Quaternion targetRotation = Quaternion.LookRotation(
             Quaternion.AngleAxis(_idleLookTargetAngle, Vector3.up) * _idleBaseDirection, Vector3.up);
 
-        transform.rotation = Quaternion.RotateTowards(
-            transform.rotation, targetRotation, idleTurnSpeed * Time.deltaTime);
-
-        if (Quaternion.Angle(transform.rotation, targetRotation) < 2f)
+        bool stopsAtTarget = _idleLookStep != IdleLookStep.TurnToCenter;
+        float wantedTurnSpeed = maxIdleTurnSpeed;
+        if (stopsAtTarget)
         {
-            // Pause at endpoints (steps 1 and 2), but not at center (steps 0 and 3)
-            if ((_idleLookStep == 1 || _idleLookStep == 2) && !_idlePausingAtEndpoint)
+            float remainingAngle = Quaternion.Angle(transform.rotation, targetRotation);
+            float speedThatCanStopInTime = Mathf.Sqrt(2f * idleTurnAcceleration * remainingAngle);
+            wantedTurnSpeed = Mathf.Min(maxIdleTurnSpeed, speedThatCanStopInTime);
+        }
+        _currentIdleTurnSpeed = Mathf.MoveTowards(_currentIdleTurnSpeed, wantedTurnSpeed, idleTurnAcceleration * Time.deltaTime);
+
+        transform.rotation = Quaternion.RotateTowards(
+            transform.rotation, targetRotation, _currentIdleTurnSpeed * Time.deltaTime);
+
+        if (Quaternion.Angle(transform.rotation, targetRotation) < IdleLookArrivalAngle)
+        {
+            // Pause at endpoints, but not at center
+            bool isAtEndpoint = _idleLookStep == IdleLookStep.TurnToFirstEndpoint || _idleLookStep == IdleLookStep.TurnToSecondEndpoint;
+            if (isAtEndpoint && !_idlePausingAtEndpoint)
             {
                 _idlePausingAtEndpoint = true;
                 _idleEndpointPauseUntil = Time.time + lookAroundEndpointPauseTime;
@@ -393,20 +406,23 @@ public class SeekerGhost : GhostAgentBase
 
             if (_idlePausingAtEndpoint && Time.time < _idleEndpointPauseUntil) return;
             _idlePausingAtEndpoint = false;
-            _idleLookStep++;
 
             switch (_idleLookStep)
             {
-                case 1: // reached center, continue in the direction we were already rotating
+                case IdleLookStep.TurnToCenter: // reached center, continue in the direction we were already rotating
+                    _idleLookStep = IdleLookStep.TurnToFirstEndpoint;
                     _idleLookTargetAngle = _firstSweepSign * _currentSweepAngle;
                     break;
-                case 2: // reached first endpoint, sweep to the opposite side
+                case IdleLookStep.TurnToFirstEndpoint: // reached first endpoint, sweep to the opposite side
+                    _idleLookStep = IdleLookStep.TurnToSecondEndpoint;
                     _idleLookTargetAngle = -_firstSweepSign * _currentSweepAngle;
                     break;
-                case 3: // reached the second endpoint, return to center
+                case IdleLookStep.TurnToSecondEndpoint: // reached the second endpoint, return to center
+                    _idleLookStep = IdleLookStep.ReturnToCenter;
                     _idleLookTargetAngle = 0f;
                     break;
-                case 4: // back at center, done
+                case IdleLookStep.ReturnToCenter: // back at center, done
+                    _idleLookStep = IdleLookStep.Done;
                     _idleSweepCompleted = true;
                     _idleStateEndTime = Time.time + postSweepPauseDuration;
                     break;

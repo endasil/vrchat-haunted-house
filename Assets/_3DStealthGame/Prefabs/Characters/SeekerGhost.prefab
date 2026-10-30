@@ -445,9 +445,10 @@ MonoBehaviour:
   maxWalkDistance: 10
   minWalkDistance: 2
   hearingRange: 3
-  minLookAroundSweepAngle: 20
-  lookAroundSweepAngle: 60
-  idleTurnSpeed: 120
+  minLookAroundSweepAngle: 30
+  lookAroundSweepAngle: 80
+  maxIdleTurnSpeed: 50
+  idleTurnAcceleration: 80
   lookAroundEndpointPauseTime: 1.5
   postSweepPauseDuration: 0.3
 --- !u!114 &5325553299032489330
