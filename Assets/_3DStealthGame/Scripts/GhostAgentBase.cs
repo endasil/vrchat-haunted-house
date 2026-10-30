@@ -6,6 +6,9 @@ using UnityEngine;
 using UnityEngine.AI;
 
 using VRC.SDKBase;
+using VRC.SDK3.Persistence;
+
+using _3DStealthGame.Scripts.Constants;
 
 // Never attached to a GameObject directly, so it has no UdonSharpProgramAsset
 // (same as Resettable).
@@ -115,10 +118,11 @@ public class GhostAgentBase : UdonSharpBehaviour
         {
             VRCPlayerApi candidate = _playerCache[i];
             if (candidate == null || !candidate.IsValid()) continue;
+            if (IsCheatActive(candidate)) continue;
 
             Vector3 headPosition = GetPlayerHeadPosition(candidate);
             float distanceSquared = (headPosition - agentPosition).sqrMagnitude;
-            
+
             if (distanceSquared > maxDistanceSquared) continue;
             if (distanceSquared >= closestDistanceSquared) continue;
             if (!IsWithinViewCone(headPosition, coneHalfAngleDeg)) continue;
@@ -147,6 +151,7 @@ public class GhostAgentBase : UdonSharpBehaviour
         {
             VRCPlayerApi candidate = _playerCache[i];
             if (candidate == null || !candidate.IsValid()) continue;
+            if (IsCheatActive(candidate)) continue;
 
             Vector3 headPosition = GetPlayerHeadPosition(candidate);
             float distanceSquared = (headPosition - agentPosition).sqrMagnitude;
@@ -162,6 +167,11 @@ public class GhostAgentBase : UdonSharpBehaviour
         }
 
         return closest;
+    }
+
+    private bool IsCheatActive(VRCPlayerApi player)
+    {
+        return PlayerData.TryGetBool(player, PlayerDataKeys.IsCheatActive, out bool isCheatActive) && isCheatActive;
     }
 
     // Inside the cone angle and nothing blocking the view.

@@ -9,6 +9,7 @@ public static class GhostCheats
     private const string MenuPath = "Haunted House/Cheats/Toggle Ghosts Can't Catch";
 
     // The same cheat as the admin trigger combo: blue fog, no catching and 99 minutes added to the run time.
+    // The seeker also ignores the player.
     [MenuItem(MenuPath)]
     private static void ToggleGhostsCantCatch()
     {

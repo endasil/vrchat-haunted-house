@@ -1,12 +1,17 @@
 using UdonSharp;
 using UnityEngine;
 using VRC.SDKBase;
+using VRC.SDK3.Persistence;
 using VRC.Udon.Common;
+
+using _3DStealthGame.Scripts.Constants;
 
 namespace Assets._3DStealthGame.Scripts
 {
     // Any player presses the triggers left, right, right, left, left to switch the cheat on or off for themselves.
     // The cheat makes their fog blue, stops the ghosts from catching them and adds 99 minutes to their run time.
+    // The seeker also does not see or hear them.
+    // While the cheat is on, five left trigger presses switch the fog off or on.
     // Right, left, left, right, right, or Ctrl+Alt+Shift+P, gives the local admin the next missing pill.
     [UdonBehaviourSyncMode(BehaviourSyncMode.None)]
     public class AdminCheat : UdonSharpBehaviour
@@ -28,6 +33,7 @@ namespace Assets._3DStealthGame.Scripts
         // Five presses so the combos don't go off by accident while playing.
         private bool[] _toggleCheatCombo = { Left, Right, Right, Left, Left };
         private bool[] _nextPillCombo = { Right, Left, Left, Right, Right };
+        private bool[] _toggleCheatFogCombo = { Left, Left, Left, Left, Left };
 
         // The last trigger presses, oldest first. true is a left hand press.
         private bool[] _recentPresses = new bool[ComboLength];
@@ -36,6 +42,7 @@ namespace Assets._3DStealthGame.Scripts
 
         private bool _isAdmin;
         private bool _isCheatActive;
+        private bool _isCheatFogHidden;
         private Color _normalFogColor;
         private ObserverU[] _observers = new ObserverU[0];
 
@@ -54,6 +61,13 @@ namespace Assets._3DStealthGame.Scripts
             {
                 Debug.LogError($"AdminCheat ({gameObject.name}): toggleAudio, cheatOnSound and cheatOffSound need to be assigned in the inspector.");
             }
+        }
+
+        public override void OnPlayerRestored(VRCPlayerApi player)
+        {
+            if (!player.isLocal) return;
+
+            PlayerData.SetBool(PlayerDataKeys.IsCheatActive, _isCheatActive);
         }
 
         private void Update()
@@ -118,6 +132,11 @@ namespace Assets._3DStealthGame.Scripts
                 _recentPressCount = 0;
                 GiveNextMissingPill();
             }
+            else if (_isCheatActive && IsCombo(_toggleCheatFogCombo))
+            {
+                _recentPressCount = 0;
+                ToggleCheatFog();
+            }
         }
 
         // When the list is full, the oldest press is dropped.
@@ -165,15 +184,38 @@ namespace Assets._3DStealthGame.Scripts
             toggleAudio.PlayOneShot(clip);
         }
 
+        private void ToggleCheatFog()
+        {
+            _isCheatFogHidden = !_isCheatFogHidden;
+            if (_isCheatFogHidden)
+            {
+                escapeTimer.fog.Clear();
+            }
+            else
+            {
+                escapeTimer.fog.ShowFull();
+            }
+        }
+
         private void ApplyCheatState()
         {
+            _isCheatFogHidden = false;
             if (_isCheatActive)
             {
                 RenderSettings.fogColor = cheatFogColor;
+                escapeTimer.fog.ShowFull();
             }
             else
             {
                 RenderSettings.fogColor = _normalFogColor;
+                if (escapeTimer.IsRunning())
+                {
+                    escapeTimer.fog.ShowFull();
+                }
+                else
+                {
+                    escapeTimer.fog.Clear();
+                }
             }
 
             foreach (ObserverU observer in _observers)
@@ -182,6 +224,7 @@ namespace Assets._3DStealthGame.Scripts
             }
 
             escapeTimer.SetCheatActive(_isCheatActive);
+            PlayerData.SetBool(PlayerDataKeys.IsCheatActive, _isCheatActive);
         }
     }
 }

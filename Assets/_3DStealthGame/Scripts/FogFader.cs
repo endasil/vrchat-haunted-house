@@ -18,11 +18,24 @@ public class FogFader : UdonSharpBehaviour
         RenderSettings.fogDensity = 0f;
     }
 
+    public float GetFullDensity()
+    {
+        return _fullDensity;
+    }
+
     public void FadeIn(float duration)
     {
+        if (RenderSettings.fogDensity >= _fullDensity) return;
+
         _fadeDuration = duration;
         _fadeElapsed = 0f;
         _fading = true;
+    }
+
+    public void ShowFull()
+    {
+        _fading = false;
+        RenderSettings.fogDensity = _fullDensity;
     }
 
     public void Clear()

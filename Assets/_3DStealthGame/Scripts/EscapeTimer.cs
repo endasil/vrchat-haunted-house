@@ -40,6 +40,16 @@ public class EscapeTimer : Resettable
     private bool _hasBestTime;
     private float _bestTime;
 
+    public override void Start()
+    {
+        if (display == null || music == null || fog == null)
+        {
+            Debug.LogError($"EscapeTimer ({gameObject.name}): display, music and fog need to be assigned in the inspector.", gameObject);
+        }
+
+        base.Start();
+    }
+
     public override void OnPlayerRestored(VRCPlayerApi player)
     {
         if (!player.isLocal) return;
@@ -74,23 +84,8 @@ public class EscapeTimer : Resettable
             _elapsed = CheatPenaltySeconds;
         }
 
-        if (music == null)
-        {
-            Debug.LogError($"EscapeTimer ({gameObject.name}): music needs to be assigned in the inspector.");
-        }
-        else
-        {
-            music.FadeToFull();
-        }
-
-        if (fog == null)
-        {
-            Debug.LogError($"EscapeTimer ({gameObject.name}): fog needs to be assigned in the inspector.");
-        }
-        else
-        {
-            fog.FadeIn(music.fadeInDuration);
-        }
+        music.FadeToFull();
+        fog.FadeIn(music.fadeInDuration);
     }
 
     // Called by ExitTriggerU when the local player reaches the exit.
@@ -139,6 +134,11 @@ public class EscapeTimer : Resettable
         }
     }
 
+    public bool IsRunning()
+    {
+        return _running;
+    }
+
     public float GetElapsed()
     {
         return _elapsed;
@@ -159,12 +159,6 @@ public class EscapeTimer : Resettable
         if (_running)
         {
             _elapsed += Time.deltaTime;
-        }
-
-        if (display == null)
-        {
-            Debug.LogError($"EscapeTimer ({gameObject.name}): display text is not assigned in the inspector.");
-            return;
         }
 
         if (_hasBestTime)
