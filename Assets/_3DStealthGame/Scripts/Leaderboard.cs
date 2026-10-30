@@ -247,6 +247,14 @@ public class Leaderboard : UdonSharpBehaviour
             return;
         }
 
+        // VRChat sends each PlayerData write to all clients. The scene has two leaderboards
+        // that save the same list, so skip the write when the saved list is the same.
+        if (PlayerData.TryGetString(Networking.LocalPlayer, PlayerDataKeys.SavedHighScoreList, out string savedJson)
+            && savedJson == json.String)
+        {
+            return;
+        }
+
         PlayerData.SetString(PlayerDataKeys.SavedHighScoreList, json.String);
     }
 
