@@ -26,7 +26,7 @@ public class EscapeTimer : Resettable
 
     // Finishes faster than this is ignored instead of becoming a best time
 	// to make it slightly harder to cheat.
-    private const float MinPlausibleTime = 40f;
+    private const float MinPlausibleTime = 56f;
 
     // Added to the run time while an admin has the cheat on.
     private const float CheatPenaltySeconds = 99f * 60f;
@@ -48,6 +48,13 @@ public class EscapeTimer : Resettable
         if (PlayerData.TryGetFloat(player, PlayerDataKeys.SavedPersonalBestEscapeTime, out _bestTime))
         {
             _hasBestTime = true;
+
+            float correctedBestTime = RecordCorrections.Correct(player.displayName, _bestTime);
+            if (correctedBestTime != _bestTime)
+            {
+                _bestTime = correctedBestTime;
+                PlayerData.SetFloat(PlayerDataKeys.SavedPersonalBestEscapeTime, _bestTime);
+            }
         }
     }
 

@@ -82,6 +82,8 @@ public class Leaderboard : UdonSharpBehaviour
             return false;
         }
 
+        time = RecordCorrections.Correct(displayName, time);
+
         int existingIndex = IndexInTopList(displayName);
         if (existingIndex >= 0)
         {
