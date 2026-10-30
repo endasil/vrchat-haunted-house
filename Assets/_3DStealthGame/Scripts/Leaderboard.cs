@@ -28,6 +28,12 @@ public class Leaderboard : UdonSharpBehaviour
 
     private const float SecondsPerMinute = 60f;
 
+    // A new record makes every player in the instance save the top list. Each player
+    // waits a random time first, so the saves happen at different times. Changes during the wait go into one save.
+    private const float MinSaveDelay = 1f;
+
+    private const float MaxSaveDelay = 5f;
+
     // Records that are always on the top list, for new players to beat. Sorted fastest first.
     private string[] _dummyNames =
     {
@@ -56,6 +62,7 @@ public class Leaderboard : UdonSharpBehaviour
     private float[] _topTimes = new float[MaxRecordsOnLeaderboard];
     private int _topCount;
     private bool _localRestored;
+    private bool _isSaveScheduled;
 
     void Start()
     {
@@ -218,7 +225,11 @@ public class Leaderboard : UdonSharpBehaviour
     private void OnTopListChanged()
     {
         Redraw();
-        SaveHighScoreList();
+
+        if (_isSaveScheduled) return;
+
+        _isSaveScheduled = true;
+        SendCustomEventDelayedSeconds(nameof(_SaveHighScoreList), Random.Range(MinSaveDelay, MaxSaveDelay));
     }
 
     // Returns the place on the top list for the time.
@@ -249,8 +260,12 @@ public class Leaderboard : UdonSharpBehaviour
         return -1;
     }
 
-    private void SaveHighScoreList()
+    // Public so SendCustomEventDelayedSeconds can call it. The underscore stops other
+    // clients from calling it with a network event.
+    public void _SaveHighScoreList()
     {
+        _isSaveScheduled = false;
+
         var dataList = new DataList();
 
         for (int i = 0; i < _topCount; i++)
