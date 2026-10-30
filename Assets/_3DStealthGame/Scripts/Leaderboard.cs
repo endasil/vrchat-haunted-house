@@ -49,17 +49,9 @@ public class Leaderboard : UdonSharpBehaviour
         74f * SecondsPerMinute + 55.18f
     };
 
-    // Each player can give 1 best time plus MaxRecordsOnLeaderboard entries from their saved list
-    private const int MaxCandidates = MaxPlayers * (MaxRecordsOnLeaderboard + 1) + DummyCount;
-
     private VRCPlayerApi[] _vrcPlayers = new VRCPlayerApi[MaxPlayers];
 
-    // Holds the best times and saved top list entries of the players in the instance.
-    // Rebuild() sorts them and copies the 10 fastest, one per name, into the top list.
-    private string[] _allRecordNames = new string[MaxCandidates];
-
-    private float[] _allRecordTimes = new float[MaxCandidates];
-    private int _candidateCount;
+    // The 10 fastest times, one per name, fastest first.
     private string[] _topNames = new string[MaxRecordsOnLeaderboard];
     private float[] _topTimes = new float[MaxRecordsOnLeaderboard];
     private int _topCount;
@@ -73,39 +65,95 @@ public class Leaderboard : UdonSharpBehaviour
         }
     }
 
-    private void AddCandidate(string displayName, float time)
+    // Adds the time to the top list if it is fast enough. A name already on the list
+    // keeps only its fastest time. Returns true when the list changed.
+    private bool AddRecord(string displayName, float time)
     {
         if (time <= 0 || float.IsNaN(time))
         {
             Debug.LogError($"Leaderboard: tried to add invalid time {time} for {displayName}");
-            return;
+            return false;
         }
-        _allRecordNames[_candidateCount] = displayName;
-        _allRecordTimes[_candidateCount] = time;
-        _candidateCount++;
+
+        int existingIndex = IndexInTopList(displayName);
+        if (existingIndex >= 0)
+        {
+            if (time >= _topTimes[existingIndex]) return false;
+            RemoveFromTopList(existingIndex);
+        }
+
+        int position = 0;
+        while (position < _topCount && _topTimes[position] <= time)
+        {
+            position++;
+        }
+
+        if (position >= MaxRecordsOnLeaderboard) return false;
+
+        // Shift the slower records down one index. On a full list, this removes the slowest record.
+        int lastIndex = Mathf.Min(_topCount, MaxRecordsOnLeaderboard - 1);
+        for (int i = lastIndex; i > position; i--)
+        {
+            _topNames[i] = _topNames[i - 1];
+            _topTimes[i] = _topTimes[i - 1];
+        }
+
+        _topNames[position] = displayName;
+        _topTimes[position] = time;
+        if (_topCount < MaxRecordsOnLeaderboard)
+        {
+            _topCount++;
+        }
+        return true;
     }
 
-    // Reads the players top list and add each entry as a candidate.
-    private void AddPlayersSavedTopList(VRCPlayerApi player)
+    private void RemoveFromTopList(int index)
+    {
+        for (int i = index; i < _topCount - 1; i++)
+        {
+            _topNames[i] = _topNames[i + 1];
+            _topTimes[i] = _topTimes[i + 1];
+        }
+        _topCount--;
+    }
+
+    // Reads the player's best time and saved top list. Returns true when the top list changed.
+    private bool AddPlayerRecords(VRCPlayerApi player)
+    {
+        bool changed = false;
+
+        if (PlayerData.TryGetFloat(player, PlayerDataKeys.SavedPersonalBestEscapeTime, out float playerBestTime))
+        {
+            if (AddRecord(player.displayName, playerBestTime)) changed = true;
+        }
+
+        if (AddPlayersSavedTopList(player)) changed = true;
+
+        return changed;
+    }
+
+    // Reads the players top list and adds each entry. Returns true when the top list changed.
+    private bool AddPlayersSavedTopList(VRCPlayerApi player)
     {
         if (!PlayerData.HasKey(player, PlayerDataKeys.SavedHighScoreList))
         {
-            return;
+            return false;
         }
 
         var topRecordJson = PlayerData.GetString(player, PlayerDataKeys.SavedHighScoreList);
         if (!VRCJson.TryDeserializeFromJson(topRecordJson, out DataToken deserializedTopRecords))
         {
             Debug.LogError($"Failed to deserialize data as json from {player.displayName}. Error: {deserializedTopRecords.Error}. json data: {topRecordJson}");
-            return;
+            return false;
         }
 
         if (deserializedTopRecords.TokenType != TokenType.DataList)
         {
             Debug.LogError($"Failed to decode {player.displayName}'s HighScore. result.TokenType is {deserializedTopRecords.TokenType}, not {TokenType.DataList}");
-            return;
+            return false;
         }
 
+        bool changed = false;
         var nrEntries = Mathf.Min(deserializedTopRecords.DataList.Count, MaxRecordsOnLeaderboard);
         for (int i = 0; i < nrEntries; i++)
         {
@@ -131,75 +179,46 @@ public class Leaderboard : UdonSharpBehaviour
                 Debug.LogError($"Failed to fetch time from Leaderboard: entry {i}, from {player.displayName} ");
                 continue;
             }
-            AddCandidate(displayName.String, (float)time.Double);
+
+            if (AddRecord(displayName.String, (float)time.Double)) changed = true;
         }
+
+        return changed;
     }
 
     private void AddDummyRecords()
     {
         for (int i = 0; i < DummyCount; i++)
         {
-            AddCandidate(_dummyNames[i], _dummyTimes[i]);
+            AddRecord(_dummyNames[i], _dummyTimes[i]);
         }
     }
 
-    private void Rebuild()
+    // Runs once, when the local player's data is loaded. The local player's saved list
+    // has the records of players who left the instance.
+    private void AddAllPlayers()
     {
-        _candidateCount = 0;
         AddDummyRecords();
 
         int playerCount = VRCPlayerApi.GetPlayerCount();
         VRCPlayerApi.GetPlayers(_vrcPlayers);
 
-        // Loop trough each player in the scene
-        for (int i = 0; i < playerCount; i++)
+        for (int i = 0; i < playerCount && i < _vrcPlayers.Length; i++)
         {
             VRCPlayerApi player = _vrcPlayers[i];
             if (!Utilities.IsValid(player)) continue;
 
-            // Check if player has a personal best time, add their time to the total candidate pool 
-            if (PlayerData.TryGetFloat(player, PlayerDataKeys.SavedPersonalBestEscapeTime, out float playerBestTime))
-            {
-                AddCandidate(player.displayName, playerBestTime);
-            }
-
-            // Add each entry of the players on high score list to the global collection of all players
-            // top lists.
-            AddPlayersSavedTopList(player);
+            AddPlayerRecords(player);
         }
 
-        if (_candidateCount == 0) return;
+        // The list started out empty, so it always changed.
+        OnTopListChanged();
+    }
 
-        SortRecordsByTime();
-
-        int nextPosition = 0;
-        bool changed = false;
-        for (int i = 0; i < _candidateCount && nextPosition < MaxRecordsOnLeaderboard; i++)
-        {
-            // The candidates are sorted, so a name already in the top list has a faster / equal time there.
-            if (IsInTopList(_allRecordNames[i], nextPosition)) continue;
-
-            if (_topNames[nextPosition] != _allRecordNames[i] || !Mathf.Approximately(_topTimes[nextPosition], _allRecordTimes[i]))
-            {
-                changed = true;
-            }
-
-            _topNames[nextPosition] = _allRecordNames[i];
-            _topTimes[nextPosition] = _allRecordTimes[i];
-            nextPosition++;
-        }
-
-        if (nextPosition != _topCount)
-        {
-            changed = true;
-        }
-        _topCount = nextPosition;
-
-        if (changed)
-        {
-            SaveHighScoreList();
-        }
+    private void OnTopListChanged()
+    {
         Redraw();
+        SaveHighScoreList();
     }
 
     // Returns the place on the top list for the time.
@@ -220,13 +239,14 @@ public class Leaderboard : UdonSharpBehaviour
         return position;
     }
 
-    private bool IsInTopList(string displayName, int count)
+    // Returns -1 when the name is not on the top list.
+    private int IndexInTopList(string displayName)
     {
-        for (int i = 0; i < count; i++)
+        for (int i = 0; i < _topCount; i++)
         {
-            if (_topNames[i] == displayName) return true;
+            if (_topNames[i] == displayName) return i;
         }
-        return false;
+        return -1;
     }
 
     private void SaveHighScoreList()
@@ -275,44 +295,6 @@ public class Leaderboard : UdonSharpBehaviour
         return name.Substring(0, MaxNameLength - Ellipsis.Length) + Ellipsis;
     }
 
-    private void SortRecordsByTime()
-    {
-        for (int currentIndex = 1; currentIndex < _candidateCount; currentIndex++)
-        {
-            // first loop 
-            // starts [5, 2, 4, 6, 1]  
-            // time is assigned 2 from slot 1
-
-            // second loop 
-            // starts [2, 5, 4, 6, 1]  
-            // time is assigned 4 from slot 2
-            // third loop 
-            // starts [2, 4, 5, 6, 1]  
-            // time is assigned 6 from slot 3
-            float recordTime = _allRecordTimes[currentIndex];
-            string recordName = _allRecordNames[currentIndex];
-            // first loop comparisonIndex is 0
-            // second loop comparisonIndex is 1
-            // third loop comparisonIndex is 2
-            int comparisonIndex = currentIndex - 1;
-            while (comparisonIndex >= 0 && _allRecordTimes[comparisonIndex] > recordTime)
-            {
-                // first loop inner first, slot 1 holding 2 is assigned 5 [5, 2, 4, 6, 1]  -> [5, 5, 4, 6, 1]  
-                // second loop inner first, slot 2 holding 4 is assigned 5  [2, 5, 4, 6, 1]  -> [2, 5, 5, 6, 1]  
-                _allRecordTimes[comparisonIndex + 1] = _allRecordTimes[comparisonIndex];
-                _allRecordNames[comparisonIndex + 1] = _allRecordNames[comparisonIndex];
-                // first loop comparisonIndex becomes -1 and loop breaks
-                // second loop comparisonIndex becomes 0 and breaks
-                comparisonIndex--;
-            }
-
-            // first loop slot 0 holding  5 is assigned 2 [5, 5, 4, 6, 1]  -> [2, 5, 4, 6, 1]  
-            // second loop slot 1 holding 5 is assigned 4 [2, 5, 5, 6, 1]  -> [2, 4, 5, 6, 1]  
-            _allRecordTimes[comparisonIndex + 1] = recordTime;
-            _allRecordNames[comparisonIndex + 1] = recordName;
-        }
-    }
-
     // Called when vrchat has loaded the persistent data for a player
     // that joined the instance.
     public override void OnPlayerRestored(VRCPlayerApi player)
@@ -320,20 +302,27 @@ public class Leaderboard : UdonSharpBehaviour
         if (player.isLocal)
         {
             _localRestored = true;
+            AddAllPlayers();
+            return;
         }
 
-        if (_localRestored)
+        // AddAllPlayers reads the players who were restored before the local player.
+        if (!_localRestored) return;
+
+        if (AddPlayerRecords(player))
         {
-            Rebuild();
+            OnTopListChanged();
         }
     }
 
     // When the persistent player data changes, for example a player got a new highscore, this class is called.
     public override void OnPlayerDataUpdated(VRCPlayerApi player, PlayerData.Info[] infos)
     {
-        if (_localRestored)
+        if (!_localRestored) return;
+
+        if (AddPlayerRecords(player))
         {
-            Rebuild();
+            OnTopListChanged();
         }
     }
 }
