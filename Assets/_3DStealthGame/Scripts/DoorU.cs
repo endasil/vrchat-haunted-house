@@ -3,24 +3,36 @@
 using Assets._3DStealthGame.Scripts.Enums;
 using UdonSharp;
 using UnityEngine;
+using UnityEngine.AI;
 using VRC.SDKBase;
 
 namespace Assets._3DStealthGame.Scripts
 {
-    [UdonBehaviourSyncMode(BehaviourSyncMode.None)]
+    [UdonBehaviourSyncMode(BehaviourSyncMode.Manual)]
     public class DoorU : Resettable
     {
+        private const float OwnershipTransferWaitSeconds = 1f;
+
         public float openDuration = 1f;
+        [UdonSynced] private bool _openForGhosts;
+        [UdonSynced] private int _openerPlayerId;
         private bool _opened;
         private bool _opening;
         private float _timer;
         private Quaternion _startRot;
         private Quaternion _targetRot;
+        private NavMeshObstacle _navMeshObstacle;
 
         public PillColor PillColor;
         public float FloorAngle = 90;
         public override void Start()
         {
+            _navMeshObstacle = GetComponent<NavMeshObstacle>();
+            if (_navMeshObstacle == null)
+            {
+                Debug.LogError($"DoorU ({gameObject.name}): needs a NavMeshObstacle component on the same GameObject.", gameObject);
+            }
+
             _startRot = transform.localRotation;
             _targetRot = Quaternion.Euler(FloorAngle, _startRot.eulerAngles.y, _startRot.eulerAngles.z);
             base.Start();
@@ -82,6 +94,7 @@ namespace Assets._3DStealthGame.Scripts
             {
                 _opened = true;
                 _opening = false;
+                OpenForGhosts();
             }
         }
 
@@ -91,6 +104,53 @@ namespace Assets._3DStealthGame.Scripts
             _opened = false;
             _timer = 0f;
             transform.localRotation = _startRot;
+
+            if (Networking.IsOwner(gameObject) && _openForGhosts)
+            {
+                CloseForGhosts();
+            }
+        }
+
+        public override void OnDeserialization()
+        {
+            ApplyGhostPassage();
+        }
+
+        public override void OnPlayerLeft(VRCPlayerApi player)
+        {
+            if (!_openForGhosts || player.playerId != _openerPlayerId) return;
+
+            SendCustomEventDelayedSeconds(nameof(_CloseIfOpenerLeft), OwnershipTransferWaitSeconds);
+        }
+
+        public void _CloseIfOpenerLeft()
+        {
+            if (!Networking.IsOwner(gameObject) || !_openForGhosts) return;
+            if (Utilities.IsValid(VRCPlayerApi.GetPlayerById(_openerPlayerId))) return;
+
+            CloseForGhosts();
+        }
+
+        private void OpenForGhosts()
+        {
+            VRCPlayerApi localPlayer = Networking.LocalPlayer;
+            Networking.SetOwner(localPlayer, gameObject);
+            _openForGhosts = true;
+            _openerPlayerId = localPlayer.playerId;
+            RequestSerialization();
+            ApplyGhostPassage();
+        }
+
+        private void CloseForGhosts()
+        {
+            _openForGhosts = false;
+            RequestSerialization();
+            ApplyGhostPassage();
+        }
+
+        private void ApplyGhostPassage()
+        {
+            _navMeshObstacle.enabled = !_openForGhosts;
         }
     }
 }
