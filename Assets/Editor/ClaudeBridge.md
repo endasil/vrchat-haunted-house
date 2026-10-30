@@ -65,6 +65,13 @@ A path is the full hierarchy path, for example `Level A/Room Finish/Room Finsh/D
 | `gettext \| path` | Writes the text of the TextMeshPro component on the object. |
 | `setactive \| path \| on/off` | Turns the object on or off. In edit mode the scene changes, so use it in play mode. |
 | `delete \| path` | Deletes the object and its children, as one Undo step. |
+| `create \| name \| parent [\| primitive]` | Creates an empty object under the parent, as one Undo step. A primitive is `Cube`, `Sphere`, `Capsule`, `Cylinder`, `Plane` or `Quad`. The parent `root` puts the object at the top of the scene. |
+| `instantiate \| prefab asset path \| parent` | Puts a prefab instance under the parent, as one Undo step. The parent `root` puts the object at the top of the scene. |
+| `duplicate \| path` | Copies the object like Edit > Duplicate, as one Undo step. A copy of a prefab instance is also a prefab instance. Writes the path of the copy. |
+| `addcomponent \| path \| TypeName` | Adds the component, as one Undo step. For an UdonSharp behaviour it also adds the UdonBehaviour. Use the full type name when two types have the same name. |
+| `setparent \| path \| parent` | Moves the object under the parent and keeps its world position, as one Undo step. |
+| `transform \| path \| x,y,z \| rx,ry,rz \| sx,sy,sz` | Sets the local position, rotation (Euler angles) and scale, as one Undo step. `-` keeps that value. |
+| `rename \| path \| name` | Renames the object, as one Undo step. |
 | `eyeheight \| metres` | Sets the local player's eye height. Play mode only. |
 | `headcamera \| name [\| fov]` | Renders an image from the local player's head. Default fov 70. Play mode only. |
 | `menu \| Menu/Path` | Runs an Editor menu item. |
@@ -82,5 +89,6 @@ A path is the full hierarchy path, for example `Level A/Room Finish/Room Finsh/D
 - While the ClientSim menu is open, ClientSim raycasts clicks only against the UI layers. `ClientSimMenu.CloseMenu` does nothing until the ClientSim camera stack is ready, so `play` calls it every frame until the menu is closed.
 - Renderer bounds of walls, pillars and wall ends include trim and base parts. The visible surface can be several cm behind the bounds, and a collider can be in front of it. Measure with `raycast` before you place something on a surface.
 - Mirrors show no reflection in `camera` and `view` images in edit mode. Test them in play mode with `headcamera`.
-- After `refresh`, a menu item that adds an UdonSharp component works only when the UdonSharp compile is done. `refresh` waits for it.
+- Build scene objects with `create`, `instantiate`, `duplicate`, `addcomponent`, `transform` and `setfield`. Do not write an editor menu script to build an object. Such a script stays in the project after the object exists.
+- After `refresh`, `addcomponent` for an UdonSharp behaviour works only when the UdonSharp compile is done. `refresh` waits for it.
 - A `play`, `stop` or `refresh` stops a VRChat SDK build or upload. Look at the end of `Editor.log` for `BuildAndUploadMultiPlatform` or upload lines first.

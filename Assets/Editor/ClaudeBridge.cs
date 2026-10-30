@@ -9,6 +9,9 @@ using System.Text;
 using UnityEditor;
 using UnityEditor.Compilation;
 
+using UdonSharp;
+using UdonSharpEditor;
+
 using UnityEngine;
 
 using VRC.SDKBase;
@@ -145,6 +148,8 @@ public static class ClaudeBridge
 
     private static void Execute(string[] args)
     {
+        // Unity puts all changes in one editor frame into one Undo step, and a run executes many commands per frame.
+        Undo.IncrementCurrentGroup();
         switch (args[0])
         {
             case "play":
@@ -248,6 +253,27 @@ public static class ClaudeBridge
                 string deletedPath = GetPath(deleted.transform);
                 Undo.DestroyObjectImmediate(deleted);
                 Append("deleted " + deletedPath);
+                break;
+            case "create":
+                CreateObject(Arg(args, 1), Arg(args, 2), args.Length > 3 ? args[3] : null);
+                break;
+            case "instantiate":
+                InstantiatePrefab(Arg(args, 1), Arg(args, 2));
+                break;
+            case "duplicate":
+                DuplicateObject(FindObject(Arg(args, 1)));
+                break;
+            case "addcomponent":
+                AddComponent(FindObject(Arg(args, 1)), Arg(args, 2));
+                break;
+            case "setparent":
+                SetParent(FindObject(Arg(args, 1)), Arg(args, 2));
+                break;
+            case "transform":
+                SetLocalTransform(FindObject(Arg(args, 1)), Arg(args, 2), Arg(args, 3), Arg(args, 4));
+                break;
+            case "rename":
+                RenameObject(FindObject(Arg(args, 1)), Arg(args, 2));
                 break;
             case "eyeheight":
                 RequirePlayMode();
@@ -1031,6 +1057,123 @@ public static class ClaudeBridge
             count++;
         }
         Append(count + " objects");
+    }
+
+    private const string SceneRoot = "root";
+
+    // The parent "root" puts the object at the top of the active scene.
+    private static Transform FindParent(string parentPath)
+    {
+        if (parentPath == SceneRoot) return null;
+        return FindObject(parentPath).transform;
+    }
+
+    private static void CreateObject(string name, string parentPath, string primitiveName)
+    {
+        Transform parent = FindParent(parentPath);
+        GameObject created;
+        if (primitiveName == null)
+        {
+            created = new GameObject(name);
+        }
+        else
+        {
+            var primitiveType = (PrimitiveType)Enum.Parse(typeof(PrimitiveType), primitiveName, true);
+            created = GameObject.CreatePrimitive(primitiveType);
+            created.name = name;
+        }
+        created.transform.SetParent(parent, false);
+        Undo.RegisterCreatedObjectUndo(created, "Create " + name);
+        Append("created " + GetPath(created.transform));
+    }
+
+    private static void InstantiatePrefab(string prefabPath, string parentPath)
+    {
+        GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+        if (prefab == null)
+        {
+            throw new Exception("no prefab at '" + prefabPath + "'");
+        }
+
+        var instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
+        instance.transform.SetParent(FindParent(parentPath), false);
+        Undo.RegisterCreatedObjectUndo(instance, "Instantiate " + prefab.name);
+        Append("created " + GetPath(instance.transform));
+    }
+
+    // Keeps the prefab connection of a prefab instance.
+    private static void DuplicateObject(GameObject original)
+    {
+        Selection.activeGameObject = original;
+        Unsupported.DuplicateGameObjectsUsingPasteboard();
+        Append("created " + GetPath(Selection.activeGameObject.transform));
+    }
+
+    // UdonSharpUndo.AddComponent also adds the UdonBehaviour that runs an UdonSharp behaviour.
+    private static void AddComponent(GameObject target, string typeName)
+    {
+        Type type = FindComponentType(typeName);
+        if (typeof(UdonSharpBehaviour).IsAssignableFrom(type))
+        {
+            UdonSharpUndo.AddComponent(target, type);
+        }
+        else
+        {
+            Undo.AddComponent(target, type);
+        }
+        Append("added " + type.Name + " to " + GetPath(target.transform));
+    }
+
+    private static Type FindComponentType(string typeName)
+    {
+        Type[] matches = AppDomain.CurrentDomain.GetAssemblies()
+            .SelectMany(assembly => assembly.GetTypes())
+            .Where(type => (type.Name == typeName || type.FullName == typeName)
+                && typeof(Component).IsAssignableFrom(type) && !type.IsAbstract)
+            .ToArray();
+        if (matches.Length == 0)
+        {
+            throw new Exception("no component type '" + typeName + "'");
+        }
+        if (matches.Length > 1)
+        {
+            throw new Exception("more than one type '" + typeName + "': " + string.Join(", ", matches.Select(type => type.FullName)) + ". Use the full name.");
+        }
+        return matches[0];
+    }
+
+    private static void SetParent(GameObject target, string parentPath)
+    {
+        Undo.SetTransformParent(target.transform, FindParent(parentPath), "Set parent of " + target.name);
+        Append("moved to " + GetPath(target.transform));
+    }
+
+    // Local values. A "-" keeps that value.
+    private static void SetLocalTransform(GameObject target, string position, string rotation, string scale)
+    {
+        Transform transform = target.transform;
+        Undo.RecordObject(transform, "Transform " + target.name);
+        if (position != "-")
+        {
+            transform.localPosition = ParseVector3(position);
+        }
+        if (rotation != "-")
+        {
+            transform.localEulerAngles = ParseVector3(rotation);
+        }
+        if (scale != "-")
+        {
+            transform.localScale = ParseVector3(scale);
+        }
+        Append(GetPath(transform) + ": local position " + Format(transform.localPosition)
+            + ", rotation " + Format(transform.localEulerAngles) + ", scale " + Format(transform.localScale));
+    }
+
+    private static void RenameObject(GameObject target, string name)
+    {
+        Undo.RecordObject(target, "Rename " + target.name);
+        target.name = name;
+        Append("renamed to " + GetPath(target.transform));
     }
 
     private static Component FindComponent(GameObject target, string typeName)
