@@ -7,10 +7,11 @@ using UnityEngine;
 public class MusicFader : UdonSharpBehaviour
 {
     public float fadeInDuration = 5f;
-    public float maxVolume = 0.7f;
+    public float defaultVolume = 0.6f;
 
     private AudioSource _music;
     private bool _paused;
+    private float _volume;
 
     private bool _fading;
     private float _fadeFrom;
@@ -19,6 +20,8 @@ public class MusicFader : UdonSharpBehaviour
 
     void Start()
     {
+        _volume = defaultVolume;
+
         _music = GetComponent<AudioSource>();
         if (_music == null)
         {
@@ -32,12 +35,6 @@ public class MusicFader : UdonSharpBehaviour
     // Called by EscapeTimer when the local player starts a run.
     public void FadeToFull()
     {
-        if (_music == null)
-        {
-            Debug.LogError($"MusicFader ({gameObject.name}): no AudioSource on this object.");
-            return;
-        }
-
         if (_paused)
         {
             _music.volume = 0f;
@@ -50,17 +47,27 @@ public class MusicFader : UdonSharpBehaviour
             _music.Play();
         }
 
-        FadeTo(maxVolume);
+        FadeTo(_volume);
+    }
+
+    public void SetVolume(float volume)
+    {
+        _volume = volume;
+
+        if (_fading)
+        {
+            _fadeTo = _volume;
+            return;
+        }
+
+        if (_music.isPlaying)
+        {
+            _music.volume = _volume;
+        }
     }
 
     public void PauseMusic()
     {
-        if (_music == null)
-        {
-            Debug.LogError($"MusicFader ({gameObject.name}): no AudioSource on this object.");
-            return;
-        }
-
         if (!_music.isPlaying) return;
 
         _fading = false;

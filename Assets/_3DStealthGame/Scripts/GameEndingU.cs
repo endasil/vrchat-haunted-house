@@ -43,6 +43,8 @@ public class GameEndingU : UdonSharpBehaviour
 
     public float wonMessageDuration = 8f;
 
+    public Transform caughtRespawnPoint;
+
     private const float EndingCanvasDistance = 1.6f;
     
     private bool _isPlayerAtExit;
@@ -179,6 +181,11 @@ public class GameEndingU : UdonSharpBehaviour
         {
             Debug.LogError($"GameEndingU ({gameObject.name}): fog needs to be assigned in the inspector.");
         }
+
+        if (caughtRespawnPoint == null)
+        {
+            Debug.LogError($"GameEndingU ({gameObject.name}): caughtRespawnPoint needs to be assigned in the inspector.", gameObject);
+        }
     }
 
  
@@ -197,9 +204,24 @@ public class GameEndingU : UdonSharpBehaviour
         _spawnRotation = _localPlayer.GetRotation();
     }
 
-    private void TeleportPlayerToSpawn()
+    // Public so ReachedExit can call it delayed. It also places the message canvas, since
+    // that has to wait for the head to arrive at spawn.
+    public void TeleportPlayerToSpawn()
     {
-        _localPlayer.TeleportTo(_spawnPosition, _spawnRotation);
+        TeleportAndPlaceEndingCanvas(_spawnPosition, _spawnRotation);
+    }
+
+    private void TeleportPlayerToCaughtRespawn()
+    {
+        TeleportAndPlaceEndingCanvas(caughtRespawnPoint.position, caughtRespawnPoint.rotation);
+    }
+
+    private void TeleportAndPlaceEndingCanvas(Vector3 position, Quaternion rotation)
+    {
+        _localPlayer.TeleportTo(position, rotation);
+
+        _placeCanvasAttemptsLeft = MaxPlaceCanvasAttempts;
+        SendCustomEventDelayedFrames(nameof(PlaceEndingCanvas), 1);
     }
 
     // Immobilize only turn off control, it doesn't take away the speed the player
@@ -212,10 +234,25 @@ public class GameEndingU : UdonSharpBehaviour
     }
 
 
+    // In VR the head can lag behind the body for a few frames after a teleport. Placing
+    // the canvas before it arrives leaves the message floating far away from the player.
+    private const float MaxHeadDistanceFromBody = 3f;
+    private const int MaxPlaceCanvasAttempts = 60;
+    private int _placeCanvasAttemptsLeft;
+
     public void PlaceEndingCanvas()
     {
         Transform canvas = _endingMessageGroup.transform;
         VRCPlayerApi.TrackingData head = _localPlayer.GetTrackingData(VRCPlayerApi.TrackingDataType.Head);
+
+        // Gives up waiting after a while and places it at the head anyway, since that is where the player sees from.
+        bool isHeadAtBody = Vector3.Distance(head.position, _localPlayer.GetPosition()) < MaxHeadDistanceFromBody;
+        _placeCanvasAttemptsLeft--;
+        if (!isHeadAtBody && _placeCanvasAttemptsLeft > 0)
+        {
+            SendCustomEventDelayedFrames(nameof(PlaceEndingCanvas), 1);
+            return;
+        }
 
         // Only the direction they're facing, so looking up or down while it's placed
         // doesn't cause tilt .
@@ -239,9 +276,11 @@ public class GameEndingU : UdonSharpBehaviour
 
         wonMessageText.text = BuildWonMessage(runTime, hasBestTime, bestTime, isNewBest, leaderboardPosition);
 
-        // Before ShowEnding, so PlaceEndingCanvas puts the message in front of the player at spawn.
-        TeleportPlayerToSpawn();
         ShowEnding(endScreenCanvasGroup, _wonMessageGroup, wonMessageDuration, exitAudio);
+
+        // ReachedExit runs from the exit trigger, which is inside the physics step. Teleporting
+        // there in VR left the head stuck halfway to spawn, so it waits until Update.
+        SendCustomEventDelayedFrames(nameof(TeleportPlayerToSpawn), 1);
     }
 
     private string BuildWonMessage(float runTime, bool hasBestTime, float bestTime, bool isNewBest, int leaderboardPosition)
@@ -278,7 +317,7 @@ public class GameEndingU : UdonSharpBehaviour
 
         caughtMessageText.text = BuildOwnDeathMessage(ghostType);
 
-        TeleportPlayerToSpawn();
+        TeleportPlayerToCaughtRespawn();
         ShowEnding(caughtScreenCanvasGroup, _deathMessageGroup, displayImageDuration, caughtAudio);
     }
 
@@ -288,8 +327,6 @@ public class GameEndingU : UdonSharpBehaviour
         _endingMessageGroup = messageGroup;
         _endingDisplayDuration = displayDuration;
 
-        // PlaceEndingCanvas reads the head position, which updates one frame after TeleportPlayerToSpawn.
-        SendCustomEventDelayedFrames(nameof(PlaceEndingCanvas), 1);
         audioSource.Play();
         screenGroup.alpha = 1;
     }
@@ -320,6 +357,16 @@ public class GameEndingU : UdonSharpBehaviour
         }
 
         return messages[Random.Range(0, messages.Length)];
+    }
+
+    public override void OnPlayerRespawn(VRCPlayerApi player)
+    {
+        if (!player.isLocal) return;
+        if (_isPlayerAtExit || _isPlayerCaught) return;
+
+        music.PauseMusic();
+        fog.Clear();
+        resetManager.ResetAll();
     }
 
     public void Update()

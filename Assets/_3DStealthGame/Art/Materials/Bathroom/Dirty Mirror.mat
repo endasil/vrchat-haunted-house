@@ -1,0 +1,59 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Dirty Mirror
+  m_Shader: {fileID: 4800000, guid: 6e4805a9d2f3c654aad302dc7b2edcd0, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _CrackMap:
+        m_Texture: {fileID: 2800000, guid: 68cb3c2f0ee1dfa4a93994cbe79d0f20, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MainTex:
+        m_Texture: {fileID: 2800000, guid: 8416b46c71de4b1479e04f4341995028, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _ReflectionTex0:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _ReflectionTex1:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _AmbientAmount: 0.15
+    - _BlurAmount: 0.008
+    - _CrackStrength: 1.5
+    - _DesilverAmount: 0.5
+    - _Distortion: 0.01
+    - _EdgeWidth: 0.2
+    - _FilmGlow: 0.01
+    - _GrimeAmount: 0.5
+    - _GrimeScale: 5
+    - _HazeAmount: 0.1
+    m_Colors:
+    - _CrackColor: {r: 0.9, g: 0.95, b: 0.9, a: 1}
+    - _DesilverColor: {r: 0.079999976, g: 0.06999998, b: 0.049999982, a: 1}
+    - _HazeColor: {r: 0.5, g: 0.52, b: 0.47, a: 1}
+    - _ReflectionTint: {r: 0.6, g: 0.65, b: 0.6, a: 1}
+  m_BuildTextureStacks: []
