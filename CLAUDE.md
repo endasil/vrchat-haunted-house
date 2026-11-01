@@ -59,3 +59,33 @@ The two hook up in `PlayerUI.OnPlayerRestored`: it grabs `PlayerInventory` off t
 `LateUpdate` re-places the canvas in front of the head every frame and pins the pill row and timer to fixed spots in view. The caught/end panels are only re-fitted when field of view or aspect changes. VRChat can't draw screen-space canvases in VR, so the HUD is a world-space canvas and all placement is worked out from the field of view: on desktop from `VRCCameraSettings.ScreenCamera`, in VR from the `vrFieldOfView` / `vrHudFieldOfView` inspector fields.
 
 `VolumeSettings` is on two copies of the Volume Sign (`Start Room Signs/Volume Sign` and `Room in the sky/Sky Room Signs/Volume Sign`). When a player moves a slider on one sign, `ShowLinkedVolumes` sets the same values on the signs in `linkedSettings`. Each sign is a world-space canvas with three UI sliders (seeker, music, other) on the `Default` layer (VRChat ignores clicks on the `UI` layer while its menu is closed). A wall collider in front of the canvas also blocks the clicks, so the colliders of the two wall pieces behind the sign are trimmed to end behind it. Each slider's `onValueChanged` calls `SendCustomEvent` on the behaviour. A slider value is the AudioSource volume (100% = 1.0) for every source in its group: `seekerAudio` for the seekers, `otherAudio` for the other scene sources plus the local player's player-object sources. In `Start`, each slider is set to the current volume of its group (the first source's volume, or `MusicFader.defaultVolume`). `Assets/Editor/VolumeSettingsAudioCollector.cs` fills `seekerAudio`, `musicFader`, `otherAudio` and `linkedSettings` each time Unity processes the scene (entering play mode and building). It puts a source under a `SeekerGhost` in `seekerAudio`, and every other source except the music and the player-object template in `otherAudio`. These fields are hidden in the inspector. The collector logs an error when the sources in one group do not all have the same volume. Music goes through `MusicFader.SetVolume`, because `MusicFader` sets the music volume itself. The values are saved with `PlayerData` (`PlayerDataKeys.Saved*Volume`) 1 s after the last change and loaded in `OnPlayerRestored`.
+
+### Fail loudly
+
+When a required reference is null, do not silently `return`. In UdonSharp, `throw` does not work. Call `Debug.LogError` with a clear message and pass `gameObject` as the second argument, so a click on the log line selects the object. Then `return`.
+
+### Ternaries
+
+Do not put a check and a calculation together on one `? :` line. Set a default value first, then use an `if` block with braces.
+
+Bad:
+
+    float t = _fadeDuration > 0f ? Mathf.Clamp01(_fadeElapsed / _fadeDuration) : 1f;
+
+Good:
+
+    float t = 1f;
+    if (_fadeDuration > 0f)
+    {
+        t = Mathf.Clamp01(_fadeElapsed / _fadeDuration);
+    }
+
+A short ternary that only chooses between two values, such as `_isInVR ? a : b` in `PlayerUI`, is allowed. Ask before you rewrite one.
+
+### File paths in replies
+
+When you name a file that you made or changed, write its full Windows path as plain text, for example `C:\dev\unity\vrchat\vrchat-haunted-house\Presentation\HauntedHouse_VRChat_v2.odp`. A link with only the file name as its label, or a relative path, is not enough.
+
+### Deleted or moved files in git status
+
+Do not call a `D` line in `git status` a deletion until you know that the file was not moved. A move that is not staged shows as a `D` line on the old path and a `??` line on the new path. To check, run `git add -A` and then `git status`, or look on disk for a file with the same name in a different folder.
