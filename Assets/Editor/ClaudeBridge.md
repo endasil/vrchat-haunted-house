@@ -51,7 +51,7 @@ A path is the full hierarchy path, for example `Level A/Room Finish/Room Finsh/D
 | `find \| text` | Writes the path of every scene object whose name contains the text (case is ignored). |
 | `withcomponent \| TypeName` | Writes the path of every scene object with a component of that type, for example `VRCMirrorReflection`. |
 | `fields \| path \| TypeName` | Writes every serialized field of the component, for example `fields \| Mirror \| MeshRenderer`. |
-| `setfield \| path \| TypeName \| field \| value` | Sets one serialized field, as one Undo step. Colours and vectors are comma-separated numbers. A rotation takes Euler angles, for example `setfield \| Mirror \| Transform \| m_LocalRotation \| 0,180,0`. A reference takes an asset path (`Assets/...`), a shader name or `null`. Example: `setfield \| Mirror \| MeshRenderer \| m_Materials.Array.data[0] \| Assets/.../Dirty Mirror.mat`. |
+| `setfield \| path \| TypeName \| field \| value` | Sets one serialized field, as one Undo step. Colours and vectors are comma-separated numbers. A rotation takes Euler angles, for example `setfield \| Mirror \| Transform \| m_LocalRotation \| 0,180,0`. A reference takes an asset path (`Assets/...`), a shader name or `null`. In a string, `\n` is a line break. Example: `setfield \| Mirror \| MeshRenderer \| m_Materials.Array.data[0] \| Assets/.../Dirty Mirror.mat`. |
 | `call \| path \| TypeName \| method [\| arg ...]` | Calls a method on the component, also a private one, and writes the return value. An argument can be a number, `true`/`false`, comma-separated numbers for a vector or colour, an enum name, an object path, an asset path, or `maincamera`. |
 | `material \| assetPath` | Writes the material's shader and every shader property value. |
 | `setmaterial \| assetPath \| property \| value` | Sets one material property and saves the material to disk. The property `shader` takes a shader name. |
@@ -72,6 +72,8 @@ A path is the full hierarchy path, for example `Level A/Room Finish/Room Finsh/D
 | `setparent \| path \| parent` | Moves the object under the parent and keeps its world position, as one Undo step. |
 | `transform \| path \| x,y,z \| rx,ry,rz \| sx,sy,sz` | Sets the local position, rotation (Euler angles) and scale, as one Undo step. `-` keeps that value. |
 | `rename \| path \| name` | Renames the object, as one Undo step. |
+| `setlayer \| path \| layer` | Sets the layer of the object and all its children, as one Undo step. The layer is a name or a number. |
+| `layername \| index \| name` | Sets the name of a user layer (22 to 31) in the Tags and Layers settings. VRChat reserves the layers below 22. |
 | `eyeheight \| metres` | Sets the local player's eye height. Play mode only. |
 | `headcamera \| name [\| fov]` | Renders an image from the local player's head. Default fov 70. Play mode only. |
 | `menu \| Menu/Path` | Runs an Editor menu item. |

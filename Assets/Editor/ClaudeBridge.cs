@@ -48,6 +48,8 @@ public static class ClaudeBridge
     private const double CompileTimeout = 600.0;
     private const float MaxRayDistance = 100f;
     private const int MaxHitsWritten = 20;
+    private const int FirstUserLayer = 22;
+    private const int LastLayer = 31;
     private const BindingFlags AnyInstance = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
     private const double ScreenshotTimeout = 10.0;
     private const int ImageWidth = 1280;
@@ -274,6 +276,12 @@ public static class ClaudeBridge
                 break;
             case "rename":
                 RenameObject(FindObject(Arg(args, 1)), Arg(args, 2));
+                break;
+            case "setlayer":
+                SetLayer(FindObject(Arg(args, 1)), ParseLayer(Arg(args, 2)));
+                break;
+            case "layername":
+                SetLayerName(int.Parse(Arg(args, 1), CultureInfo.InvariantCulture), Arg(args, 2));
                 break;
             case "eyeheight":
                 RequirePlayMode();
@@ -1176,6 +1184,45 @@ public static class ClaudeBridge
         Append("renamed to " + GetPath(target.transform));
     }
 
+    private static int ParseLayer(string value)
+    {
+        if (int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int number)) return number;
+
+        int layer = LayerMask.NameToLayer(value);
+        if (layer < 0)
+        {
+            throw new Exception("no layer named '" + value + "'");
+        }
+        return layer;
+    }
+
+    private static void SetLayer(GameObject target, int layer)
+    {
+        Transform[] objects = target.GetComponentsInChildren<Transform>(true);
+        Undo.RecordObjects(objects.Select(t => (UnityEngine.Object)t.gameObject).ToArray(), "Set layer of " + target.name);
+        foreach (Transform child in objects)
+        {
+            child.gameObject.layer = layer;
+        }
+        Append("set layer " + layer + " (" + LayerMask.LayerToName(layer) + ") on " + objects.Length + " objects under " + GetPath(target.transform));
+    }
+
+    private static void SetLayerName(int layer, string name)
+    {
+        if (layer < FirstUserLayer || layer > LastLayer)
+        {
+            throw new Exception("layer " + layer + " is not a user layer. VRChat reserves the layers below " + FirstUserLayer);
+        }
+
+        var tagManager = new SerializedObject(AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/TagManager.asset")[0]);
+        SerializedProperty layerName = tagManager.FindProperty("layers").GetArrayElementAtIndex(layer);
+        string before = layerName.stringValue;
+        layerName.stringValue = name;
+        tagManager.ApplyModifiedProperties();
+        AssetDatabase.SaveAssets();
+        Append("layer " + layer + ": '" + before + "' -> '" + name + "'");
+    }
+
     private static Component FindComponent(GameObject target, string typeName)
     {
         Component component = target.GetComponents<Component>().FirstOrDefault(c => c != null && c.GetType().Name == typeName);
@@ -1221,7 +1268,7 @@ public static class ClaudeBridge
                 property.boolValue = bool.Parse(value);
                 break;
             case SerializedPropertyType.String:
-                property.stringValue = value;
+                property.stringValue = value.Replace("\\n", "\n");
                 break;
             case SerializedPropertyType.Enum:
                 int index = Array.IndexOf(property.enumNames, value);
