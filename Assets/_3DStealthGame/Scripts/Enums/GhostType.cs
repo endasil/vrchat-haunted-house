@@ -5,6 +5,7 @@ namespace Assets._3DStealthGame.Scripts.Enums
         None = -1,
         Butler,
         Seeker,
-        Gargoyle
+        Gargoyle,
+        House
     }
 }

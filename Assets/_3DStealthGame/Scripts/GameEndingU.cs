@@ -105,6 +105,22 @@ public class GameEndingU : UdonSharpBehaviour
         "[Player] was dreaddevoured by the Gargoyle. Bones and all.",
     };
 
+    private string[] _houseMessages = new string[]
+    {
+        "[Player] was shingleswallowed by the House. It does not like guests upstairs.",
+        "[Player] was rafterwrapped by the House and tucked in with the bats.",
+        "[Player] was chimneysnatched by the House. The flue was hungry.",
+        "[Player] was gutterguzzled by the House during a light drizzle.",
+        "[Player] was slatesmothered by the House, which keeps the attic private.",
+        "[Player] was eavesdropped by the House. Literally.",
+        "[Player] was weathervaned by the House and now points north forever.",
+        "[Player] was belfrybitten by the House. The bats send their regards.",
+        "[Player] was tilegulped by the House. Nobody goes on the roof.",
+        "[Player] was moonsnatched off the roof by the House. The moon did not object.",
+        "[Player] was atticabsorbed by the House, which added them to the collection.",
+        "[Player] was ridgerattled by the House until they stopped asking questions.",
+    };
+
     private Vector3 _spawnPosition;
     private Quaternion _spawnRotation;
     private VRCPlayerApi _localPlayer;
@@ -336,6 +352,7 @@ public class GameEndingU : UdonSharpBehaviour
         if (ghostType == GhostType.Butler) return _butlerMessages;
         if (ghostType == GhostType.Seeker) return _seekerMessages;
         if (ghostType == GhostType.Gargoyle) return _gargoyleMessages;
+        if (ghostType == GhostType.House) return _houseMessages;
         return null;
     }
 
