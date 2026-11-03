@@ -60,6 +60,10 @@ public static class ClaudeBridge
     private static readonly string OutputFile = Path.Combine(BridgeDir, "output.txt");
     private static readonly string ConsoleFile = Path.Combine(BridgeDir, "console.log");
     private static readonly object ConsoleLock = new object();
+    private static readonly HashSet<string> CommandsThatNeedRunningGame = new HashSet<string>
+    {
+        "wait", "screenshot", "teleport", "teleportfront", "click", "trigger",
+    };
 
     static ClaudeBridge()
     {
@@ -152,8 +156,16 @@ public static class ClaudeBridge
     {
         // Unity puts all changes in one editor frame into one Undo step, and a run executes many commands per frame.
         Undo.IncrementCurrentGroup();
+        if (CommandsThatNeedRunningGame.Contains(args[0]))
+        {
+            WarnIfPaused();
+        }
         switch (args[0])
         {
+            case "pause":
+                Append("paused before: " + EditorApplication.isPaused);
+                EditorApplication.isPaused = Arg(args, 1) == "on";
+                break;
             case "play":
                 EditorApplication.isPlaying = true;
                 StartWait(WaitPlay, StateChangeTimeout);
@@ -422,13 +434,14 @@ public static class ClaudeBridge
             }
             if (kind == WaitMenuClose)
             {
-                Append("ClientSim started, ClientSim menu closed");
+                Append("ClientSim started, ClientSim menu closed, paused: " + EditorApplication.isPaused);
             }
             return true;
         }
 
         if (now < until) return false;
 
+        WarnIfPaused();
         Append("ERROR timed out waiting for " + kind);
         ClearWait();
         return true;
@@ -1582,6 +1595,14 @@ public static class ClaudeBridge
         if (!Application.isPlaying)
         {
             throw new Exception("this command needs play mode");
+        }
+    }
+
+    private static void WarnIfPaused()
+    {
+        if (Application.isPlaying && EditorApplication.isPaused)
+        {
+            Append("WARNING the game is paused. Use 'pause | off' to run it.");
         }
     }
 

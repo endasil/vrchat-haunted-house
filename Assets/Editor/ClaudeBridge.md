@@ -25,8 +25,9 @@ A path is the full hierarchy path, for example `Level A/Room Finish/Room Finsh/D
 
 | Command | What it does |
 |---|---|
-| `play` | Enters play mode, waits until `Networking.IsNetworkSettled` is true and 1 s more (ClientSim has spawned the local player and started Udon), then closes the ClientSim menu with `ClientSimMenu.CloseMenu`. |
+| `play` | Enters play mode, waits until `Networking.IsNetworkSettled` is true and 1 s more (ClientSim has spawned the local player and started Udon), then closes the ClientSim menu with `ClientSimMenu.CloseMenu`. Writes whether the game is paused. |
 | `stop` | Leaves play mode and waits until edit mode is back. |
+| `pause \| on/off` | Pauses the game or runs it. Writes the state it had before. Do not use `menu \| Edit/Pause`: that menu item toggles pause. |
 | `refresh` | Runs `AssetDatabase.Refresh` and waits for the C# compile and the UdonSharp compile. Timeout 600 s. |
 | `click` | Clicks like the desktop player in ClientSim: a ray from the centre of the player camera. Writes every object the ray hits, nearest first, then which object ClientSim clicks. Play mode only. Aim with `teleport`: the camera is level, at the height that `headcamera` writes. |
 | `trigger \| left/right [\| count]` | Presses and releases the trigger of that hand count times (default 1) through ClientSim's input, so Udon gets `InputUse` as from a real press. All presses happen in the same frame. A right press also clicks the object under the camera ray. Play mode only. |
@@ -90,7 +91,8 @@ A path is the full hierarchy path, for example `Level A/Room Finish/Room Finsh/D
 - Test anything pressable with `click`. `event | path | _interact` calls Interact directly and skips the raycast, so it passes when a collider in front blocks the click.
 - While the ClientSim menu is open, ClientSim raycasts clicks only against the UI layers. `ClientSimMenu.CloseMenu` does nothing until the ClientSim camera stack is ready, so `play` calls it every frame until the menu is closed.
 - Renderer bounds of walls, pillars and wall ends include trim and base parts. The visible surface can be several cm behind the bounds, and a collider can be in front of it. Measure with `raycast` before you place something on a surface.
-- Mirrors show no reflection in `camera` and `view` images in edit mode. Test them in play mode with `headcamera`.
+- Mirrors show no reflection in `camera` and `view` images in edit mode. In play mode, `camera` and `headcamera` images show the reflection while the game runs.
+- A paused game renders no frames and fires no triggers. `screenshot` then times out, and a teleport into a room trigger does not fire `OnPlayerTriggerEnter`. `wait`, `screenshot`, `teleport`, `teleportfront`, `click` and `trigger` write a `WARNING` line when the game is paused, and so does a timeout. The Pause button can be on before `play`. Unity then pauses after the first frame.
 - Build scene objects with `create`, `instantiate`, `duplicate`, `addcomponent`, `transform` and `setfield`. Do not write an editor menu script to build an object. Such a script stays in the project after the object exists.
 - After `refresh`, `addcomponent` for an UdonSharp behaviour works only when the UdonSharp compile is done. `refresh` waits for it.
 - A `play`, `stop` or `refresh` stops a VRChat SDK build or upload. Look at the end of `Editor.log` for `BuildAndUploadMultiPlatform` or upload lines first.
